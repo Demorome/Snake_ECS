@@ -21,7 +21,7 @@ public class PlayerController : MoonTools.ECS.System
 	{
 		PlayerFilter =
 		FilterBuilder
-		.Include<Player>()
+		.Include<PlayerIndex>()
 		.Include<Position>()
 		.Build();
 	}
@@ -31,7 +31,7 @@ public class PlayerController : MoonTools.ECS.System
 		var player = World.CreateEntity();
 		World.Set(player, new Position(Dimensions.GAME_W * 0.47f + index * 48.0f, Dimensions.GAME_H * 0.25f));
 		World.Set(player, new SpriteAnimation(index == 0 ? Content.SpriteAnimations.Char_Walk_Down : Content.SpriteAnimations.Char2_Walk_Down, 0));
-		World.Set(player, new Player(index));
+		World.Set(player, new PlayerIndex(index));
 		World.Set(player, new Rectangle(-8, -8, 16, 16));
 		World.Set(player, new CanInteract());
 		World.Set(player, new CanInspect());
@@ -67,7 +67,7 @@ public class PlayerController : MoonTools.ECS.System
 
 		foreach (var entity in PlayerFilter.Entities)
 		{
-			var playerIndex = Get<Player>(entity).Index;
+			var playerIndex = Get<PlayerIndex>(entity).Index;
 			var direction = Vector2.Zero;
 
 			#region Input

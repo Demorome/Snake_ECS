@@ -40,7 +40,7 @@ public class Input : MoonTools.ECS.System
 	public Input(World world, Inputs inputs) : base(world)
 	{
 		Inputs = inputs;
-		PlayerFilter = FilterBuilder.Include<Player>().Build();
+		PlayerFilter = FilterBuilder.Include<PlayerIndex>().Build();
 
 		GameLoopManipulator = new GameLoopManipulator(world);
 
@@ -73,7 +73,7 @@ public class Input : MoonTools.ECS.System
 	{
 		foreach (var playerEntity in PlayerFilter.Entities)
 		{
-			var index = Get<Player>(playerEntity).Index;
+			var index = Get<PlayerIndex>(playerEntity).Index;
 			var controlSet = index == 0 ? PlayerOneKeyboard : PlayerTwoKeyboard;
 			var altControlSet = index == 0 ? PlayerOneGamepad : PlayerTwoGamepad;
 

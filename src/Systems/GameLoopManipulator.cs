@@ -24,7 +24,7 @@ public class GameLoopManipulator : MoonTools.ECS.Manipulator
 	string[] ScoreStrings;
 	public GameLoopManipulator(World world) : base(world)
 	{
-		PlayerFilter = FilterBuilder.Include<Player>().Build();
+		PlayerFilter = FilterBuilder.Include<PlayerIndex>().Build();
 		ScoreFilter = FilterBuilder.Include<Score>().Build();
 		GameTimerFilter = FilterBuilder.Include<RollAndCash.Components.GameTimer>().Build();
 		ScoreScreenFilter = FilterBuilder.Include<IsScoreScreen>().Build();
@@ -76,7 +76,7 @@ public class GameLoopManipulator : MoonTools.ECS.Manipulator
 		// Spawn Players + HUD entities
 		foreach (var player in PlayerFilter.Entities)
 		{
-			var playerIndex = Get<Player>(player).Index;
+			var playerIndex = Get<PlayerIndex>(player).Index;
 			var score = Get<Score>(OutRelationSingleton<HasScore>(player)).Value;
 			var x = Dimensions.GAME_W * 0.5f - 64.0f + 128.0f * playerIndex;
 			var y = Dimensions.GAME_H * .7f;

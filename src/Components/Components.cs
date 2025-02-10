@@ -8,7 +8,7 @@ namespace RollAndCash.Components;
 public readonly record struct Rectangle(int X, int Y, int Width, int Height);
 public readonly record struct DrawAsRectangle();
 
-public readonly record struct Player(int Index);
+public readonly record struct PlayerIndex(int Index);
 //public readonly record struct MaxSpeed(float Value);
 public readonly record struct Solid();
 public readonly record struct TouchingSolid();
