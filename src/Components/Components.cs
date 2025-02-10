@@ -10,6 +10,15 @@ public readonly record struct DrawAsRectangle();
 
 public readonly record struct PlayerIndex(int Index);
 //public readonly record struct MaxSpeed(float Value);
+
+public readonly record struct MovementTimer(float TimeLeftInSecs, float Max)
+{
+    public float PercentRemaining => TimeLeftInSecs / Max;
+    public MovementTimer(float time) : this(time, time) { }
+}
+
+public readonly record struct TilePosition(int X, int Y);
+
 public readonly record struct Solid();
 public readonly record struct TouchingSolid();
 public readonly record struct Score(int Value);

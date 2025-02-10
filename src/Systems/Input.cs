@@ -12,7 +12,6 @@ public struct InputState
 	public ButtonState Right { get; set; }
 	public ButtonState Up { get; set; }
 	public ButtonState Down { get; set; }
-	public ButtonState Interact { get; set; }
 }
 
 public class ControlSet
@@ -21,7 +20,6 @@ public class ControlSet
 	public VirtualButton Right { get; set; } = new EmptyButton();
 	public VirtualButton Up { get; set; } = new EmptyButton();
 	public VirtualButton Down { get; set; } = new EmptyButton();
-	public VirtualButton Interact { get; set; } = new EmptyButton();
 }
 
 public class Input : MoonTools.ECS.System
@@ -48,25 +46,21 @@ public class Input : MoonTools.ECS.System
 		PlayerOneKeyboard.Down = Inputs.Keyboard.Button(KeyCode.S);
 		PlayerOneKeyboard.Left = Inputs.Keyboard.Button(KeyCode.A);
 		PlayerOneKeyboard.Right = Inputs.Keyboard.Button(KeyCode.D);
-		PlayerOneKeyboard.Interact = Inputs.Keyboard.Button(KeyCode.Space);
 
 		PlayerOneGamepad.Up = Inputs.GetGamepad(0).LeftYDown;
 		PlayerOneGamepad.Down = Inputs.GetGamepad(0).LeftYUp;
 		PlayerOneGamepad.Left = Inputs.GetGamepad(0).LeftXLeft;
 		PlayerOneGamepad.Right = Inputs.GetGamepad(0).LeftXRight;
-		PlayerOneGamepad.Interact = Inputs.GetGamepad(0).A;
 
 		PlayerTwoKeyboard.Up = Inputs.Keyboard.Button(KeyCode.Up);
 		PlayerTwoKeyboard.Down = Inputs.Keyboard.Button(KeyCode.Down);
 		PlayerTwoKeyboard.Left = Inputs.Keyboard.Button(KeyCode.Left);
 		PlayerTwoKeyboard.Right = Inputs.Keyboard.Button(KeyCode.Right);
-		PlayerTwoKeyboard.Interact = Inputs.Keyboard.Button(KeyCode.Return);
 
 		PlayerTwoGamepad.Up = Inputs.GetGamepad(1).LeftYDown;
 		PlayerTwoGamepad.Down = Inputs.GetGamepad(1).LeftYUp;
 		PlayerTwoGamepad.Left = Inputs.GetGamepad(1).LeftXLeft;
 		PlayerTwoGamepad.Right = Inputs.GetGamepad(1).LeftXRight;
-		PlayerTwoGamepad.Interact = Inputs.GetGamepad(1).A;
 	}
 
 	public override void Update(TimeSpan timeSpan)
@@ -91,7 +85,6 @@ public class Input : MoonTools.ECS.System
 			Right = controlSet.Right.State | altControlSet.Right.State,
 			Up = controlSet.Up.State | altControlSet.Up.State,
 			Down = controlSet.Down.State | altControlSet.Down.State,
-			Interact = controlSet.Interact.State | altControlSet.Interact.State
 		};
 	}
 }
