@@ -96,7 +96,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			{
 				var position = Get<Position>(entity);
 				var rectangle = Get<Rectangle>(entity);
-				var orientation = Has<Orientation>(entity) ? Get<Orientation>(entity).Angle : 0.0f;
+				var orientation = /*Has<Orientation>(entity) ? Get<Orientation>(entity).Angle :*/ 0.0f;
 				var color = Has<ColorBlend>(entity) ? Get<ColorBlend>(entity).Color : Color.White;
 				var depth = -2f;
 				if (Has<Depth>(entity))
@@ -110,9 +110,6 @@ public class Renderer : MoonTools.ECS.Renderer
 
 			foreach (var entity in SpriteAnimationFilter.Entities)
 			{
-				if (HasOutRelation<DontDraw>(entity))
-					continue;
-
 				var position = Get<Position>(entity);
 				var animation = Get<SpriteAnimation>(entity);
 				var sprite = animation.CurrentSprite;
