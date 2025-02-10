@@ -30,33 +30,11 @@ public class DirectionalAnimation : MoonTools.ECS.System
 
             if (direction.X > 0)
             {
-                if (direction.Y > 0)
-                {
-                    animation = SpriteAnimationInfo.FromID(animations.DownRight);
-                }
-                else if (direction.Y < 0)
-                {
-                    animation = SpriteAnimationInfo.FromID(animations.UpRight);
-                }
-                else
-                {
-                    animation = SpriteAnimationInfo.FromID(animations.Right);
-                }
+                animation = SpriteAnimationInfo.FromID(animations.Right);
             }
             else if (direction.X < 0)
             {
-                if (direction.Y > 0)
-                {
-                    animation = SpriteAnimationInfo.FromID(animations.DownLeft);
-                }
-                else if (direction.Y < 0)
-                {
-                    animation = SpriteAnimationInfo.FromID(animations.UpLeft);
-                }
-                else
-                {
-                    animation = SpriteAnimationInfo.FromID(animations.Left);
-                }
+                animation = SpriteAnimationInfo.FromID(animations.Left);
             }
             else
             {
@@ -74,18 +52,7 @@ public class DirectionalAnimation : MoonTools.ECS.System
                 }
             }
 
-            var velocity = Has<Velocity>(entity) ? (Vector2)Get<Velocity>(entity) : Vector2.Zero;
-
             int framerate = Get<SpriteAnimation>(entity).FrameRate;
-
-            if (Has<AdjustFramerateToSpeed>(entity))
-            {
-                framerate = (int)(velocity.Length() / 20f);
-                if (Has<FunnyRunTimer>(entity))
-                {
-                    framerate = 25;
-                }
-            }
 
             if (direction.LengthSquared() > 0)
             {
