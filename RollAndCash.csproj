@@ -3,12 +3,12 @@
 		<OutputType Condition="'$(Configuration)' == 'Debug'">Exe</OutputType>
 		<OutputType Condition="'$(Configuration)' == 'Release'">WinExe</OutputType>
 		<TargetFramework>net9.0</TargetFramework>
-		<TargetName>RollAndCash</TargetName>
+		<TargetName>Snake</TargetName>
 		<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
 		<GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
-		<StartupObject>RollAndCash.Program</StartupObject>
-		<AssemblyName>RollAndCash</AssemblyName>
-		<RootNamespace>RollAndCash</RootNamespace>
+		<StartupObject>Snake.Program</StartupObject>
+		<AssemblyName>Snake</AssemblyName>
+		<RootNamespace>Snake</RootNamespace>
 		<TargetLatestRuntimePatch>true</TargetLatestRuntimePatch>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<ApplicationIcon />
