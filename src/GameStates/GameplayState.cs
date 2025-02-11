@@ -65,8 +65,10 @@ public class GameplayState : GameState
                    var wall = World.CreateEntity();
                    var newPos = new Vector2(i, j);
                    World.Set(wall, new TilePosition(newPos));
+                   World.Set(wall, new Rectangle(0, 0, GridInfo.PixelCellSize, GridInfo.PixelCellSize));
                    World.Set(wall, new DrawAsRectangle());
-                   Motion.UpdateTilePositionForRectangle(wall, newPos, GridInfo.PixelCellSize, GridInfo.PixelCellSize);
+                   World.Set(wall, new Solid());
+                   //Motion.UpdateTilePosition(wall, newPos);
                 }
                 #endregion
 
@@ -87,6 +89,7 @@ public class GameplayState : GameState
         World.Set(timer, new TextDropShadow(1, 1));*/
 
         var playerOne = PlayerController.SpawnPlayer(0);
+        PlayerController.SpawnTailPart(playerOne);
         //var playerTwo = PlayerController.SpawnPlayer(1);
 
         //World.Relate(playerOne, scoreOne, new HasScore());

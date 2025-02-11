@@ -41,16 +41,7 @@ public class Motion : MoonTools.ECS.System
         Set(e, new TilePosition(newPos));
         Set(e, new PixelPosition(GridInfo.TilePositionToPixelPosition(newPos)));
     }
-
-    public void UpdateTilePositionForRectangle(Entity e, Vector2 newPos, int Width, int Height)
-    {
-        Grid[(int)newPos.X, (int)newPos.Y] = e;
-
-        Set(e, new TilePosition(newPos));
-        var pixelPos = GridInfo.TilePositionToPixelPosition(newPos);
-        Set(e, new Rectangle((int)pixelPos.X, (int)pixelPos.Y, Width, Height));
-    }
-
+    
     // Check if the spot our entity wants to move to is already occupied by a Solid.
     (Entity other, bool hit) CheckSolidCollision(Entity e)
     {
@@ -114,12 +105,26 @@ public class Motion : MoonTools.ECS.System
                             var lowerPos = Get<TilePosition>(tailPart).PositionVector;
                             var upperPos = Get<TilePosition>(upperPart).PositionVector;
 
-                            //Grid[(int)lowerPos.X, (int)lowerPos.Y] = default; // leave a blank space behind     **only needed for debugging
-                            UpdateTilePosition(tailPart, upperPos);
+                            bool hasMoved = true;
+
+                            if (Has<TailPartBecomeActiveNextMovement>(tailPart))
+                            {
+                                // Don't move this yet.
+                                hasMoved = false;
+                                Set(tailPart, new Solid());
+                                Remove<TailPartBecomeActiveNextMovement>(tailPart);
+                            }
+                            else 
+                            {
+                                UpdateTilePosition(tailPart, upperPos);
+                            }
 
                             // Checks for next iteration
                             if (!HasInRelation<TailPart>(tailPart)) {
-                                Grid[(int)lowerPos.X, (int)lowerPos.Y] = default; // leave a blank space behind 
+                                if (hasMoved)
+                                {
+                                    Grid[(int)lowerPos.X, (int)lowerPos.Y] = default; // leave a blank space behind 
+                                }
                                 break;
                             }
                             

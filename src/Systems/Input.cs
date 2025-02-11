@@ -67,7 +67,7 @@ public class Input : MoonTools.ECS.System
 	{
 		foreach (var playerEntity in PlayerFilter.Entities)
 		{
-			var index = Get<PlayerIndex>(playerEntity).Index;
+			var index = Get<PlayerIndex>(playerEntity).Value;
 			var controlSet = index == 0 ? PlayerOneKeyboard : PlayerTwoKeyboard;
 			var altControlSet = index == 0 ? PlayerOneGamepad : PlayerTwoGamepad;
 

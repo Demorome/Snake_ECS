@@ -9,7 +9,7 @@ namespace Snake.Components;
 public readonly record struct Rectangle(int X, int Y, int Width, int Height);
 public readonly record struct DrawAsRectangle();
 
-public readonly record struct PlayerIndex(int Index);
+public readonly record struct PlayerIndex(int Value);
 //public readonly record struct MaxSpeed(float Value);
 
 public readonly record struct MovementTimer(float TimeLeftInSecs, float Max)
@@ -23,6 +23,7 @@ public readonly record struct IntegerVelocity(Vector2 Value);
 
 
 public readonly record struct Solid();
+public readonly record struct TailPartBecomeActiveNextMovement();
 public readonly record struct TouchingSolid();
 public readonly record struct Wall();
 

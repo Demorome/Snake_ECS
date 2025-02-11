@@ -27,6 +27,40 @@ public class PlayerController : MoonTools.ECS.System
 		.Build();
 	}
 
+	public Entity SpawnTailPart(Entity player)
+	{
+		var tail = World.CreateEntity();
+		var playerIndex = World.Get<PlayerIndex>(player).Value;
+
+		World.Set(tail, playerIndex == 0 ? Color.Green : Color.Blue);
+		World.Set(tail, new Depth(World.Get<Depth>(player).Value + 1)); // Draw below player
+		World.Set(tail, new ColorBlend(Color.Cyan));
+		World.Set(player, new SpriteAnimation(Content.SpriteAnimations.Char_Walk_Down, 0));
+		World.Set(tail, new DirectionalSprites(
+			Content.SpriteAnimations.Char_Walk_Up.ID,
+			Content.SpriteAnimations.Char_Walk_Right.ID,
+			Content.SpriteAnimations.Char_Walk_Down.ID,
+			Content.SpriteAnimations.Char_Walk_Left.ID
+		));
+
+		// Connect tail part to player, by finding the lowest part to attach to.
+		{
+			var lowestPart = player;
+			while (HasInRelation<TailPart>(lowestPart)) 
+			{
+				lowestPart = InRelationSingleton<TailPart>(lowestPart);
+			}
+			World.Relate(lowestPart, tail, new TailPart());
+
+			// Place the tail on top of the lowest part.
+			World.Set(tail, new TilePosition(World.Get<TilePosition>(lowestPart).PositionVector));
+			// It will have no collision and won't move until the next time the player moves.
+			World.Set(tail, new TailPartBecomeActiveNextMovement());
+		}
+
+		return tail;
+	}
+
 	public Entity SpawnPlayer(int index)
 	{
 		var player = World.CreateEntity();
@@ -78,7 +112,7 @@ public class PlayerController : MoonTools.ECS.System
 			var inputState = Get<InputState>(entity);
 			var direction = Get<CachedDirection>(entity).Direction;
 			{
-				var newDirection = Vector2.Zero;
+				var newDirection = direction;
 				if (inputState.Left.IsDown)
 				{
 					newDirection.X = -1;
@@ -115,6 +149,10 @@ public class PlayerController : MoonTools.ECS.System
 					Set(entity, new LastMovedDirection(direction));
 					// Reset movement timer.
 					Set(entity, new MovementTimer(moveTimer.Max));
+				}
+				else {
+					// Store the ticking down.
+					Set(entity, new MovementTimer(timeLeft, moveTimer.Max));
 				}
 			}
 			#endregion
