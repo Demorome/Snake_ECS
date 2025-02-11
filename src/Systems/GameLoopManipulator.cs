@@ -27,6 +27,7 @@ public class GameLoopManipulator : MoonTools.ECS.Manipulator
 		ScoreScreenFilter = FilterBuilder.Include<IsScoreScreen>().Build();
 		//DestroyAtGameEndFilter = FilterBuilder.Include<DestroyAtGameEnd>().Build();
 
+		/*
 		var scoreStringsFilePath = Path.Combine(
 			System.AppContext.BaseDirectory,
 			"Content",
@@ -34,7 +35,7 @@ public class GameLoopManipulator : MoonTools.ECS.Manipulator
 			"score"
 		);
 
-		ScoreStrings = File.ReadAllLines(scoreStringsFilePath);
+		ScoreStrings = File.ReadAllLines(scoreStringsFilePath);*/
 	}
 
 	public void ShowScoreScreen()
@@ -128,7 +129,7 @@ public class GameLoopManipulator : MoonTools.ECS.Manipulator
 		*/
 
 		var scoreTitleEntity = CreateEntity();
-		var str = ScoreStrings.GetRandomItem();
+		var str = "TEST"/*ScoreStrings.GetRandomItem()*/;
 		var fontSize = FontSizes.SCORE_STRING;
 
 		Set(scoreTitleEntity, new PixelPosition(Dimensions.GAME_W * 0.5f, 32.0f));
