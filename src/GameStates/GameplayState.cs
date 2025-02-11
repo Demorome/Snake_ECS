@@ -65,6 +65,7 @@ public class GameplayState : GameState
                    var wall = World.CreateEntity();
                    var newPos = new Vector2(i, j);
                    World.Set(wall, new TilePosition(newPos));
+                   World.Set(wall, new DrawAsRectangle());
                    Motion.UpdateTilePositionForRectangle(wall, newPos, GridInfo.PixelCellSize, GridInfo.PixelCellSize);
                 }
                 #endregion
