@@ -1,6 +1,8 @@
 using System;
+using System.Numerics;
 using MoonTools.ECS;
 using MoonWorks;
+using MoonWorks.Graphics;
 using Snake.Components;
 using Snake.Content;
 using Snake.Messages;
@@ -52,25 +54,25 @@ public class GameplayState : GameState
 
         Renderer = new Renderer(World, Game.GraphicsDevice, Game.RootTitleStorage, Game.MainWindow.SwapchainFormat);
 
-        var topBorder = World.CreateEntity();
-        World.Set(topBorder, new PixelPosition(0, 65));
-        World.Set(topBorder, new Rectangle(0, 0, Dimensions.GAME_W, 10));
-        World.Set(topBorder, new Solid());
 
-        var leftBorder = World.CreateEntity();
-        World.Set(leftBorder, new PixelPosition(-10, 0));
-        World.Set(leftBorder, new Rectangle(0, 0, 10, Dimensions.GAME_H));
-        World.Set(leftBorder, new Solid());
+        for (int i = 0; i < GridInfo.WidthWithWalls; i++)
+        {
+            for (int j = 0; j < GridInfo.HeightWithWalls; j++)
+            {
+                #region Create walls
+                if (i == 0 || j == 0 || (i == (GridInfo.WidthWithWalls-1)) || (j == (GridInfo.HeightWithWalls-1)))
+                {
+                   var wall = World.CreateEntity();
+                   var newPos = new Vector2(i, j);
+                   World.Set(wall, new TilePosition(newPos));
+                   Motion.UpdateTilePositionForRectangle(wall, newPos, GridInfo.PixelCellSize, GridInfo.PixelCellSize);
+                }
+                #endregion
 
-        var rightBorder = World.CreateEntity();
-        World.Set(rightBorder, new PixelPosition(Dimensions.GAME_W, 0));
-        World.Set(rightBorder, new Rectangle(0, 0, 10, Dimensions.GAME_H));
-        World.Set(rightBorder, new Solid());
-
-        var bottomBorder = World.CreateEntity();
-        World.Set(bottomBorder, new PixelPosition(0, Dimensions.GAME_H));
-        World.Set(bottomBorder, new Rectangle(0, 0, Dimensions.GAME_W, 10));
-        World.Set(bottomBorder, new Solid());
+                //#region Grid cell visuals
+                //#endregion
+            }
+        }
 
         var background = World.CreateEntity();
         World.Set(background, new PixelPosition(0, 0));

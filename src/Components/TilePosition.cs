@@ -1,6 +1,7 @@
 using System;
 using System.Numerics;
 
+// WARN: Anyone setting this MUST make sure to update PixelPosition as well.
 public readonly record struct TilePosition
 {
     public readonly Vector2 PositionVector;

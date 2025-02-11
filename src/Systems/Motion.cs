@@ -13,6 +13,7 @@ public class Motion : MoonTools.ECS.System
 {
     Filter VelocityFilter;
     //Filter SolidFilter;
+    Filter NeedsPixelPositionFilter;
 
     Entity[,] Grid = new Entity[GridInfo.WidthWithWalls, GridInfo.HeightWithWalls]; // [Row, Column]
 
@@ -23,26 +24,31 @@ public class Motion : MoonTools.ECS.System
         {
             for (int j = 0; j < GridInfo.HeightWithWalls; j++)
             {
-                if (j == 0 || i == 0 || (i == (GridInfo.WidthWithWalls-1)) || (j == (GridInfo.HeightWithWalls-1)))
-                {
-                    //Grid[i, j] = Wall;
-                }
-                else 
-                {
-                    Grid[i, j] = default;
-                }
+                Grid[i, j] = default;
             }
         }
 
         // TODO: Fruit / interact filter
         VelocityFilter = FilterBuilder.Include<TilePosition>().Include<IntegerVelocity>().Build();
         //SolidFilter = FilterBuilder.Include<TilePosition>()/*.Include<Rectangle>()*/.Include<Solid>().Build();
+        NeedsPixelPositionFilter = FilterBuilder.Include<TilePosition>().Exclude<PixelPosition>().Build();
     }
 
-    void UpdateTilePosition(Entity e, Vector2 newPos)
+    public void UpdateTilePosition(Entity e, Vector2 newPos)
     {
+        Grid[(int)newPos.X, (int)newPos.Y] = e;
+
         Set(e, new TilePosition(newPos));
         Set(e, new PixelPosition(GridInfo.TilePositionToPixelPosition(newPos)));
+    }
+
+    public void UpdateTilePositionForRectangle(Entity e, Vector2 newPos, int Width, int Height)
+    {
+        Grid[(int)newPos.X, (int)newPos.Y] = e;
+
+        Set(e, new TilePosition(newPos));
+        var pixelPos = GridInfo.TilePositionToPixelPosition(newPos);
+        Set(e, new Rectangle((int)pixelPos.X, (int)pixelPos.Y, Width, Height));
     }
 
     // Check if the spot our entity wants to move to is already occupied by a Solid.
@@ -70,6 +76,14 @@ public class Motion : MoonTools.ECS.System
 
     public override void Update(TimeSpan delta)
     {
+        foreach (var entity in NeedsPixelPositionFilter.Entities)
+        {
+            var tilePos = Get<TilePosition>(entity).PositionVector;
+
+            Grid[(int)tilePos.X, (int)tilePos.Y] = entity;
+            Set(entity, new PixelPosition(GridInfo.TilePositionToPixelPosition(tilePos)));
+        }
+
         foreach (var entity in VelocityFilter.Entities)
         {
             /*
@@ -101,7 +115,6 @@ public class Motion : MoonTools.ECS.System
                             var upperPos = Get<TilePosition>(upperPart).PositionVector;
 
                             //Grid[(int)lowerPos.X, (int)lowerPos.Y] = default; // leave a blank space behind     **only needed for debugging
-                            Grid[(int)upperPos.X, (int)upperPos.Y] = tailPart; // moving on
                             UpdateTilePosition(tailPart, upperPos);
 
                             // Checks for next iteration
@@ -119,7 +132,6 @@ public class Motion : MoonTools.ECS.System
                     }
 
                     // Update position
-                    Grid[(int)nextPos.X, (int)nextPos.Y] = entity; // moving on
                     UpdateTilePosition(entity, nextPos);
 
                     // Reset velocity (lost after moving)

@@ -24,6 +24,8 @@ public readonly record struct IntegerVelocity(Vector2 Value);
 
 public readonly record struct Solid();
 public readonly record struct TouchingSolid();
+public readonly record struct Wall();
+
 
 public readonly record struct Score(int Value);
 public readonly record struct DisplayScore(int Value);
