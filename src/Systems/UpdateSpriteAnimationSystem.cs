@@ -25,7 +25,6 @@ public class UpdateSpriteAnimationSystem : MoonTools.ECS.System
 			.Build();
 		FlickerFilter = FilterBuilder.Include<ColorFlicker>().Build();
 		TextFilter = FilterBuilder.Include<Text>().Build();
-		SlowDownAnimationFilter = FilterBuilder.Include<SlowDownAnimation>().Include<Position>().Build();
 	}
 
 	public override void Update(TimeSpan delta)
@@ -33,19 +32,6 @@ public class UpdateSpriteAnimationSystem : MoonTools.ECS.System
 		foreach (var entity in SpriteAnimationFilter.Entities)
 		{
 			UpdateSpriteAnimation(entity, (float)delta.TotalSeconds);
-		}
-
-
-		// Slows down item animation
-		foreach (var entity in SlowDownAnimationFilter.Entities)
-		{
-			var c = Get<SlowDownAnimation>(entity);
-			var goal = c.BaseSpeed;
-			var step = c.step;
-			var currentAnimation = Get<SpriteAnimation>(entity);
-			var frameRate = currentAnimation.FrameRate;
-			frameRate = Math.Max(frameRate - step, goal);
-			Set(entity, currentAnimation.ChangeFramerate(frameRate));
 		}
 
 		// Flicker
@@ -59,6 +45,7 @@ public class UpdateSpriteAnimationSystem : MoonTools.ECS.System
 		// Score screen text
 		foreach (var entity in TextFilter.Entities)
 		{
+			/*
 			if (HasOutRelation<CountUpScore>(entity) && !HasOutRelation<DontDraw>(entity))
 			{
 				var timerEntity = OutRelationSingleton<CountUpScore>(entity);
@@ -78,7 +65,7 @@ public class UpdateSpriteAnimationSystem : MoonTools.ECS.System
 				{
 					Send(new PlayStaticSoundMessage(Rando.GetRandomItem(AudioArrays.Coins), Data.SoundCategory.Generic, 1f, .9f + (.1f * ((float)value / 1000f)), 0f));
 				}
-			}
+			}*/
 		}
 	}
 

@@ -1,3 +1,4 @@
+/*
 using System;
 using System.IO;
 using System.Text;
@@ -236,3 +237,4 @@ public class Ticker : MoonTools.ECS.System
 		return StringBuilder.ToString();
 	}
 }
+*/

@@ -38,12 +38,13 @@ public class PlayerController : MoonTools.ECS.System
 		World.Set(player, new SpriteAnimation(Content.SpriteAnimations.Char_Walk_Down, 0));
 
 		World.Set(player, new PlayerIndex(index));
-		World.Set(player, new Rectangle(-8, -8, 16, 16));
 		World.Set(player, new Solid());
 		World.Set(player, index == 0 ? Color.Green : Color.Blue);
 		World.Set(player, new Depth(5));
 		World.Set(player, new MovementTimer(0.5f));
-		World.Set(player, new LastDirection(Vector2.Zero));
+		World.Set(player, new IntegerVelocity(Vector2.Zero));
+		World.Set(player, new LastMovedDirection(Vector2.Zero));
+		World.Set(player, new CachedDirection(new Vector2(1, 0))); // Move right
 		//World.Set(player, new AdjustFramerateToSpeed());
 		World.Set(player, new InputState());
 		/*
@@ -75,7 +76,7 @@ public class PlayerController : MoonTools.ECS.System
 
 			#region Input
 			var inputState = Get<InputState>(entity);
-			var direction = Get<LastDirection>(entity).Direction;
+			var direction = Get<CachedDirection>(entity).Direction;
 			{
 				var newDirection = Vector2.Zero;
 				if (inputState.Left.IsDown)
@@ -96,9 +97,10 @@ public class PlayerController : MoonTools.ECS.System
 				}
 				
 				// Ignore inputs trying to go backwards
-				if (newDirection != direction)
+				if (newDirection != -Get<LastMovedDirection>(entity).Direction)
 				{
 					direction = newDirection;
+					Set(entity, new CachedDirection(direction));
 				}
 			}
 			#endregion
@@ -109,8 +111,8 @@ public class PlayerController : MoonTools.ECS.System
 				var timeLeft = moveTimer.TimeLeftInSecs - deltaTime;
 				if (timeLeft <= 0) 
 				{
-					var curPos = Get<TilePosition>(entity).PositionVector;
-					Set(entity, new TilePosition(curPos + direction));
+					Set(entity, new IntegerVelocity(direction));
+					Set(entity, new LastMovedDirection(direction));
 					// Reset movement timer.
 					Set(entity, new MovementTimer(moveTimer.Max));
 				}

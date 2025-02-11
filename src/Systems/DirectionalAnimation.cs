@@ -14,7 +14,7 @@ public class DirectionalAnimation : MoonTools.ECS.System
     public DirectionalAnimation(World world) : base(world)
     {
         DirectionFilter = FilterBuilder
-        .Include<LastDirection>()
+        .Include<LastMovedDirection>()
         .Include<DirectionalSprites>()
         .Build();
     }
@@ -23,7 +23,7 @@ public class DirectionalAnimation : MoonTools.ECS.System
     {
         foreach (var entity in DirectionFilter.Entities)
         {
-            var direction = Get<LastDirection>(entity).Direction;
+            var direction = Get<LastMovedDirection>(entity).Direction;
             var animations = Get<DirectionalSprites>(entity);
 
             SpriteAnimationInfo animation;
