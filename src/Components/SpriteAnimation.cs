@@ -1,9 +1,9 @@
 using System;
 using System.Numerics;
-using RollAndCash.Data;
+using Snake.Data;
 using MoonWorks.Math;
 
-namespace RollAndCash.Components;
+namespace Snake.Components;
 
 public struct SpriteAnimation
 {

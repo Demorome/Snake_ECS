@@ -1,12 +1,12 @@
 using System;
-using RollAndCash.Content;
-using RollAndCash.Messages;
-using RollAndCash.Utility;
+using Snake.Content;
+using Snake.Messages;
+using Snake.Utility;
 using MoonTools.ECS;
 using MoonWorks.Audio;
-using RollAndCash.Data;
+using Snake.Data;
 
-namespace RollAndCash.Systems;
+namespace Snake.Systems;
 
 public class Audio : MoonTools.ECS.System
 {
@@ -15,7 +15,6 @@ public class Audio : MoonTools.ECS.System
 	StreamingSoundID[] GameplaySongs;
 
 	PersistentVoice MusicVoice;
-	PersistentVoice DroneVoice;
 	AudioDataQoa Music;
 
 	public Audio(World world, AudioDevice audioDevice) : base(world)
@@ -33,8 +32,7 @@ public class Audio : MoonTools.ECS.System
 		MusicVoice = AudioDevice.Obtain<PersistentVoice>(streamingAudioData.Format);
 		MusicVoice.SetVolume(0.5f);
 
-		DroneVoice = AudioDevice.Obtain<PersistentVoice>(StaticAudio.Lookup(StaticAudio.Drone1).Format);
-		DroneVoice.SetVolume(0.5f);
+		//DroneVoice = AudioDevice.Obtain<PersistentVoice>(StaticAudio.Lookup(StaticAudio.Drone1).Format);
 	}
 
 	public override void Update(TimeSpan delta)
@@ -57,20 +55,12 @@ public class Audio : MoonTools.ECS.System
 			Music.SendTo(MusicVoice);
 			MusicVoice.Play();
 		}
-
-		if (SomeMessage<StopDroneSounds>())
-		{
-			DroneVoice.Stop();
-		}
 	}
 
 	public void Cleanup()
 	{
 		Music.Disconnect();
 		MusicVoice.Dispose();
-
-		DroneVoice.Stop();
-		DroneVoice.Dispose();
 	}
 
 	private void PlayStaticSound(
@@ -82,12 +72,13 @@ public class Audio : MoonTools.ECS.System
 	)
 	{
 		SourceVoice voice;
+		/*
 		if (soundCategory == SoundCategory.Drone)
 		{
 			voice = DroneVoice;
 			voice.Stop(); // drones should interrupt their own lines
 		}
-		else
+		else*/
 		{
 			voice = AudioDevice.Obtain<TransientVoice>(sound.Format);
 		}

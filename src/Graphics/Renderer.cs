@@ -1,15 +1,15 @@
 using System.Collections.Generic;
-using RollAndCash.Components;
-using RollAndCash.Content;
+using Snake.Components;
+using Snake.Content;
 using MoonTools.ECS;
 using MoonWorks;
 using MoonWorks.Graphics;
 using MoonWorks.Graphics.Font;
 using System.Numerics;
-using RollAndCash.Relations;
+using Snake.Relations;
 using MoonWorks.Storage;
 
-namespace RollAndCash;
+namespace Snake;
 
 public class Renderer : MoonTools.ECS.Renderer
 {
@@ -34,9 +34,9 @@ public class Renderer : MoonTools.ECS.Renderer
 	{
 		GraphicsDevice = graphicsDevice;
 
-		RectangleFilter = FilterBuilder.Include<Rectangle>().Include<Position>().Include<DrawAsRectangle>().Build();
-		TextFilter = FilterBuilder.Include<Text>().Include<Position>().Build();
-		SpriteAnimationFilter = FilterBuilder.Include<SpriteAnimation>().Include<Position>().Build();
+		RectangleFilter = FilterBuilder.Include<Rectangle>().Include<PixelPosition>().Include<DrawAsRectangle>().Build();
+		TextFilter = FilterBuilder.Include<Text>().Include<PixelPosition>().Build();
+		SpriteAnimationFilter = FilterBuilder.Include<SpriteAnimation>().Include<PixelPosition>().Build();
 
 		RenderTexture = Texture.Create2D(GraphicsDevice, "Render Texture", Dimensions.GAME_W, Dimensions.GAME_H, swapchainFormat, TextureUsageFlags.ColorTarget | TextureUsageFlags.Sampler);
 		DepthTexture = Texture.Create2D(GraphicsDevice, "Depth Texture", Dimensions.GAME_W, Dimensions.GAME_H, TextureFormat.D16Unorm, TextureUsageFlags.DepthStencilTarget);
@@ -94,7 +94,7 @@ public class Renderer : MoonTools.ECS.Renderer
 
 			foreach (var entity in RectangleFilter.Entities)
 			{
-				var position = Get<Position>(entity);
+				var position = Get<PixelPosition>(entity);
 				var rectangle = Get<Rectangle>(entity);
 				var orientation = /*Has<Orientation>(entity) ? Get<Orientation>(entity).Angle :*/ 0.0f;
 				var color = Has<ColorBlend>(entity) ? Get<ColorBlend>(entity).Color : Color.White;
@@ -110,7 +110,7 @@ public class Renderer : MoonTools.ECS.Renderer
 
 			foreach (var entity in SpriteAnimationFilter.Entities)
 			{
-				var position = Get<Position>(entity);
+				var position = Get<PixelPosition>(entity);
 				var animation = Get<SpriteAnimation>(entity);
 				var sprite = animation.CurrentSprite;
 				var origin = animation.Origin;
@@ -150,12 +150,13 @@ public class Renderer : MoonTools.ECS.Renderer
 
 			TextBatch.Start();
 			foreach (var entity in TextFilter.Entities)
-			{
+			{	/*
 				if (HasOutRelation<DontDraw>(entity))
 					continue;
+				*/
 
 				var text = Get<Text>(entity);
-				var position = Get<Position>(entity);
+				var position = Get<PixelPosition>(entity);
 
 				var str = Data.TextStorage.GetString(text.TextID);
 				var font = Fonts.FromID(text.FontID);
@@ -176,7 +177,7 @@ public class Renderer : MoonTools.ECS.Renderer
 				{
 					var dropShadow = Get<TextDropShadow>(entity);
 
-					var dropShadowPosition = position + new Position(dropShadow.OffsetX, dropShadow.OffsetY);
+					var dropShadowPosition = position + new PixelPosition(dropShadow.OffsetX, dropShadow.OffsetY);
 
 					TextBatch.Add(
 						font,

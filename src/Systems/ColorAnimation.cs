@@ -1,8 +1,8 @@
 using System;
-using RollAndCash.Components;
+using Snake.Components;
 using MoonTools.ECS;
 
-namespace RollAndCash.Systems;
+namespace Snake.Systems;
 
 public class ColorAnimation : MoonTools.ECS.System
 {

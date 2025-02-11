@@ -1,4 +1,4 @@
-namespace RollAndCash.Data
+namespace Snake.Data
 {
 	public struct StaticAudioPackDataEntry
 	{

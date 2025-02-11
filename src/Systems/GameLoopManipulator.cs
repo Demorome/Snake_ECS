@@ -1,37 +1,31 @@
-using RollAndCash;
-using RollAndCash.Components;
-using RollAndCash.Content;
-using RollAndCash.Messages;
-using RollAndCash.Systems;
+using Snake;
+using Snake.Components;
+using Snake.Content;
+using Snake.Messages;
+using Snake.Systems;
 using MoonTools.ECS;
 using MoonWorks.Graphics.Font;
-using RollAndCash.Relations;
+using Snake.Relations;
 using System.IO;
 using System.Numerics;
-using RollAndCash.Utility;
+using Snake.Utility;
 
 public class GameLoopManipulator : MoonTools.ECS.Manipulator
 {
 	Filter ScoreFilter;
 	Filter PlayerFilter;
-	Filter GameTimerFilter;
+	//Filter GameTimerFilter;
 	Filter ScoreScreenFilter;
-	Filter DestroyAtGameEndFilter;
-
-	DroneSpawner DroneSpawner;
-	ProductSpawner ProductSpawner;
+	//Filter DestroyAtGameEndFilter;
 
 	string[] ScoreStrings;
 	public GameLoopManipulator(World world) : base(world)
 	{
 		PlayerFilter = FilterBuilder.Include<PlayerIndex>().Build();
 		ScoreFilter = FilterBuilder.Include<Score>().Build();
-		GameTimerFilter = FilterBuilder.Include<RollAndCash.Components.GameTimer>().Build();
+		//GameTimerFilter = FilterBuilder.Include<Snake.Components.GameTimer>().Build();
 		ScoreScreenFilter = FilterBuilder.Include<IsScoreScreen>().Build();
-		DestroyAtGameEndFilter = FilterBuilder.Include<DestroyAtGameEnd>().Build();
-
-		ProductSpawner = new ProductSpawner(world);
-		DroneSpawner = new DroneSpawner(world);
+		//DestroyAtGameEndFilter = FilterBuilder.Include<DestroyAtGameEnd>().Build();
 
 		var scoreStringsFilePath = Path.Combine(
 			System.AppContext.BaseDirectory,
@@ -47,11 +41,12 @@ public class GameLoopManipulator : MoonTools.ECS.Manipulator
 	{
 		Destroy(GetSingletonEntity<GameInProgress>());
 
-		Send(new StopDroneSounds());
 		Send(new PlayStaticSoundMessage(StaticAudio.Score));
 
+		/*
+
 		var scoreScreenEntity = CreateEntity();
-		Set(scoreScreenEntity, new Position(0, 0));
+		Set(scoreScreenEntity, new PixelPosition(0, 0));
 		Set(scoreScreenEntity, new SpriteAnimation(SpriteAnimations.Score, 0));
 		Set(scoreScreenEntity, new Depth(0.5f));
 		Set(scoreScreenEntity, new IsScoreScreen());
@@ -83,7 +78,7 @@ public class GameLoopManipulator : MoonTools.ECS.Manipulator
 			var sprite = playerIndex == 0 ? SpriteAnimations.Char_Walk_Down : SpriteAnimations.Char2_Walk_Down;
 
 			var playerEntity = CreateEntity();
-			Set(playerEntity, new Position(x, y));
+			Set(playerEntity, new PixelPosition(x, y));
 			Set(playerEntity, new SpriteAnimation(sprite, 0));
 			Set(playerEntity, new Depth(0.1f));
 			Set(playerEntity, new IsScoreScreen());
@@ -99,7 +94,7 @@ public class GameLoopManipulator : MoonTools.ECS.Manipulator
 				var trophy = CreateEntity();
 				Set(trophy, new SpriteAnimation(trophySprite, 140, true));
 				Set(trophy, new SlowDownAnimation(15, 1));
-				Set(trophy, new Position(x, y - 32));
+				Set(trophy, new PixelPosition(x, y - 32));
 				Set(trophy, new Velocity(new Vector2(0, -330)));
 				Set(trophy, new MotionDamp(10));
 				Set(trophy, new Depth(0.1f));
@@ -117,7 +112,7 @@ public class GameLoopManipulator : MoonTools.ECS.Manipulator
 
 			// Score below
 			var scoreEntity = CreateEntity();
-			Set(scoreEntity, new Position(x, y + 38));
+			Set(scoreEntity, new PixelPosition(x, y + 38));
 			Set(scoreEntity, new Depth(0.1f));
 			Set(scoreEntity, new IsScoreScreen());
 			Set(scoreEntity, new Text());
@@ -130,12 +125,13 @@ public class GameLoopManipulator : MoonTools.ECS.Manipulator
 			Relate(scoreTimer, dontDrawTextTimer, new DontTime());
 			Relate(scoreEntity, dontDrawTextTimer, new DontDraw());
 		}
+		*/
 
 		var scoreTitleEntity = CreateEntity();
 		var str = ScoreStrings.GetRandomItem();
 		var fontSize = FontSizes.SCORE_STRING;
 
-		Set(scoreTitleEntity, new Position(Dimensions.GAME_W * 0.5f, 32.0f));
+		Set(scoreTitleEntity, new PixelPosition(Dimensions.GAME_W * 0.5f, 32.0f));
 
 		var font = Fonts.FromID(Fonts.KosugiID);
 

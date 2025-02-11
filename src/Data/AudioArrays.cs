@@ -1,4 +1,4 @@
-namespace RollAndCash.Content;
+namespace Snake.Content;
 
 public static class AudioArrays
 {

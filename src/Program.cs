@@ -2,11 +2,11 @@ using System;
 using System.IO;
 using MoonWorks;
 
-namespace RollAndCash
+namespace Snake
 {
 	class Program
 	{
-		public static string UserDataDirectory = $"{Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData), "ROLLANDCASH")}";
+		public static string UserDataDirectory = $"{Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData), "SNAKE")}";
 
 		static void Main(string[] args)
 		{
@@ -22,7 +22,7 @@ namespace RollAndCash
 			{
 				WindowWidth = 1280,
 				WindowHeight = 720,
-				WindowTitle = "ROLL AND CASH: GROCERY LORDS: A LONDON JERRY STORY",
+				WindowTitle = "SNAKE",
 				ScreenMode = ScreenMode.Windowed
 			};
 #else
@@ -30,7 +30,7 @@ namespace RollAndCash
 			{
 				WindowWidth = 1280,
 				WindowHeight = 720,
-				WindowTitle = "ROLL AND CASH: GROCERY LORDS: A LONDON JERRY STORY",
+				WindowTitle = "SNAKE",
 				ScreenMode = ScreenMode.Fullscreen
 			};
 #endif
@@ -43,8 +43,8 @@ namespace RollAndCash
 			debugMode = true;
 #endif
 
-			var appInfo = new AppInfo("JerryCrew", "RollAndCash");
-			RollAndCashGame game = new RollAndCashGame(
+			var appInfo = new AppInfo("Quebecwhats", "Snake");
+			SnakeGame game = new SnakeGame(
 				appInfo,
 				windowCreateInfo,
 				framePacingSettings,

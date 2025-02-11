@@ -3,13 +3,13 @@ using MoonWorks;
 using MoonWorks.Audio;
 using MoonWorks.Graphics;
 using System.Numerics;
-using RollAndCash.Content;
+using Snake.Content;
 
-namespace RollAndCash.GameStates;
+namespace Snake.GameStates;
 
 public class HowToPlayState : GameState
 {
-    RollAndCashGame Game;
+    SnakeGame Game;
     GraphicsDevice GraphicsDevice;
     GameState TransitionState;
 
@@ -24,7 +24,7 @@ public class HowToPlayState : GameState
     float ForceTimer = 0;
     float MinTime = 2f;
 
-    public HowToPlayState(RollAndCashGame game, GameState transitionState)
+    public HowToPlayState(SnakeGame game, GameState transitionState)
     {
         AudioDevice = game.AudioDevice;
         Game = game;

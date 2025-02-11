@@ -1,35 +1,29 @@
 using System;
 using System.Numerics;
 using MoonTools.ECS;
-using RollAndCash.Utility;
-using RollAndCash.Components;
-using RollAndCash.Relations;
-using RollAndCash.Messages;
-using RollAndCash.Content;
+using Snake.Utility;
+using Snake.Components;
+using Snake.Relations;
+using Snake.Messages;
+using Snake.Content;
 
-namespace RollAndCash.Systems;
+namespace Snake.Systems;
 
 public class Motion : MoonTools.ECS.System
 {
     Filter VelocityFilter;
-    Filter SolidFilter;
+    //Filter SolidFilter;
 
-    //SpatialHash<Entity> SolidSpatialHash = new SpatialHash<Entity>(0, 0, Dimensions.GAME_W, Dimensions.GAME_H, 32);
-    const int GridWidth = 10;
-    const int GridHeight = 10;
-    // Adding 2 to each dimension to account for outer wall layer, which will have Wall entities.
-    const int GridWidthWithWalls = GridWidth + 2;
-    const int GridHeightWithWalls = GridHeight + 2;
-    Entity[,] Grid = new Entity[GridWidthWithWalls,GridHeightWithWalls]; // [Row, Column]
+    Entity[,] Grid = new Entity[GridInfo.WidthWithWalls, GridInfo.HeightWithWalls]; // [Row, Column]
 
     public Motion(World world) : base(world)
     {
         // Fill the Grid
-        for (int i = 0; i < GridWidthWithWalls; i++)
+        for (int i = 0; i < GridInfo.WidthWithWalls; i++)
         {
-            for (int j = 0; j < GridHeightWithWalls; j++)
+            for (int j = 0; j < GridInfo.HeightWithWalls; j++)
             {
-                if (j == 0 || i == 0 || (i == (GridWidthWithWalls-1)) || (j == (GridHeightWithWalls-1)))
+                if (j == 0 || i == 0 || (i == (GridInfo.WidthWithWalls-1)) || (j == (GridInfo.HeightWithWalls-1)))
                 {
                     //Grid[i, j] = Wall;
                 }
@@ -42,7 +36,13 @@ public class Motion : MoonTools.ECS.System
 
         // TODO: Fruit / interact filter
         VelocityFilter = FilterBuilder.Include<TilePosition>().Include<IntegerVelocity>().Build();
-        SolidFilter = FilterBuilder.Include<TilePosition>()/*.Include<Rectangle>()*/.Include<Solid>().Build();
+        //SolidFilter = FilterBuilder.Include<TilePosition>()/*.Include<Rectangle>()*/.Include<Solid>().Build();
+    }
+
+    void UpdateTilePosition(Entity e, Vector2 newPos)
+    {
+        Set(e, new TilePosition(newPos));
+        Set(e, new PixelPosition(GridInfo.TilePositionToPixelPosition(newPos)));
     }
 
     // Check if the spot our entity wants to move to is already occupied by a Solid.
@@ -102,7 +102,7 @@ public class Motion : MoonTools.ECS.System
 
                             //Grid[(int)lowerPos.X, (int)lowerPos.Y] = default; // leave a blank space behind     **only needed for debugging
                             Grid[(int)upperPos.X, (int)upperPos.Y] = tailPart; // moving on
-                            Set(tailPart, new TilePosition(upperPos));
+                            UpdateTilePosition(tailPart, upperPos);
 
                             // Checks for next iteration
                             if (!HasInRelation<TailPart>(tailPart)) {
@@ -120,7 +120,7 @@ public class Motion : MoonTools.ECS.System
 
                     // Update position
                     Grid[(int)nextPos.X, (int)nextPos.Y] = entity; // moving on
-                    Set(entity, new TilePosition(nextPos));
+                    UpdateTilePosition(entity, nextPos);
 
                     // Reset velocity (lost after moving)
                     Set(entity, new IntegerVelocity(Vector2.Zero));

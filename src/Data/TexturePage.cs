@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.IO;
 using MoonWorks;
 using MoonWorks.Graphics;
-using RollAndCash.Components;
-using RollAndCash.Content;
+using Snake.Components;
+using Snake.Content;
 
-namespace RollAndCash.Data;
+namespace Snake.Data;
 
 public readonly record struct TexturePageID(int ID);
 

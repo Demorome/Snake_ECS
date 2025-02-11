@@ -1,14 +1,14 @@
 using System;
-using RollAndCash.Components;
+using Snake.Components;
 using MoonTools.ECS;
-using RollAndCash.Relations;
+using Snake.Relations;
 using MoonWorks.Math;
-using RollAndCash.Content;
+using Snake.Content;
 using MoonWorks.Graphics.Font;
-using RollAndCash.Messages;
-using RollAndCash.Utility;
+using Snake.Messages;
+using Snake.Utility;
 
-namespace RollAndCash.Systems;
+namespace Snake.Systems;
 
 public class UpdateSpriteAnimationSystem : MoonTools.ECS.System
 {
@@ -21,7 +21,7 @@ public class UpdateSpriteAnimationSystem : MoonTools.ECS.System
 	{
 		SpriteAnimationFilter = FilterBuilder
 			.Include<SpriteAnimation>()
-			.Include<Position>()
+			.Include<PixelPosition>()
 			.Build();
 		FlickerFilter = FilterBuilder.Include<ColorFlicker>().Build();
 		TextFilter = FilterBuilder.Include<Text>().Build();

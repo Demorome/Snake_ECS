@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace RollAndCash.Data;
+namespace Snake.Data;
 
 public struct CramTextureAtlasData
 {

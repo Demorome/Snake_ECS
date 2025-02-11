@@ -1,7 +1,7 @@
 using System;
 using MoonWorks;
 
-namespace RollAndCash;
+namespace Snake;
 
 public abstract class GameState
 {

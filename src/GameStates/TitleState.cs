@@ -3,15 +3,15 @@ using System.IO;
 using MoonWorks;
 using MoonWorks.Audio;
 using MoonWorks.Graphics;
-using RollAndCash.Content;
-using RollAndCash.Utility;
+using Snake.Content;
+using Snake.Utility;
 using System.Numerics;
 
-namespace RollAndCash.GameStates;
+namespace Snake.GameStates;
 
 public class TitleState : GameState
 {
-    RollAndCashGame Game;
+    SnakeGame Game;
     GraphicsDevice GraphicsDevice;
     AudioDevice AudioDevice;
     GameState TransitionStateA;
@@ -27,7 +27,7 @@ public class TitleState : GameState
     float Time = 30.0f;
     private float Timer = 0.0f;
 
-    public TitleState(RollAndCashGame game, GameState transitionStateA, GameState transitionStateB)
+    public TitleState(SnakeGame game, GameState transitionStateA, GameState transitionStateB)
     {
         Game = game;
         GraphicsDevice = game.GraphicsDevice;
@@ -83,7 +83,7 @@ public class TitleState : GameState
 
     public override void Draw(Window window, double alpha)
     {
-        var logoPosition = new Position(Rando.Range(-1, 1), Rando.Range(-1, 1));
+        var logoPosition = new PixelPosition(Rando.Range(-1, 1), Rando.Range(-1, 1));
 
         var commandBuffer = GraphicsDevice.AcquireCommandBuffer();
         var swapchainTexture = commandBuffer.AcquireSwapchainTexture(window);

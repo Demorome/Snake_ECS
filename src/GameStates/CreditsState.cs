@@ -4,14 +4,14 @@ using MoonWorks;
 using MoonWorks.Audio;
 using MoonWorks.Graphics;
 using MoonWorks.Graphics.Font;
-using RollAndCash.Content;
-using RollAndCash.Utility;
+using Snake.Content;
+using Snake.Utility;
 
-namespace RollAndCash.GameStates;
+namespace Snake.GameStates;
 
 public class CreditsState : GameState
 {
-    RollAndCashGame Game;
+    SnakeGame Game;
     GameState TransitionState;
 
     GraphicsDevice GraphicsDevice;
@@ -35,7 +35,7 @@ public class CreditsState : GameState
     float CreditsTime = 0;
     float CreditsDuration = 4;
 
-    public CreditsState(RollAndCashGame game, GameState transitionStateA)
+    public CreditsState(SnakeGame game, GameState transitionStateA)
     {
         Game = game;
         TransitionState = transitionStateA;
@@ -116,7 +116,7 @@ public class CreditsState : GameState
 
             var logoAnimation = SpriteAnimations.Logo_JerryCrew;
             var sprite = logoAnimation.Frames[0];
-            var logoPosition = new Position(665, 80);
+            var logoPosition = new PixelPosition(665, 80);
 
             HiResSpriteBatch.Add(
                 new Vector3(logoPosition.X, logoPosition.Y, -1f),
@@ -129,12 +129,12 @@ public class CreditsState : GameState
             HiResSpriteBatch.Upload(commandBuffer);
 
             TextBatch.Start();
-            AddString("is", 50, Color.White, new Position(960, 350));
+            AddString("is", 50, Color.White, new PixelPosition(960, 350));
 
             var y = 470;
             foreach (var name in Names)
             {
-                AddString(name, 70, Color.White, new Position(960, y));
+                AddString(name, 70, Color.White, new PixelPosition(960, y));
                 y += 100;
             }
 
@@ -179,7 +179,7 @@ public class CreditsState : GameState
         );
     }
 
-    private void AddString(string text, int pixelSize, Color color, Position position)
+    private void AddString(string text, int pixelSize, Color color, PixelPosition position)
     {
         TextBatch.Add(
             Fonts.FromID(Fonts.KosugiID),

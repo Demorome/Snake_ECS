@@ -1,7 +1,6 @@
-namespace RollAndCash.Data;
+namespace Snake.Data;
 
 public enum SoundCategory
 {
-    Generic,
-    Drone
+    Generic
 }

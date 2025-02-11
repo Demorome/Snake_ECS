@@ -1,7 +1,7 @@
-using RollAndCash.Content;
+using Snake.Content;
 using MoonWorks.Graphics.Font;
 
-namespace RollAndCash;
+namespace Snake;
 
 public struct Text
 {

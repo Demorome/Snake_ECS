@@ -1,8 +1,8 @@
 using MoonWorks.Graphics;
 using System.Numerics;
-using RollAndCash.Data;
+using Snake.Data;
 
-namespace RollAndCash.Components;
+namespace Snake.Components;
 
 public struct Sprite
 {

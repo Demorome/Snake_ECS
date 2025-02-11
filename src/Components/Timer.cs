@@ -1,6 +1,6 @@
 
 
-namespace RollAndCash.Components;
+namespace Snake.Components;
 
 public readonly record struct Timer(float Time, float Max)
 {

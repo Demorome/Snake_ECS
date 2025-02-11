@@ -1,7 +1,7 @@
 using System.Collections.Generic;
-using RollAndCash.Components;
+using Snake.Components;
 
-namespace RollAndCash.Data;
+namespace Snake.Data;
 
 public readonly record struct SpriteAnimationInfoID(int ID);
 

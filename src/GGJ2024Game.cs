@@ -1,22 +1,21 @@
 using MoonWorks.Graphics;
 using MoonWorks;
-using RollAndCash.Content;
-using RollAndCash.GameStates;
+using Snake.Content;
+using Snake.GameStates;
 
-namespace RollAndCash
+namespace Snake
 {
-	public class RollAndCashGame : Game
+	public class SnakeGame : Game
 	{
 		LoadState LoadState;
 		LogoState LogoState;
 		CreditsState CreditsState;
 		GameplayState GameplayState;
 		TitleState TitleState;
-		HowToPlayState HowToPlayState;
 
 		GameState CurrentState;
 
-		public RollAndCashGame(
+		public SnakeGame(
 			AppInfo appInfo,
 			WindowCreateInfo windowCreateInfo,
 			FramePacingSettings framePacingSettings,
@@ -33,13 +32,12 @@ namespace RollAndCash
 
 			CreditsState = new CreditsState(this, TitleState);
 			LogoState = new LogoState(this, CreditsState, TitleState);
-			TitleState = new TitleState(this, LogoState, HowToPlayState);
+			TitleState = new TitleState(this, LogoState, GameplayState);
 			LoadState = new LoadState(this, LogoState);
 			CreditsState.SetTransitionState(TitleState); // i hate this
 
 			GameplayState = new GameplayState(this, TitleState);
-			HowToPlayState = new HowToPlayState(this, GameplayState);
-			TitleState.SetTransitionStateB(HowToPlayState);
+			TitleState.SetTransitionStateB(GameplayState);
 
 			SetState(LoadState);
 		}

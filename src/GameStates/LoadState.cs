@@ -4,14 +4,14 @@ using MoonWorks;
 using MoonWorks.AsyncIO;
 using MoonWorks.Graphics;
 using MoonWorks.Graphics.Font;
-using RollAndCash.Content;
-using RollAndCash.Systems;
+using Snake.Content;
+using Snake.Systems;
 
-namespace RollAndCash.GameStates;
+namespace Snake.GameStates;
 
 public class LoadState : GameState
 {
-    RollAndCashGame Game;
+    SnakeGame Game;
     GraphicsDevice GraphicsDevice;
     AsyncFileLoader AsyncFileLoader;
     GameState TransitionState;
@@ -22,7 +22,7 @@ public class LoadState : GameState
     System.Diagnostics.Stopwatch Timer = new System.Diagnostics.Stopwatch();
     System.Diagnostics.Stopwatch LoadTimer = new System.Diagnostics.Stopwatch();
 
-    public LoadState(RollAndCashGame game, GameState transitionState)
+    public LoadState(SnakeGame game, GameState transitionState)
     {
         Game = game;
         GraphicsDevice = Game.GraphicsDevice;
@@ -96,13 +96,13 @@ public class LoadState : GameState
         if (swapchainTexture != null)
         {
             TextBatch.Start();
-            AddString("L", 60, new Position(1640, 1020), 1.2f + 4 * (float)Timer.Elapsed.TotalSeconds);
-            AddString("O", 60, new Position(1680, 1020), 1.0f + 4 * (float)Timer.Elapsed.TotalSeconds);
-            AddString("A", 60, new Position(1720, 1020), 0.8f + 4 * (float)Timer.Elapsed.TotalSeconds);
-            AddString("D", 60, new Position(1760, 1020), 0.6f + 4 * (float)Timer.Elapsed.TotalSeconds);
-            AddString("I", 60, new Position(1782, 1020), 0.4f + 4 * (float)Timer.Elapsed.TotalSeconds);
-            AddString("N", 60, new Position(1820, 1020), 0.2f + 4 * (float)Timer.Elapsed.TotalSeconds);
-            AddString("G", 60, new Position(1860, 1020), 0.0f + 4 * (float)Timer.Elapsed.TotalSeconds);
+            AddString("L", 60, new PixelPosition(1640, 1020), 1.2f + 4 * (float)Timer.Elapsed.TotalSeconds);
+            AddString("O", 60, new PixelPosition(1680, 1020), 1.0f + 4 * (float)Timer.Elapsed.TotalSeconds);
+            AddString("A", 60, new PixelPosition(1720, 1020), 0.8f + 4 * (float)Timer.Elapsed.TotalSeconds);
+            AddString("D", 60, new PixelPosition(1760, 1020), 0.6f + 4 * (float)Timer.Elapsed.TotalSeconds);
+            AddString("I", 60, new PixelPosition(1782, 1020), 0.4f + 4 * (float)Timer.Elapsed.TotalSeconds);
+            AddString("N", 60, new PixelPosition(1820, 1020), 0.2f + 4 * (float)Timer.Elapsed.TotalSeconds);
+            AddString("G", 60, new PixelPosition(1860, 1020), 0.0f + 4 * (float)Timer.Elapsed.TotalSeconds);
             TextBatch.UploadBufferData(commandBuffer);
 
             var renderPass = commandBuffer.BeginRenderPass(
@@ -125,7 +125,6 @@ public class LoadState : GameState
         StaticAudioPacks.pack_0.SliceBuffers();
         StaticAudio.LoadAll();
         SpriteAnimations.LoadAll();
-        ProductLoader.Load();
     }
 
     private Matrix4x4 GetHiResProjectionMatrix()
@@ -140,7 +139,7 @@ public class LoadState : GameState
         );
     }
 
-    private void AddString(string text, int pixelSize, Position position, float rotation)
+    private void AddString(string text, int pixelSize, PixelPosition position, float rotation)
     {
         TextBatch.Add(
             Fonts.FromID(Fonts.KosugiID),

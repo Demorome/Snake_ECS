@@ -1,6 +1,6 @@
 using System.Numerics;
 
-namespace RollAndCash.Utility;
+namespace Snake.Utility;
 
 public static class MathUtilities
 {

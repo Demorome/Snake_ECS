@@ -4,13 +4,13 @@ using MoonWorks;
 using MoonWorks.Audio;
 using MoonWorks.Graphics;
 using MoonWorks.Math;
-using RollAndCash.Content;
+using Snake.Content;
 
-namespace RollAndCash.GameStates;
+namespace Snake.GameStates;
 
 public class LogoState : GameState
 {
-    RollAndCashGame Game;
+    SnakeGame Game;
     GraphicsDevice GraphicsDevice;
     AudioDevice AudioDevice;
     GameState TransitionStateA;
@@ -29,7 +29,7 @@ public class LogoState : GameState
 
     bool SoundPlayed = false;
 
-    public LogoState(RollAndCashGame game, GameState transitionStateA, GameState transitionStateB)
+    public LogoState(SnakeGame game, GameState transitionStateA, GameState transitionStateB)
     {
         Game = game;
         GraphicsDevice = game.GraphicsDevice;
@@ -90,7 +90,7 @@ public class LogoState : GameState
 
     public override void Draw(Window window, double alpha)
     {
-        var logoPosition = new Position(680, 250);
+        var logoPosition = new PixelPosition(680, 250);
 
         var commandBuffer = GraphicsDevice.AcquireCommandBuffer();
 

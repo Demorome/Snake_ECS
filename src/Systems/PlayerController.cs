@@ -1,10 +1,10 @@
 using System;
-using RollAndCash.Components;
-using RollAndCash.Content;
-using RollAndCash.Data;
-using RollAndCash.Messages;
-using RollAndCash.Relations;
-using RollAndCash.Utility;
+using Snake.Components;
+using Snake.Content;
+using Snake.Data;
+using Snake.Messages;
+using Snake.Relations;
+using Snake.Utility;
 using MoonTools.ECS;
 using MoonWorks.Graphics;
 using MoonWorks.Math;
@@ -12,7 +12,7 @@ using System.Numerics;
 using MoonWorks.Audio;
 using System.Runtime.InteropServices;
 
-namespace RollAndCash.Systems;
+namespace Snake.Systems;
 
 public class PlayerController : MoonTools.ECS.System
 {
@@ -32,7 +32,7 @@ public class PlayerController : MoonTools.ECS.System
 		var player = World.CreateEntity();
 
 		//World.Set(player, new Position(Dimensions.GAME_W * 0.47f + index * 48.0f, Dimensions.GAME_H * 0.25f));
-		World.Set(player, new TilePosition(0, 0));
+		World.Set(player, new TilePosition(1, 1)); // (0, 0) is occupied by a wall
 
 		//World.Set(player, new SpriteAnimation(index == 0 ? Content.SpriteAnimations.Char_Walk_Down : Content.SpriteAnimations.Char2_Walk_Down, 0));
 		World.Set(player, new SpriteAnimation(Content.SpriteAnimations.Char_Walk_Down, 0));

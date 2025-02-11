@@ -1,6 +1,6 @@
 using System;
 
-namespace RollAndCash.Utility;
+namespace Snake.Utility;
 
 public ref struct IntegerEnumerator
 {

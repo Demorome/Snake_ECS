@@ -1,11 +1,11 @@
-using RollAndCash.Content;
-using RollAndCash.Systems;
+using Snake.Content;
+using Snake.Systems;
 using MoonTools.ECS;
 using MoonWorks.Audio;
-using RollAndCash.Components;
-using RollAndCash.Data;
+using Snake.Components;
+using Snake.Data;
 
-namespace RollAndCash.Messages;
+namespace Snake.Messages;
 
 public readonly record struct PlayStaticSoundMessage(
 	StaticSoundID StaticSoundID,

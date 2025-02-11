@@ -1,10 +1,10 @@
 using MoonWorks.Graphics;
-using RollAndCash.Systems;
-using RollAndCash.Data;
-using RollAndCash.Messages;
+using Snake.Systems;
+using Snake.Data;
+using Snake.Messages;
 using System.Numerics;
 
-namespace RollAndCash.Components;
+namespace Snake.Components;
 
 public readonly record struct Rectangle(int X, int Y, int Width, int Height);
 public readonly record struct DrawAsRectangle();

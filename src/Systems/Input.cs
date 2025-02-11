@@ -1,10 +1,10 @@
 using MoonTools.ECS;
 using MoonWorks;
 using MoonWorks.Input;
-using RollAndCash.Components;
+using Snake.Components;
 using System;
 
-namespace RollAndCash.Systems;
+namespace Snake.Systems;
 
 public struct InputState
 {

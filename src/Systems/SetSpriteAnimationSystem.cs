@@ -1,9 +1,9 @@
 using System;
-using RollAndCash.Components;
-using RollAndCash.Messages;
+using Snake.Components;
+using Snake.Messages;
 using MoonTools.ECS;
 
-namespace RollAndCash.Systems;
+namespace Snake.Systems;
 
 public class SetSpriteAnimationSystem : MoonTools.ECS.System
 {
