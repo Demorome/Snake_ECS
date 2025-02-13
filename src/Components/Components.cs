@@ -18,6 +18,8 @@ public readonly record struct MovementTimer(float TimeLeftInSecs, float Max)
     public MovementTimer(float time) : this(time, time) { }
 }
 public readonly record struct LastMovedDirection(Vector2 Direction);
+public readonly record struct LastTilePosition(Vector2 Position);
+
 public readonly record struct CachedDirection(Vector2 Direction);
 public readonly record struct IntegerVelocity(Vector2 Value);
 

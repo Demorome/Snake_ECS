@@ -38,6 +38,7 @@ public class Motion : MoonTools.ECS.System
     {
         Grid[(int)newPos.X, (int)newPos.Y] = e;
 
+        Set(e, new LastTilePosition(Get<TilePosition>(e).PositionVector));
         Set(e, new TilePosition(newPos));
         Set(e, new PixelPosition(GridInfo.TilePositionToPixelPosition(newPos)));
     }
@@ -92,8 +93,15 @@ public class Motion : MoonTools.ECS.System
                 var result = CheckSolidCollision(entity);
                 if (result.hit) {
                     Relate(entity, result.other, new TouchingSolid());
+                    Set(entity, new LastTilePosition(oldPos));
                 }
                 else {
+                    // Update position
+                    UpdateTilePosition(entity, nextPos);
+
+                    // Reset velocity (lost after moving)
+                    Set(entity, new IntegerVelocity(Vector2.Zero));
+
                     // Update movement for tail parts
                     if (HasOutRelation<TailPart>(entity))
                     {
@@ -103,31 +111,30 @@ public class Motion : MoonTools.ECS.System
                         while (true)
                         {
                             var lowerPos = Get<TilePosition>(tailPart).PositionVector;
-                            var upperPos = Get<TilePosition>(upperPart).PositionVector;
+                            var upperPos = Get<LastTilePosition>(upperPart).Position;
+#if DEBUG
+                            Console.WriteLine("Tail TilePosition: {0}", lowerPos);
+#endif
 
-                            bool hasMoved = true;
+                            Set(tailPart, new LastMovedDirection(Get<LastMovedDirection>(upperPart).Direction));
 
                             if (Has<TailPartBecomeActiveNextMovement>(tailPart))
                             {
                                 // Don't move this yet (lowerPos == upperPos, since it's spawned on top of parent).
-                                hasMoved = false;
                                 Set(tailPart, new Solid());
                                 Set(tailPart, new PixelPosition(GridInfo.TilePositionToPixelPosition(lowerPos)));
                                 Remove<TailPartBecomeActiveNextMovement>(tailPart);
+                                // Don't bother checking lower tail parts; they probably need to wait a couple turns before becoming active.
+                                break;
                             }
                             else 
                             {
                                 UpdateTilePosition(tailPart, upperPos);
                             }
 
-                            Set(tailPart, new LastMovedDirection(Get<LastMovedDirection>(upperPart).Direction));
-
                             // Checks for next iteration
                             if (!HasOutRelation<TailPart>(tailPart)) {
-                                if (hasMoved)
-                                {
-                                    Grid[(int)lowerPos.X, (int)lowerPos.Y] = default; // leave a blank space behind 
-                                }
+                                Grid[(int)lowerPos.X, (int)lowerPos.Y] = default; // leave a blank space behind
                                 break;
                             }
                             
@@ -138,12 +145,6 @@ public class Motion : MoonTools.ECS.System
                     else {
                         Grid[(int)oldPos.X, (int)oldPos.Y] = default; // leave a blank space behind
                     }
-
-                    // Update position
-                    UpdateTilePosition(entity, nextPos);
-
-                    // Reset velocity (lost after moving)
-                    Set(entity, new IntegerVelocity(Vector2.Zero));
                 }
             }
         }

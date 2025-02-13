@@ -53,7 +53,10 @@ public class PlayerController : MoonTools.ECS.System
 			World.Relate(lowestPart, tail, new TailPart());
 
 			// Place the tail on top of the lowest part.
-			World.Set(tail, new TilePosition(World.Get<TilePosition>(lowestPart).PositionVector));
+			var lowestPos = World.Get<TilePosition>(lowestPart).PositionVector;
+			World.Set(tail, new TilePosition(lowestPos));
+			World.Set(tail, new LastTilePosition(lowestPos));
+			
 			// It will have no collision and won't move until the next time the player moves.
 			World.Set(tail, new TailPartBecomeActiveNextMovement());
 		}
@@ -66,7 +69,9 @@ public class PlayerController : MoonTools.ECS.System
 		var player = World.CreateEntity();
 
 		//World.Set(player, new Position(Dimensions.GAME_W * 0.47f + index * 48.0f, Dimensions.GAME_H * 0.25f));
-		World.Set(player, new TilePosition(1, 1)); // (0, 0) is occupied by a wall
+		Vector2 startPos = new Vector2(1, 1);
+		World.Set(player, new TilePosition(startPos)); // (0, 0) is occupied by a wall
+		World.Set(player, new LastTilePosition(startPos));
 
 		//World.Set(player, new SpriteAnimation(index == 0 ? Content.SpriteAnimations.Char_Walk_Down : Content.SpriteAnimations.Char2_Walk_Down, 0));
 		World.Set(player, new SpriteAnimation(Content.SpriteAnimations.Char_Walk_Down, 0));
