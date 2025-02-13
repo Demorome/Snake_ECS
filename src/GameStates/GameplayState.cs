@@ -89,7 +89,12 @@ public class GameplayState : GameState
         World.Set(timer, new TextDropShadow(1, 1));*/
 
         var playerOne = PlayerController.SpawnPlayer(0);
-        PlayerController.SpawnTailPart(playerOne);
+        const int NUM_DEFAULT_TAIL_PARTS = 3;
+        for (int i = 0; i < NUM_DEFAULT_TAIL_PARTS; ++i)
+        {
+            PlayerController.SpawnTailPart(playerOne);
+        }
+
         //var playerTwo = PlayerController.SpawnPlayer(1);
 
         //World.Relate(playerOne, scoreOne, new HasScore());

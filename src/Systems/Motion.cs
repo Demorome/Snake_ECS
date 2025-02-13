@@ -95,10 +95,10 @@ public class Motion : MoonTools.ECS.System
                 }
                 else {
                     // Update movement for tail parts
-                    if (HasInRelation<TailPart>(entity))
+                    if (HasOutRelation<TailPart>(entity))
                     {
                         var upperPart = entity;
-                        Entity tailPart = InRelationSingleton<TailPart>(upperPart);
+                        Entity tailPart = OutRelationSingleton<TailPart>(upperPart);
                         // Go through the linked list, starting from the head.
                         while (true)
                         {
@@ -109,9 +109,10 @@ public class Motion : MoonTools.ECS.System
 
                             if (Has<TailPartBecomeActiveNextMovement>(tailPart))
                             {
-                                // Don't move this yet.
+                                // Don't move this yet (lowerPos == upperPos, since it's spawned on top of parent).
                                 hasMoved = false;
                                 Set(tailPart, new Solid());
+                                Set(tailPart, new PixelPosition(GridInfo.TilePositionToPixelPosition(lowerPos)));
                                 Remove<TailPartBecomeActiveNextMovement>(tailPart);
                             }
                             else 
@@ -119,8 +120,10 @@ public class Motion : MoonTools.ECS.System
                                 UpdateTilePosition(tailPart, upperPos);
                             }
 
+                            Set(tailPart, new LastMovedDirection(Get<LastMovedDirection>(upperPart).Direction));
+
                             // Checks for next iteration
-                            if (!HasInRelation<TailPart>(tailPart)) {
+                            if (!HasOutRelation<TailPart>(tailPart)) {
                                 if (hasMoved)
                                 {
                                     Grid[(int)lowerPos.X, (int)lowerPos.Y] = default; // leave a blank space behind 
@@ -129,7 +132,7 @@ public class Motion : MoonTools.ECS.System
                             }
                             
                             upperPart = tailPart;
-                            tailPart = InRelationSingleton<TailPart>(upperPart);
+                            tailPart = OutRelationSingleton<TailPart>(upperPart);
                         }
                     }
                     else {

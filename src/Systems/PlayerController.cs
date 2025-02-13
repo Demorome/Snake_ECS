@@ -34,21 +34,21 @@ public class PlayerController : MoonTools.ECS.System
 
 		World.Set(tail, playerIndex == 0 ? Color.Green : Color.Blue);
 		World.Set(tail, new Depth(World.Get<Depth>(player).Value + 1)); // Draw below player
-		World.Set(tail, new ColorBlend(Color.Cyan));
-		World.Set(player, new SpriteAnimation(Content.SpriteAnimations.Char_Walk_Down, 0));
+		//World.Set(tail, new ColorBlend(Color.Cyan));
+		World.Set(tail, new SpriteAnimation(Content.SpriteAnimations.NPC_Bizazss_Walk_Down, 0));
 		World.Set(tail, new DirectionalSprites(
-			Content.SpriteAnimations.Char_Walk_Up.ID,
-			Content.SpriteAnimations.Char_Walk_Right.ID,
-			Content.SpriteAnimations.Char_Walk_Down.ID,
-			Content.SpriteAnimations.Char_Walk_Left.ID
+			Content.SpriteAnimations.NPC_Bizazss_Walk_Up.ID,
+			Content.SpriteAnimations.NPC_Bizazss_Walk_Right.ID,
+			Content.SpriteAnimations.NPC_Bizazss_Walk_Down.ID,
+			Content.SpriteAnimations.NPC_Bizazss_Walk_Left.ID
 		));
 
 		// Connect tail part to player, by finding the lowest part to attach to.
 		{
 			var lowestPart = player;
-			while (HasInRelation<TailPart>(lowestPart)) 
+			while (HasOutRelation<TailPart>(lowestPart)) 
 			{
-				lowestPart = InRelationSingleton<TailPart>(lowestPart);
+				lowestPart = OutRelationSingleton<TailPart>(lowestPart);
 			}
 			World.Relate(lowestPart, tail, new TailPart());
 
