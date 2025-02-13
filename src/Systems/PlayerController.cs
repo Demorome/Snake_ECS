@@ -112,22 +112,25 @@ public class PlayerController : MoonTools.ECS.System
 			var inputState = Get<InputState>(entity);
 			var direction = Get<CachedDirection>(entity).Direction;
 			{
-				var newDirection = direction;
+				Vector2 newDirection;
 				if (inputState.Left.IsDown)
 				{
-					newDirection.X = -1;
+					newDirection = new Vector2(-1, 0);
 				}
 				else if (inputState.Right.IsDown)
 				{
-					newDirection.X = 1;
+					newDirection = new Vector2(1, 0);
 				}
 				else if (inputState.Up.IsDown)
 				{
-					newDirection.Y = -1;
+					newDirection = new Vector2(0, -1); // going up is approaching Y = 0
 				}
 				else if (inputState.Down.IsDown)
 				{
-					newDirection.Y = 1;
+					newDirection = new Vector2(0, 1);
+				}
+				else {
+					newDirection = direction;
 				}
 				
 				// Ignore inputs trying to go backwards
