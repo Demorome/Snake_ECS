@@ -28,6 +28,7 @@ public class GameplayState : GameState
     ColorAnimation ColorAnimation;
     //NPCController NPCController;
     PlayerController PlayerController;
+    Growth Growth;
     GameState TransitionState;
 
     public GameplayState(SnakeGame game, GameState transitionState)
@@ -46,6 +47,7 @@ public class GameplayState : GameState
         Motion = new Motion(World);
         Audio = new Audio(World, Game.AudioDevice);
         PlayerController = new PlayerController(World);
+        Growth = new Growth(World);
         SetSpriteAnimationSystem = new SetSpriteAnimationSystem(World);
         UpdateSpriteAnimationSystem = new UpdateSpriteAnimationSystem(World);
         ColorAnimation = new ColorAnimation(World);
@@ -89,11 +91,8 @@ public class GameplayState : GameState
         World.Set(timer, new TextDropShadow(1, 1));*/
 
         var playerOne = PlayerController.SpawnPlayer(0);
-        const int NUM_DEFAULT_TAIL_PARTS = 3;
-        for (int i = 0; i < NUM_DEFAULT_TAIL_PARTS; ++i)
-        {
-            PlayerController.SpawnTailPart(playerOne);
-        }
+        const int NUM_DEFAULT_TAIL_PARTS = 6;
+        World.Send(new GrowPlayer(playerOne, NUM_DEFAULT_TAIL_PARTS));
 
         //var playerTwo = PlayerController.SpawnPlayer(1);
 
@@ -114,6 +113,7 @@ public class GameplayState : GameState
         PlayerController.Update(dt);
         //NPCController.Update(dt);
         Motion.Update(dt);
+        Growth.Update(dt);
         DirectionalAnimation.Update(dt);
         SetSpriteAnimationSystem.Update(dt);
         ColorAnimation.Update(dt);

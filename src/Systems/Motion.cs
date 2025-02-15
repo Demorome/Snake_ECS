@@ -6,6 +6,7 @@ using Snake.Components;
 using Snake.Relations;
 using Snake.Messages;
 using Snake.Content;
+using MoonWorks.Storage;
 
 namespace Snake.Systems;
 
@@ -59,7 +60,7 @@ public class Motion : MoonTools.ECS.System
         // If there's no collision...
         if (entityAtNextPos == default || !Has<Solid>(entityAtNextPos))
         {
-            return (default, false);
+            return (entityAtNextPos, false);
         }
         else {
             return (entityAtNextPos, true);
@@ -92,10 +93,21 @@ public class Motion : MoonTools.ECS.System
 
                 var result = CheckSolidCollision(entity);
                 if (result.hit) {
-                    Relate(entity, result.other, new TouchingSolid());
+                    //Relate(entity, result.other, new TouchingSolid());
+                    Send(new EndGame());
                     Set(entity, new LastTilePosition(oldPos));
                 }
-                else {
+                else
+                {
+                    if (Has<CanBeGrabbed>(result.other)) 
+                    {
+                        if (Has<GrowsPlayerOnPickup>(result.other))
+                        {
+                            Send(new GrowPlayer(entity));
+                        }
+                        Destroy(result.other);
+                    }
+
                     // Update position
                     UpdateTilePosition(entity, nextPos);
 
