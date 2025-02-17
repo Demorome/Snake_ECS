@@ -13,13 +13,9 @@ public class Growth : MoonTools.ECS.System
 {
 	MoonTools.ECS.Filter PlayerFilter { get; }
 
-	GameLoopManipulator GameLoopManipulator;
-
 	public Growth(World world) : base(world)
 	{
 		PlayerFilter = FilterBuilder.Include<PlayerIndex>().Build();
-
-		GameLoopManipulator = new GameLoopManipulator(world);
 	}
 
     public void SpawnTailPart(Entity player, int amount = 1)

@@ -43,7 +43,7 @@ public class PlayerController : MoonTools.ECS.System
 		World.Set(player, new Solid());
 		World.Set(player, index == 0 ? Color.Green : Color.Blue);
 		World.Set(player, new Depth(5));
-		World.Set(player, new MovementTimer(0.5f));
+		World.Set(player, new MovementTimer(0.2f));
 		World.Set(player, new IntegerVelocity(Vector2.Zero));
 		World.Set(player, new LastMovedDirection(Vector2.Zero));
 		World.Set(player, new CachedDirection(new Vector2(1, 0))); // Move right

@@ -29,7 +29,11 @@ public class GameplayState : GameState
     //NPCController NPCController;
     PlayerController PlayerController;
     Growth Growth;
+    FoodSpawner FoodSpawner;
+    AssignTilePixelPositions AssignTilePixelPositions;
     GameState TransitionState;
+
+    TileGrid TileGrid;
 
     public GameplayState(SnakeGame game, GameState transitionState)
     {
@@ -41,13 +45,17 @@ public class GameplayState : GameState
     {
         World = new World();
 
+        TileGrid = new TileGrid(World);
+
         //GameTimer = new(World);
         //Timing = new(World);
         Input = new Input(World, Game.Inputs);
-        Motion = new Motion(World);
+        Motion = new Motion(World, TileGrid);
         Audio = new Audio(World, Game.AudioDevice);
         PlayerController = new PlayerController(World);
         Growth = new Growth(World);
+        FoodSpawner = new FoodSpawner(World, TileGrid);
+        AssignTilePixelPositions = new AssignTilePixelPositions(World, TileGrid);
         SetSpriteAnimationSystem = new SetSpriteAnimationSystem(World);
         UpdateSpriteAnimationSystem = new UpdateSpriteAnimationSystem(World);
         ColorAnimation = new ColorAnimation(World);
@@ -55,7 +63,6 @@ public class GameplayState : GameState
         //NPCController = new NPCController(World);
 
         Renderer = new Renderer(World, Game.GraphicsDevice, Game.RootTitleStorage, Game.MainWindow.SwapchainFormat);
-
 
         for (int i = 0; i < GridInfo.WidthWithWalls; i++)
         {
@@ -91,8 +98,7 @@ public class GameplayState : GameState
         World.Set(timer, new TextDropShadow(1, 1));*/
 
         var playerOne = PlayerController.SpawnPlayer(0);
-        const int NUM_DEFAULT_TAIL_PARTS = 6;
-        World.Send(new GrowPlayer(playerOne, NUM_DEFAULT_TAIL_PARTS));
+        World.Send(new GrowPlayer(playerOne, 6));
 
         //var playerTwo = PlayerController.SpawnPlayer(1);
 
@@ -114,6 +120,8 @@ public class GameplayState : GameState
         //NPCController.Update(dt);
         Motion.Update(dt);
         Growth.Update(dt);
+        FoodSpawner.Update(dt);
+        AssignTilePixelPositions.Update(dt);
         DirectionalAnimation.Update(dt);
         SetSpriteAnimationSystem.Update(dt);
         ColorAnimation.Update(dt);
