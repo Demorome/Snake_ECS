@@ -4,6 +4,7 @@ using MoonTools.ECS;
 using MoonWorks.Audio;
 using Snake.Components;
 using Snake.Data;
+using System.Numerics;
 
 namespace Snake.Messages;
 
@@ -28,3 +29,7 @@ public readonly record struct PlaySongMessage();
 public readonly record struct PlayTitleMusic();
 public readonly record struct EndGame();
 public readonly record struct GrowPlayer(Entity WhichPlayer, int Amount = 1);
+public readonly record struct DoMovementMessage(
+	Entity Entity,
+	Vector2 Velocity
+);

@@ -20,7 +20,6 @@ public readonly record struct MovementTimer(float TimeLeftInSecs, float Max)
 public readonly record struct LastMovedDirection(Vector2 Direction);
 public readonly record struct LastTilePosition(Vector2 Position);
 
-public readonly record struct CachedDirection(Vector2 Direction);
 public readonly record struct IntegerVelocity(Vector2 Value);
 
 
@@ -40,6 +39,7 @@ public readonly record struct ColorSpeed(float RedSpeed, float GreenSpeed, float
 public readonly record struct ColorFlicker(int ElapsedFrames, Color Color);
 public readonly record struct Depth(float Value);
 public readonly record struct SpriteScale(float Scale);
+public readonly record struct AdjustFramerateToSpeed();
 
 public readonly record struct IsScoreScreen(); // sorry
 public readonly record struct TextDropShadow(int OffsetX, int OffsetY);

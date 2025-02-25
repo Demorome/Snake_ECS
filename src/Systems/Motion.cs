@@ -12,7 +12,7 @@ namespace Snake.Systems;
 
 public class Motion : MoonTools.ECS.System
 {
-    Filter VelocityFilter;
+    //Filter VelocityFilter;
     //Filter SolidFilter;
 
     TileGrid TileGrid;
@@ -32,7 +32,7 @@ public class Motion : MoonTools.ECS.System
         }*/
 
         // TODO: Fruit / interact filter
-        VelocityFilter = FilterBuilder.Include<TilePosition>().Include<IntegerVelocity>().Build();
+        //VelocityFilter = FilterBuilder.Include<TilePosition>().Include<IntegerVelocity>().Build();
         //SolidFilter = FilterBuilder.Include<TilePosition>()/*.Include<Rectangle>()*/.Include<Solid>().Build();
     }
     
@@ -61,13 +61,16 @@ public class Motion : MoonTools.ECS.System
 
     public override void Update(TimeSpan delta)
     {
-        foreach (var entity in VelocityFilter.Entities)
+        //foreach (var entity in VelocityFilter.Entities)
+        foreach (var message in ReadMessages<DoMovementMessage>())
         {
+            var entity = message.Entity;
+            var vel = message.Velocity;
             /*
             if (HasOutRelation<DontMove>(entity))
                 continue;*/
 
-            var vel = Get<IntegerVelocity>(entity).Value;
+            //var vel = Get<IntegerVelocity>(entity).Value;
 
             if (vel != Vector2.Zero) {
                 var oldPos = Get<TilePosition>(entity).PositionVector;
@@ -93,9 +96,6 @@ public class Motion : MoonTools.ECS.System
 
                     // Update position
                     TileGrid.UpdateTilePosition(entity, nextPos);
-
-                    // Reset velocity (lost after moving)
-                    Set(entity, new IntegerVelocity(Vector2.Zero));
 
                     // Update movement for tail parts
                     if (HasOutRelation<TailPart>(entity))
