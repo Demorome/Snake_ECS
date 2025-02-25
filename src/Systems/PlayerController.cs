@@ -77,33 +77,33 @@ public class PlayerController : MoonTools.ECS.System
 
 			#region Input
 			var inputState = Get<InputState>(entity);
-			var velocity = Get<IntegerVelocity>(entity).Value;
+			var velocity = Get<IntegerVelocity>(entity).Value; // doubles as the current Direction
 			{
-				Vector2 newVelocity;
+				Vector2 newDirection;
 				if (inputState.Left.IsDown)
 				{
-					newVelocity = new Vector2(-1, 0);
+					newDirection = new Vector2(-1, 0);
 				}
 				else if (inputState.Right.IsDown)
 				{
-					newVelocity = new Vector2(1, 0);
+					newDirection = new Vector2(1, 0);
 				}
 				else if (inputState.Up.IsDown)
 				{
-					newVelocity = new Vector2(0, -1); // going up is approaching Y = 0
+					newDirection = new Vector2(0, -1); // going up is approaching Y = 0
 				}
 				else if (inputState.Down.IsDown)
 				{
-					newVelocity = new Vector2(0, 1);
+					newDirection = new Vector2(0, 1);
 				}
 				else {
-					newVelocity = velocity;
+					newDirection = velocity;
 				}
 				
 				// Ignore inputs trying to go backwards
-				if (newVelocity != -Get<LastMovedDirection>(entity).Direction)
+				if (newDirection != -Get<LastMovedDirection>(entity).Direction)
 				{
-					velocity = newVelocity;
+					velocity = newDirection;
 					Set(entity, new IntegerVelocity(velocity));
 				}
 			}
@@ -116,7 +116,7 @@ public class PlayerController : MoonTools.ECS.System
 				if (timeLeft <= 0) 
 				{
 					Send(new DoMovementMessage(entity, velocity));
-					Set(entity, new LastMovedDirection(velocity)); // TODO: ???
+					//Set(entity, new LastMovedDirection(velocity));
 
 					// Reset movement timer.
 					Set(entity, new MovementTimer(moveTimer.Max));

@@ -59,6 +59,44 @@ public class Motion : MoonTools.ECS.System
         }
     }
 
+    void MoveTailParts(Entity parent)
+    {
+        var upperPart = parent;
+        Entity tailPart = OutRelationSingleton<TailPart>(upperPart);
+        // Go through the linked list, starting from the head.
+        while (true)
+        {
+            var lowerPos = Get<TilePosition>(tailPart).PositionVector;
+            var upperPos = Get<LastTilePosition>(upperPart).Position;
+#if DEBUG
+            //Console.WriteLine("Tail TilePosition: {0}", lowerPos);
+#endif
+
+            if (Has<TailPartBecomeActiveNextMovement>(tailPart))
+            {
+                // Don't move this yet (lowerPos == upperPos, since it's spawned on top of parent).
+                Set(tailPart, new Solid());
+                Set(tailPart, new PixelPosition(GridInfo.TilePositionToPixelPosition(lowerPos)));
+                Remove<TailPartBecomeActiveNextMovement>(tailPart);
+                // Don't bother checking lower tail parts; they probably need to wait a couple turns before becoming active.
+                break;
+            }
+            else 
+            {
+                TileGrid.UpdateTilePosition(tailPart, upperPos);
+            }
+
+            // Checks for next iteration
+            if (!HasOutRelation<TailPart>(tailPart)) {
+                TileGrid.Grid[(int)lowerPos.X, (int)lowerPos.Y] = default; // leave a blank space behind
+                break;
+            }
+            
+            upperPart = tailPart;
+            tailPart = OutRelationSingleton<TailPart>(upperPart);
+        }
+    }
+
     public override void Update(TimeSpan delta)
     {
         //foreach (var entity in VelocityFilter.Entities)
@@ -96,46 +134,9 @@ public class Motion : MoonTools.ECS.System
 
                     // Update position
                     TileGrid.UpdateTilePosition(entity, nextPos);
-
-                    // Update movement for tail parts
                     if (HasOutRelation<TailPart>(entity))
                     {
-                        var upperPart = entity;
-                        Entity tailPart = OutRelationSingleton<TailPart>(upperPart);
-                        // Go through the linked list, starting from the head.
-                        while (true)
-                        {
-                            var lowerPos = Get<TilePosition>(tailPart).PositionVector;
-                            var upperPos = Get<LastTilePosition>(upperPart).Position;
-#if DEBUG
-                            //Console.WriteLine("Tail TilePosition: {0}", lowerPos);
-#endif
-
-                            Set(tailPart, new LastMovedDirection(Get<LastMovedDirection>(upperPart).Direction));
-
-                            if (Has<TailPartBecomeActiveNextMovement>(tailPart))
-                            {
-                                // Don't move this yet (lowerPos == upperPos, since it's spawned on top of parent).
-                                Set(tailPart, new Solid());
-                                Set(tailPart, new PixelPosition(GridInfo.TilePositionToPixelPosition(lowerPos)));
-                                Remove<TailPartBecomeActiveNextMovement>(tailPart);
-                                // Don't bother checking lower tail parts; they probably need to wait a couple turns before becoming active.
-                                break;
-                            }
-                            else 
-                            {
-                                TileGrid.UpdateTilePosition(tailPart, upperPos);
-                            }
-
-                            // Checks for next iteration
-                            if (!HasOutRelation<TailPart>(tailPart)) {
-                                TileGrid.Grid[(int)lowerPos.X, (int)lowerPos.Y] = default; // leave a blank space behind
-                                break;
-                            }
-                            
-                            upperPart = tailPart;
-                            tailPart = OutRelationSingleton<TailPart>(upperPart);
-                        }
+                        MoveTailParts(entity);
                     }
                     else {
                         TileGrid.Grid[(int)oldPos.X, (int)oldPos.Y] = default; // leave a blank space behind

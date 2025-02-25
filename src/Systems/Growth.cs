@@ -35,6 +35,8 @@ public class Growth : MoonTools.ECS.System
                 Content.SpriteAnimations.NPC_Bizazss_Walk_Down.ID,
                 Content.SpriteAnimations.NPC_Bizazss_Walk_Left.ID
             ));
+            World.Set(tail, new AdjustFramerateToTopParentSpeed());
+            World.Set(tail, new TopParent(player));
 
             // Connect tail part to player, by finding the lowest part to attach to.
             {

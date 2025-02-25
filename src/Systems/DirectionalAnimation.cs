@@ -54,11 +54,15 @@ public class DirectionalAnimation : MoonTools.ECS.System
 
             int framerate = Get<SpriteAnimation>(entity).FrameRate;
 
-            if (Has<AdjustFramerateToSpeed>(entity))
+            if (Has<AdjustFramerateToSpeed>(entity) || Has<AdjustFramerateToTopParentSpeed>(entity))
             {
-                //var velocity = Has<IntegerVelocity>(entity) ? Get<IntegerVelocity>(entity).Value : Vector2.Zero;
-                var moveTimerMax = Has<MovementTimer>(entity) ? Get<MovementTimer>(entity).Max : 1f;
-                //framerate = (int)(velocity.Length() / moveTimerMax);
+                float moveTimerMax = 1f;
+                var speedEntity = entity;
+                if (Has<AdjustFramerateToTopParentSpeed>(entity))
+                {
+                    speedEntity = Has<TopParent>(entity) ? Get<TopParent>(entity).Parent : default;
+                }
+                moveTimerMax = Has<MovementTimer>(speedEntity) ? Get<MovementTimer>(speedEntity).Max : 1f;
                 framerate = (int)((1 / moveTimerMax) * 2f);
             }
 

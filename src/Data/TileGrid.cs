@@ -22,10 +22,14 @@ public class TileGrid
 
     public void UpdateTilePosition(Entity e, Vector2 newPos)
     {
+        var lastPos = World.Get<TilePosition>(e).PositionVector;
+
         Grid[(int)newPos.X, (int)newPos.Y] = e;
 
         World.Set(e, new LastTilePosition(World.Get<TilePosition>(e).PositionVector));
         World.Set(e, new TilePosition(newPos));
         World.Set(e, new PixelPosition(GridInfo.TilePositionToPixelPosition(newPos)));
+
+        World.Set(e, new LastMovedDirection(newPos - lastPos));
     }
 }
