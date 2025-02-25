@@ -6,6 +6,7 @@ using Snake.Messages;
 using Snake.Components;
 using System;
 using MoonWorks.Graphics;
+using Snake.Utility;
 
 namespace Snake.Systems;
 
@@ -23,11 +24,11 @@ public class Growth : MoonTools.ECS.System
         for (int i = 0; i < amount; ++i)
         {
             var tail = World.CreateEntity();
-            var playerIndex = World.Get<PlayerIndex>(player).Value;
+            //var playerIndex = World.Get<PlayerIndex>(player).Value;
 
-            World.Set(tail, playerIndex == 0 ? Color.Green : Color.Blue);
+            var randomColor = new Color(Rando.Range(0, 1), Rando.Range(0, 1), Rando.Range(0, 1));
+            World.Set(tail, new ColorBlend(randomColor));
             World.Set(tail, new Depth(World.Get<Depth>(player).Value + 1)); // Draw below player
-            //World.Set(tail, new ColorBlend(Color.Cyan));
             World.Set(tail, new SpriteAnimation(Content.SpriteAnimations.NPC_Bizazss_Walk_Down, 0));
             World.Set(tail, new DirectionalSprites(
                 Content.SpriteAnimations.NPC_Bizazss_Walk_Up.ID,
