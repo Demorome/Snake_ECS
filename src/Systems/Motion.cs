@@ -88,7 +88,8 @@ public class Motion : MoonTools.ECS.System
 
             // Checks for next iteration
             if (!HasOutRelation<TailPart>(tailPart)) {
-                TileGrid.Grid[(int)lowerPos.X, (int)lowerPos.Y] = default; // leave a blank space behind
+                // leave a blank space behind
+                TileGrid.EmptyOutTile((int)lowerPos.X, (int)lowerPos.Y); 
                 break;
             }
             
@@ -97,52 +98,59 @@ public class Motion : MoonTools.ECS.System
         }
     }
 
-    public override void Update(TimeSpan delta)
+    void HandleMovement(Entity entity, Vector2 velocity)
     {
-        //foreach (var entity in VelocityFilter.Entities)
-        foreach (var message in ReadMessages<DoMovementMessage>())
-        {
-            var entity = message.Entity;
-            var vel = message.Velocity;
-            /*
-            if (HasOutRelation<DontMove>(entity))
-                continue;*/
+        /*
+        if (HasOutRelation<DontMove>(entity))
+            continue;*/
 
-            //var vel = Get<IntegerVelocity>(entity).Value;
+        //var vel = Get<IntegerVelocity>(entity).Value;
 
-            if (vel != Vector2.Zero) {
-                var oldPos = Get<TilePosition>(entity).Position;
-                var nextPos = oldPos + vel;
+        if (velocity != Vector2.Zero) {
+            var oldPos = Get<TilePosition>(entity).Position;
+            var nextPos = oldPos + velocity;
 
-                var result = CheckSolidCollision(entity);
-                if (result.hit) {
-                    //Relate(entity, result.other, new TouchingSolid());
-                    Send(new EndGame());
-                    Set(entity, new LastTilePosition(oldPos));
-                }
-                else
+            var result = CheckSolidCollision(entity);
+            if (result.hit) {
+                Set(entity, new MarkedForDestroy());
+                Set(entity, new LastTilePosition(oldPos));
+            }
+            else
+            {
+                if (Has<CanBeGrabbed>(result.other)) 
                 {
-                    if (Has<CanBeGrabbed>(result.other)) 
+                    if (Has<GrowsActorOnPickup>(result.other))
                     {
-                        if (Has<GrowsActorOnPickup>(result.other))
-                        {
-                            Send(new GrowActor(entity));
-                        }
-                        Destroy(result.other);
-                        // Don't need to empty out the space in the Grid, since it will be filled up with the player soon.
+                        Send(new GrowActor(entity));
                     }
+                    Destroy(result.other);
+                    // Don't need to empty out the space in the Grid, since it will be filled up with the player soon.
+                }
 
-                    // Update position
-                    TileGrid.UpdateTilePosition(entity, nextPos);
-                    if (HasOutRelation<TailPart>(entity))
-                    {
-                        MoveTailParts(entity);
-                    }
-                    else {
-                        TileGrid.Grid[(int)oldPos.X, (int)oldPos.Y] = default; // leave a blank space behind
-                    }
+                // Update position
+                TileGrid.UpdateTilePosition(entity, nextPos);
+                if (HasOutRelation<TailPart>(entity))
+                {
+                    MoveTailParts(entity);
+                }
+                else {
+                    // leave a blank space behind
+                    TileGrid.EmptyOutTile((int)oldPos.X, (int)oldPos.Y); 
                 }
             }
+        }
+    }
+
+    public override void Update(TimeSpan delta)
+    {
+        foreach (var message in ReadMessages<DoMovementFirstMessage>())
+        {
+            HandleMovement(message.Entity, message.Velocity);
+        }
+
+        foreach (var message in ReadMessages<DoMovementMessage>())
+        {
+            HandleMovement(message.Entity, message.Velocity);
         }
     }
 }

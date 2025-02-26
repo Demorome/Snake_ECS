@@ -116,7 +116,8 @@ public class PlayerController : MoonTools.ECS.System
 				var timeLeft = moveTimer.TimeLeftInSecs - deltaTime;
 				if (timeLeft <= 0) 
 				{
-					Send(new DoMovementMessage(entity, velocity));
+					// If an enemy and the player moves at the same time to reach a spot, the player wins the tie.
+					Send(new DoMovementFirstMessage(entity, velocity));
 					//Set(entity, new LastMovedDirection(velocity));
 
 					// Reset movement timer.

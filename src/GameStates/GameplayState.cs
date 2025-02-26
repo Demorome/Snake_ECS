@@ -30,6 +30,7 @@ public class GameplayState : GameState
     PlayerController PlayerController;
     Growth Growth;
     FoodSpawner FoodSpawner;
+    Destroyer Destroyer;
     AssignTilePixelPositions AssignTilePixelPositions;
     GameState TransitionState;
 
@@ -61,6 +62,7 @@ public class GameplayState : GameState
         ColorAnimation = new ColorAnimation(World);
         DirectionalAnimation = new DirectionalAnimation(World);
         NPCController = new NPCController(World, TileGrid);
+        Destroyer = new Destroyer(World, TileGrid);
 
         Renderer = new Renderer(World, Game.GraphicsDevice, Game.RootTitleStorage, Game.MainWindow.SwapchainFormat);
 
@@ -112,6 +114,7 @@ public class GameplayState : GameState
 
     public override void Update(TimeSpan dt)
     {
+        Destroyer.Update(dt);
         //Timing.Update(dt);
         UpdateSpriteAnimationSystem.Update(dt);
         //GameTimer.Update(dt);

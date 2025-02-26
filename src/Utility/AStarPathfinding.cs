@@ -24,7 +24,11 @@ public static class AStarPathfinding
         }
     }
 
-    public static List<Location> GetWalkableAdjacentSquares(int x, int y, Snake.TileGrid tileGrid)
+    public static List<Location> GetWalkableAdjacentSquares(
+        int x, 
+        int y, 
+        Func<int, int, bool> isSpaceWalkableFunc
+        )
     {
         var proposedLocations = new List<Location>()
         {
@@ -34,7 +38,7 @@ public static class AStarPathfinding
             new Location { X = x + 1, Y = y },
         };
 
-        return proposedLocations.Where(l => !tileGrid.IsSpaceOccupiedBySolid(l.X, l.Y)).ToList();
+        return proposedLocations.Where(l => isSpaceWalkableFunc(l.X, l.Y)).ToList();
     }
 
     static int ComputeHScore(int x, int y, int targetX, int targetY)
@@ -43,7 +47,10 @@ public static class AStarPathfinding
         return Math.Abs(targetX - x) + Math.Abs(targetY - y);
     }
 
-    public static Location GetNextLocationToReachTarget(Vector2 startPos, Vector2 targetPos, Snake.TileGrid tileGrid)
+    public static Location GetNextLocationToReachTarget(
+        Vector2 startPos, 
+        Vector2 targetPos, 
+        Func<int, int, bool> isSpaceWalkableFunc)
     {
         Location current = null;
         var start = new Location { X = (int)startPos.X, Y = (int)startPos.Y };
@@ -73,7 +80,7 @@ public static class AStarPathfinding
                 break;
             }
 
-            var adjacentSquares = GetWalkableAdjacentSquares(current.X, current.Y, tileGrid);
+            var adjacentSquares = GetWalkableAdjacentSquares(current.X, current.Y, isSpaceWalkableFunc);
             g++;
 
             foreach(var adjacentSquare in adjacentSquares)

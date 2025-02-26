@@ -30,7 +30,7 @@ public readonly record struct TailPartBecomeActiveNextMovement();
 public readonly record struct CanBeGrabbed();
 public readonly record struct CanGrow();
 public readonly record struct GrowsActorOnPickup();
-
+public readonly record struct MarkedForDestroy();
 
 
 public readonly record struct Score(int Value);

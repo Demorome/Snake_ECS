@@ -65,6 +65,26 @@ public class NPCController : MoonTools.ECS.System
 		return npc;
 	}
 
+    Entity FindTarget(Entity npc)
+    {
+        Entity target = default;
+        int minDistance = int.MaxValue;
+        foreach (var nthTarget in TargetFilter.Entities)
+        {
+            var distance = MathUtilities.GetManhattanDistance(
+                Get<TilePosition>(npc).Position, 
+                Get<TilePosition>(nthTarget).Position
+                );
+
+            if (distance < minDistance)
+            {
+                minDistance = distance;
+                target = nthTarget;
+            }
+        }
+        return target;
+    }
+
 	public override void Update(System.TimeSpan delta)
 	{
 		if (!Some<GameInProgress>()) { return; }
@@ -82,29 +102,10 @@ public class NPCController : MoonTools.ECS.System
 		{
             var npcPosition = Get<TilePosition>(npc).Position;
 
-            #region FIND TARGET
-            Entity target = default;
-            {
-                int minDistance = int.MaxValue;
-                foreach (var nthTarget in TargetFilter.Entities)
-                {
-                    var distance = MathUtilities.GetManhattanDistance(
-                        npcPosition, 
-                        Get<TilePosition>(nthTarget).Position
-                        );
-
-                    if (distance < minDistance)
-                    {
-                        minDistance = distance;
-                        target = nthTarget;
-                    }
-                }
-            }
-            #endregion
-
             // doubles as the current Direction
             Vector2 velocity = Has<IntegerVelocity>(npc) ? Get<IntegerVelocity>(npc).Value : Vector2.Zero; 
 
+            var target = FindTarget(npc);
             if (target != default)
             {
                 #region PATHFINDING
@@ -112,7 +113,7 @@ public class NPCController : MoonTools.ECS.System
                 var nextLocation = AStarPathfinding.GetNextLocationToReachTarget(
                     npcPosition,
                     Get<TilePosition>(target).Position,
-                    TileGrid
+                    (x, y) => !TileGrid.IsSpaceOccupiedBySolid(x, y) || TileGrid.IsSpaceOccupiedByPlayer(x, y)
                     );
 
                 if (nextLocation != null)

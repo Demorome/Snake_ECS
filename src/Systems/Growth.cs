@@ -29,8 +29,9 @@ public class Growth : MoonTools.ECS.System
         {
             var tail = World.CreateEntity();
 
-            var randomColor = new Color(Rando.Range(0, 1), Rando.Range(0, 1), Rando.Range(0, 1));
-            World.Set(tail, new ColorBlend(randomColor));
+            //var randomColor = new Color(Rando.Range(0, 1), Rando.Range(0, 1), Rando.Range(0, 1));
+            Color color = Has<PlayerIndex>(actor) ? Color.Green : Color.Red;
+            World.Set(tail, new ColorBlend(color));
             World.Set(tail, new Depth(World.Get<Depth>(actor).Value + 1)); // Draw below actor
             World.Set(tail, new SpriteAnimation(Content.SpriteAnimations.NPC_Bizazss_Walk_Down, 0));
             World.Set(tail, new DirectionalSprites(

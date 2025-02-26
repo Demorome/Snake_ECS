@@ -20,11 +20,35 @@ public class TileGrid
         Grid = new Entity[GridInfo.WidthWithWalls, GridInfo.HeightWithWalls]; // [Row, Column]
     }
 
+    public void EmptyOutTile(int x, int y)
+    {
+        Grid[x, y] = default;
+    }
+
+    public bool IsTileEmpty(int x, int y)
+    {
+        return Grid[x, y] == default;
+    }
+
     public bool IsSpaceOccupiedBySolid(int x, int y)
     {
-        if (Grid[x, y] != default)
+        if (!IsTileEmpty(x, y))
         {
             return World.Has<Solid>(Grid[x, y]);
+        }
+        return false;
+    }
+
+    public bool IsSpaceOccupiedByPlayer(int x, int y)
+    {
+        if (!IsTileEmpty(x, y))
+        {
+            var entity = Grid[x, y];
+            if (World.Has<TopParent>(entity))
+            {
+                entity = World.Get<TopParent>(entity).Parent;
+            }
+            return World.Has<PlayerIndex>(entity);
         }
         return false;
     }
@@ -50,7 +74,7 @@ public class TileGrid
             int row = Utility.Rando.Int(1, GridInfo.Height + 1);
             int col = Utility.Rando.Int(1, GridInfo.Width + 1);
 
-            if (Grid[row, col] == default)
+            if (IsTileEmpty(row, col))
             {
                 return new Vector2(row, col);
             }
