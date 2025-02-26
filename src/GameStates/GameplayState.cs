@@ -117,10 +117,10 @@ public class GameplayState : GameState
         //GameTimer.Update(dt);
         Input.Update(dt);
         PlayerController.Update(dt);
+        FoodSpawner.Update(dt);
         NPCController.Update(dt);
         Motion.Update(dt);
         Growth.Update(dt);
-        FoodSpawner.Update(dt);
         AssignTilePixelPositions.Update(dt);
         DirectionalAnimation.Update(dt);
         SetSpriteAnimationSystem.Update(dt);

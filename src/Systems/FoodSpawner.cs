@@ -55,13 +55,7 @@ public class FoodSpawner : MoonTools.ECS.System
 
 	public override void Update(TimeSpan timeSpan)
 	{
-        int numCurrentFood = 0;
-        foreach (var foodEntity in FoodFilter.Entities)
-		{
-            ++numCurrentFood;
-        }
-
-        if (numCurrentFood == 0)
+        if (FoodFilter.Empty)
         {
             SpawnFood();
         }
