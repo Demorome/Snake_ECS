@@ -28,7 +28,7 @@ public readonly record struct Solid();
 public readonly record struct TailPartBecomeActiveNextMovement();
 //public readonly record struct TouchingSolid();
 public readonly record struct CanBeGrabbed();
-public readonly record struct GrowsPlayerOnPickup();
+public readonly record struct GrowsActorOnPickup();
 
 
 

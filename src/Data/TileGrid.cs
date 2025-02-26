@@ -20,13 +20,18 @@ public class TileGrid
         Grid = new Entity[GridInfo.WidthWithWalls, GridInfo.HeightWithWalls]; // [Row, Column]
     }
 
+    public bool IsSpaceOccupiedBySolid(int x, int y)
+    {
+        return World.Has<Solid>(Grid[x, y]);
+    }
+
     public void UpdateTilePosition(Entity e, Vector2 newPos)
     {
-        var lastPos = World.Get<TilePosition>(e).PositionVector;
+        var lastPos = World.Get<TilePosition>(e).Position;
 
         Grid[(int)newPos.X, (int)newPos.Y] = e;
 
-        World.Set(e, new LastTilePosition(World.Get<TilePosition>(e).PositionVector));
+        World.Set(e, new LastTilePosition(World.Get<TilePosition>(e).Position));
         World.Set(e, new TilePosition(newPos));
         World.Set(e, new PixelPosition(GridInfo.TilePositionToPixelPosition(newPos)));
 

@@ -49,7 +49,7 @@ public class Growth : MoonTools.ECS.System
                 World.Relate(lowestPart, tail, new TailPart());
 
                 // Place the tail on top of the lowest part.
-                var lowestPos = World.Get<TilePosition>(lowestPart).PositionVector;
+                var lowestPos = World.Get<TilePosition>(lowestPart).Position;
                 World.Set(tail, new TilePosition(lowestPos));
                 World.Set(tail, new LastTilePosition(lowestPos));
                 

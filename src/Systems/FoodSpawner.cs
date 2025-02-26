@@ -19,7 +19,7 @@ public class FoodSpawner : MoonTools.ECS.System
 	public FoodSpawner(World world, TileGrid tileGrid) : base(world)
 	{
         TileGrid = tileGrid;
-		FoodFilter = FilterBuilder.Include<CanBeGrabbed>().Include<GrowsPlayerOnPickup>().Build();
+		FoodFilter = FilterBuilder.Include<CanBeGrabbed>().Include<GrowsActorOnPickup>().Build();
 	}
 
     public Vector2 GetSafeSpawnPosition()
@@ -42,7 +42,7 @@ public class FoodSpawner : MoonTools.ECS.System
         var food = World.CreateEntity();
 
         World.Set(food, new CanBeGrabbed());
-        World.Set(food, new GrowsPlayerOnPickup());
+        World.Set(food, new GrowsActorOnPickup());
         World.Set(food, new SpriteAnimation(Content.SpriteAnimations.Item_Food, 10, true, Utility.Rando.Int(0, Content.SpriteAnimations.Item_Food.Frames.Length)));
 
         // TODO: Handle case where there is no safe spawn position!

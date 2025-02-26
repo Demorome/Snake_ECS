@@ -26,7 +26,7 @@ public class GameplayState : GameState
     DirectionalAnimation DirectionalAnimation;
     UpdateSpriteAnimationSystem UpdateSpriteAnimationSystem;
     ColorAnimation ColorAnimation;
-    //NPCController NPCController;
+    NPCController NPCController;
     PlayerController PlayerController;
     Growth Growth;
     FoodSpawner FoodSpawner;
@@ -60,7 +60,7 @@ public class GameplayState : GameState
         UpdateSpriteAnimationSystem = new UpdateSpriteAnimationSystem(World);
         ColorAnimation = new ColorAnimation(World);
         DirectionalAnimation = new DirectionalAnimation(World);
-        //NPCController = new NPCController(World);
+        NPCController = new NPCController(World, TileGrid);
 
         Renderer = new Renderer(World, Game.GraphicsDevice, Game.RootTitleStorage, Game.MainWindow.SwapchainFormat);
 
@@ -117,7 +117,7 @@ public class GameplayState : GameState
         //GameTimer.Update(dt);
         Input.Update(dt);
         PlayerController.Update(dt);
-        //NPCController.Update(dt);
+        NPCController.Update(dt);
         Motion.Update(dt);
         Growth.Update(dt);
         FoodSpawner.Update(dt);

@@ -4,13 +4,13 @@ using System.Numerics;
 // WARN: Anyone setting this MUST make sure to update PixelPosition as well.
 public readonly record struct TilePosition
 {
-    public readonly Vector2 PositionVector;
+    public readonly Vector2 Position;
     public readonly int X { get; }
     public readonly int Y { get; }
 
     public TilePosition(int x, int y)
     {
-        PositionVector = new Vector2(x, y);
+        Position = new Vector2(x, y);
         X = x;
         Y = y;
     }
@@ -19,32 +19,32 @@ public readonly record struct TilePosition
     {
         X = (int)MathF.Round(v.X);
         Y = (int)MathF.Round(v.Y);
-        PositionVector = new Vector2(X, Y);
+        Position = new Vector2(X, Y);
     }
 
     public TilePosition SetX(int x)
     {
-        return new TilePosition(x, (int)PositionVector.Y);
+        return new TilePosition(x, (int)Position.Y);
     }
 
     public TilePosition SetY(int y)
     {
-        return new TilePosition((int)PositionVector.X, y);
+        return new TilePosition((int)Position.X, y);
     }
 
     public static TilePosition operator +(TilePosition a, TilePosition b)
     {
-        return new TilePosition(a.PositionVector + b.PositionVector);
+        return new TilePosition(a.Position + b.Position);
     }
 
     public static Vector2 operator -(TilePosition a, TilePosition b)
     {
-        return a.PositionVector - b.PositionVector;
+        return a.Position - b.Position;
     }
 
     public static TilePosition operator +(TilePosition a, Vector2 b)
     {
-        return new TilePosition(a.PositionVector + b);
+        return new TilePosition(a.Position + b);
     }
 
     public override string ToString()

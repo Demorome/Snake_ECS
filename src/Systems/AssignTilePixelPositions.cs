@@ -25,7 +25,7 @@ public class AssignTilePixelPositions : MoonTools.ECS.System
 	{
         foreach (var entity in NeedsPixelPositionFilter.Entities)
         {
-            var tilePos = Get<TilePosition>(entity).PositionVector;
+            var tilePos = Get<TilePosition>(entity).Position;
 
             TileGrid.Grid[(int)tilePos.X, (int)tilePos.Y] = entity;
             Set(entity, new PixelPosition(GridInfo.TilePositionToPixelPosition(tilePos)));

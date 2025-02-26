@@ -44,7 +44,7 @@ public class Motion : MoonTools.ECS.System
             return (default, false);
         }
 
-        var oldPos = Get<TilePosition>(e).PositionVector;
+        var oldPos = Get<TilePosition>(e).Position;
         var nextPos = oldPos + Get<IntegerVelocity>(e).Value;
 
         var entityAtNextPos = TileGrid.Grid[(int)nextPos.X, (int)nextPos.Y];
@@ -66,7 +66,7 @@ public class Motion : MoonTools.ECS.System
         // Go through the linked list, starting from the head.
         while (true)
         {
-            var lowerPos = Get<TilePosition>(tailPart).PositionVector;
+            var lowerPos = Get<TilePosition>(tailPart).Position;
             var upperPos = Get<LastTilePosition>(upperPart).Position;
 #if DEBUG
             //Console.WriteLine("Tail TilePosition: {0}", lowerPos);
@@ -111,7 +111,7 @@ public class Motion : MoonTools.ECS.System
             //var vel = Get<IntegerVelocity>(entity).Value;
 
             if (vel != Vector2.Zero) {
-                var oldPos = Get<TilePosition>(entity).PositionVector;
+                var oldPos = Get<TilePosition>(entity).Position;
                 var nextPos = oldPos + vel;
 
                 var result = CheckSolidCollision(entity);
@@ -124,7 +124,7 @@ public class Motion : MoonTools.ECS.System
                 {
                     if (Has<CanBeGrabbed>(result.other)) 
                     {
-                        if (Has<GrowsPlayerOnPickup>(result.other))
+                        if (Has<GrowsActorOnPickup>(result.other))
                         {
                             Send(new GrowPlayer(entity));
                         }
