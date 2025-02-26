@@ -69,7 +69,9 @@ public static class AStarPathfinding
 
             // if we added the destination to the closed list, we've found a path
             if (closedList.FirstOrDefault(l => l.X == target.X && l.Y == target.Y) != null)
+            {
                 break;
+            }
 
             var adjacentSquares = GetWalkableAdjacentSquares(current.X, current.Y, tileGrid);
             g++;
@@ -79,7 +81,9 @@ public static class AStarPathfinding
                 // if this adjacent square is already in the closed list, ignore it
                 if (closedList.FirstOrDefault(l => l.X == adjacentSquare.X
                         && l.Y == adjacentSquare.Y) != null)
+                {
                     continue;
+                }
 
                 // if it's not in the open list...
                 if (openList.FirstOrDefault(l => l.X == adjacentSquare.X
@@ -107,6 +111,11 @@ public static class AStarPathfinding
                 }
             }
         }
-        return current.Parent;
+
+        if (current.Parent != null)
+        {
+            return closedList.Count > 1 ? closedList.ElementAt(1) : closedList.ElementAt(0);
+        }
+        return null;
     }
 }

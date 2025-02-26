@@ -48,6 +48,7 @@ public class PlayerController : MoonTools.ECS.System
 		World.Set(player, new LastMovedDirection(Vector2.Zero));
 		World.Set(player, new AdjustFramerateToSpeed());
 		World.Set(player, new InputState());
+		World.Set(player, new CanGrow());
 		/*
 		World.Set(player, new DirectionalSprites(
 			index == 0 ? Content.SpriteAnimations.Char_Walk_Up.ID : Content.SpriteAnimations.Char2_Walk_Up.ID,

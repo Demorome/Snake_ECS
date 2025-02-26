@@ -12,23 +12,26 @@ namespace Snake.Systems;
 
 public class Growth : MoonTools.ECS.System
 {
-	MoonTools.ECS.Filter PlayerFilter { get; }
+	MoonTools.ECS.Filter GrowingActorFilter { get; }
 
 	public Growth(World world) : base(world)
 	{
-		PlayerFilter = FilterBuilder.Include<PlayerIndex>().Build();
+		GrowingActorFilter = 
+        FilterBuilder
+        .Include<TilePosition>()
+        .Include<CanGrow>()
+        .Build();
 	}
 
-    public void SpawnTailPart(Entity player, int amount = 1)
+    public void SpawnTailPart(Entity actor, int amount = 1)
 	{
         for (int i = 0; i < amount; ++i)
         {
             var tail = World.CreateEntity();
-            //var playerIndex = World.Get<PlayerIndex>(player).Value;
 
             var randomColor = new Color(Rando.Range(0, 1), Rando.Range(0, 1), Rando.Range(0, 1));
             World.Set(tail, new ColorBlend(randomColor));
-            World.Set(tail, new Depth(World.Get<Depth>(player).Value + 1)); // Draw below player
+            World.Set(tail, new Depth(World.Get<Depth>(actor).Value + 1)); // Draw below actor
             World.Set(tail, new SpriteAnimation(Content.SpriteAnimations.NPC_Bizazss_Walk_Down, 0));
             World.Set(tail, new DirectionalSprites(
                 Content.SpriteAnimations.NPC_Bizazss_Walk_Up.ID,
@@ -37,11 +40,11 @@ public class Growth : MoonTools.ECS.System
                 Content.SpriteAnimations.NPC_Bizazss_Walk_Left.ID
             ));
             World.Set(tail, new AdjustFramerateToTopParentSpeed());
-            World.Set(tail, new TopParent(player));
+            World.Set(tail, new TopParent(actor));
 
-            // Connect tail part to player, by finding the lowest part to attach to.
+            // Connect tail part to actor, by finding the lowest part to attach to.
             {
-                var lowestPart = player;
+                var lowestPart = actor;
                 while (HasOutRelation<TailPart>(lowestPart)) 
                 {
                     lowestPart = OutRelationSingleton<TailPart>(lowestPart);
@@ -61,14 +64,13 @@ public class Growth : MoonTools.ECS.System
 
 	public override void Update(TimeSpan timeSpan)
 	{
-		foreach (var playerEntity in PlayerFilter.Entities)
+		foreach (var actor in GrowingActorFilter.Entities)
 		{
-			//var index = Get<PlayerIndex>(playerEntity).Value;
-			foreach (var message in ReadMessages<GrowPlayer>())
+			foreach (var message in ReadMessages<GrowActor>())
 			{
-				if (message.WhichPlayer == playerEntity)
+				if (message.WhichActor == actor)
 				{
-					SpawnTailPart(playerEntity, message.Amount);
+					SpawnTailPart(actor, message.Amount);
 				}
 			}
 		}

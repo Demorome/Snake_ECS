@@ -126,7 +126,7 @@ public class Motion : MoonTools.ECS.System
                     {
                         if (Has<GrowsActorOnPickup>(result.other))
                         {
-                            Send(new GrowPlayer(entity));
+                            Send(new GrowActor(entity));
                         }
                         Destroy(result.other);
                         // Don't need to empty out the space in the Grid, since it will be filled up with the player soon.

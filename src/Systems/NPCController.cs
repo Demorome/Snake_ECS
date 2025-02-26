@@ -53,6 +53,7 @@ public class NPCController : MoonTools.ECS.System
 		//World.Set(npc, new IntegerVelocity(new Vector2(1, 0))); // Move right
 		World.Set(npc, new LastMovedDirection(Vector2.Zero));
 		World.Set(npc, new AdjustFramerateToSpeed());
+        World.Set(npc, new CanGrow());
 
 		World.Set(npc, new DirectionalSprites(
 			Content.SpriteAnimations.NPC_Drone_Fly_Up.ID,
@@ -70,8 +71,17 @@ public class NPCController : MoonTools.ECS.System
 
 		var deltaTime = (float)delta.TotalSeconds;
 
+        #region SPAWN NPC
+        if (NPCFilter.Empty)
+        {
+            SpawnNPC(TileGrid.GetSafeSpawnPosition());
+        }
+        #endregion
+
 		foreach (var npc in NPCFilter.Entities)
 		{
+            var npcPosition = Get<TilePosition>(npc).Position;
+
             #region FIND TARGET
             Entity target = default;
             {
@@ -79,7 +89,7 @@ public class NPCController : MoonTools.ECS.System
                 foreach (var nthTarget in TargetFilter.Entities)
                 {
                     var distance = MathUtilities.GetManhattanDistance(
-                        Get<TilePosition>(npc).Position, 
+                        npcPosition, 
                         Get<TilePosition>(nthTarget).Position
                         );
 
@@ -100,17 +110,17 @@ public class NPCController : MoonTools.ECS.System
                 #region PATHFINDING
 
                 var nextLocation = AStarPathfinding.GetNextLocationToReachTarget(
-                    Get<TilePosition>(npc).Position, 
+                    npcPosition,
                     Get<TilePosition>(target).Position,
                     TileGrid
                     );
 
                 if (nextLocation != null)
                 {
-                    velocity = nextLocation.AsVector() - Get<TilePosition>(npc).Position;
+                    velocity = nextLocation.AsVector() - npcPosition;
                     Set(npc, new IntegerVelocity(velocity));
                 }
-                
+
                 #endregion
             }
 

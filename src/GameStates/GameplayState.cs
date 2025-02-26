@@ -98,7 +98,7 @@ public class GameplayState : GameState
         World.Set(timer, new TextDropShadow(1, 1));*/
 
         var playerOne = PlayerController.SpawnPlayer(0);
-        World.Send(new GrowPlayer(playerOne, 6));
+        World.Send(new GrowActor(playerOne, 6));
 
         //var playerTwo = PlayerController.SpawnPlayer(1);
 

@@ -28,7 +28,7 @@ public readonly record struct SetAnimationMessage(
 public readonly record struct PlaySongMessage();
 public readonly record struct PlayTitleMusic();
 public readonly record struct EndGame();
-public readonly record struct GrowPlayer(Entity WhichPlayer, int Amount = 1);
+public readonly record struct GrowActor(Entity WhichActor, int Amount = 1);
 public readonly record struct DoMovementMessage(
 	Entity Entity,
 	Vector2 Velocity
