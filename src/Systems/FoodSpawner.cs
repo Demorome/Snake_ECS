@@ -28,7 +28,21 @@ public class FoodSpawner : MoonTools.ECS.System
 
         World.Set(food, new CanBeGrabbed());
         World.Set(food, new GrowsActorOnPickup());
-        World.Set(food, new SpriteAnimation(Content.SpriteAnimations.Item_Food, 10, true, Utility.Rando.Int(0, Content.SpriteAnimations.Item_Food.Frames.Length)));
+        World.Set(food, new SpriteAnimation(
+            Content.SpriteAnimations.Item_Food, 
+            10, 
+            true, 
+            Utility.Rando.Int(0, Content.SpriteAnimations.Item_Food.Frames.Length))
+            );
+
+        /*
+        if (Utility.Rando.Int(0, 3) == 2)
+        {
+            int numTurnsToSpawnEnemy = 3;
+            float turnLength = 0.2f;
+            World.Set(food, new SpawnsEnemy());
+            World.Set(food, new Change)
+        }*/
 
         // TODO: Handle case where there is no safe spawn position!
         World.Set(food, new TilePosition(TileGrid.GetSafeSpawnPosition()));

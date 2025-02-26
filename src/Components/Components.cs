@@ -10,18 +10,14 @@ namespace Snake.Components;
 public readonly record struct Rectangle(int X, int Y, int Width, int Height);
 public readonly record struct DrawAsRectangle();
 
-public readonly record struct PlayerIndex(int Value);
+public readonly record struct PlayerIndex(int Value); // TODO: Replace with CanBeControlled?
 //public readonly record struct MaxSpeed(float Value);
-
-public readonly record struct MovementTimer(float TimeLeftInSecs, float Max)
-{
-    public float PercentRemaining => TimeLeftInSecs / Max;
-    public MovementTimer(float time) : this(time, time) { }
-}
 public readonly record struct LastMovedDirection(Vector2 Direction);
 public readonly record struct LastTilePosition(Vector2 Position);
 
 public readonly record struct IntegerVelocity(Vector2 Value);
+public readonly record struct CanMove();
+
 
 
 public readonly record struct Solid();

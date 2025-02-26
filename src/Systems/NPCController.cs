@@ -29,7 +29,7 @@ public class NPCController : MoonTools.ECS.System
 		FilterBuilder
 		.Exclude<PlayerIndex>()
 		.Include<TilePosition>()
-        .Include<MovementTimer>()
+        .Include<CanMove>()
 		.Build();
 
         TargetFilter =
@@ -49,8 +49,15 @@ public class NPCController : MoonTools.ECS.System
 		World.Set(npc, new SpriteAnimation(Content.SpriteAnimations.NPC_Drone_Fly_Down, 0));
 		World.Set(npc, new Solid());
 		World.Set(npc, new Depth(5));
-		World.Set(npc, new MovementTimer(0.2f));
-		//World.Set(npc, new IntegerVelocity(new Vector2(1, 0))); // Move right
+        World.Set(npc, new CanMove());
+
+        {
+            var moveTimer = World.CreateEntity();
+            World.Set(moveTimer, new Timer(0.2f, true));
+            World.Relate(moveTimer, npc, new MovementTimer());
+            //World.Set(npc, new IntegerVelocity(new Vector2(1, 0))); // Move right
+        }
+
 		World.Set(npc, new LastMovedDirection(Vector2.Zero));
 		World.Set(npc, new AdjustFramerateToSpeed());
         World.Set(npc, new CanGrow());
@@ -124,57 +131,6 @@ public class NPCController : MoonTools.ECS.System
 
                 #endregion
             }
-
-            #region MOVEMENT
-
-            var moveTimer = Get<MovementTimer>(npc);
-            var timeLeft = moveTimer.TimeLeftInSecs - deltaTime;
-            if (timeLeft <= 0) 
-            {
-                Send(new DoMovementMessage(npc, velocity));
-                //Set(entity, new LastMovedDirection(velocity));
-
-                // Reset movement timer.
-                Set(npc, new MovementTimer(moveTimer.Max));
-            }
-            else {
-                // Store the ticking down.
-                Set(npc, new MovementTimer(timeLeft, moveTimer.Max));
-            }
-			#endregion
-
-
-			// #region walking sfx
-			// if (!HasOutRelation<TimingFootstepAudio>(entity) && framerate > 0)
-			// {
-			// 	PlayRandomFootstep();
-
-			// 	var footstepTimer = World.CreateEntity();
-			// 	var footstepDuration = Math.Clamp(1f - (framerate / 50f), .5f, 1f);
-			// 	Set(footstepTimer, new Timer(footstepDuration));
-			// 	World.Relate(entity, footstepTimer, new TimingFootstepAudio());
-			// }
-			// #endregion
 		}
 	}
-
-	/*
-	private void PlayRandomFootstep()
-	{
-		Send(
-			new PlayStaticSoundMessage(
-				new StaticSoundID[]
-				{
-					StaticAudio.Footstep1,
-					StaticAudio.Footstep2,
-					StaticAudio.Footstep3,
-					StaticAudio.Footstep4,
-					StaticAudio.Footstep5,
-				}.GetRandomItem<StaticSoundID>(),
-			SoundCategory.Generic,
-			Rando.Range(0.66f, 0.88f),
-			Rando.Range(-.05f, .05f)
-			)
-		);
-	}*/
 }

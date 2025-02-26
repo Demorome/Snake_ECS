@@ -21,7 +21,7 @@ public class GameplayState : GameState
     Motion Motion;
     Audio Audio;
     //Systems.GameTimer GameTimer;
-    //Timing Timing;
+    Timing Timing;
     SetSpriteAnimationSystem SetSpriteAnimationSystem;
     DirectionalAnimation DirectionalAnimation;
     UpdateSpriteAnimationSystem UpdateSpriteAnimationSystem;
@@ -49,7 +49,7 @@ public class GameplayState : GameState
         TileGrid = new TileGrid(World);
 
         //GameTimer = new(World);
-        //Timing = new(World);
+        Timing = new(World);
         Input = new Input(World, Game.Inputs);
         Motion = new Motion(World, TileGrid);
         Audio = new Audio(World, Game.AudioDevice);
@@ -115,7 +115,7 @@ public class GameplayState : GameState
     public override void Update(TimeSpan dt)
     {
         Destroyer.Update(dt);
-        //Timing.Update(dt);
+        Timing.Update(dt);
         UpdateSpriteAnimationSystem.Update(dt);
         //GameTimer.Update(dt);
         Input.Update(dt);

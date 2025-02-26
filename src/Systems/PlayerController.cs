@@ -43,7 +43,14 @@ public class PlayerController : MoonTools.ECS.System
 		World.Set(player, new Solid());
 		World.Set(player, index == 0 ? Color.Green : Color.Blue);
 		World.Set(player, new Depth(5));
-		World.Set(player, new MovementTimer(0.2f));
+		World.Set(player, new CanMove());
+
+		{
+			var moveTimer = World.CreateEntity();
+			World.Set(moveTimer, new Timer(0.2f, true));
+			World.Relate(moveTimer, player, new MovementTimer());
+		}
+
 		World.Set(player, new IntegerVelocity(new Vector2(1, 0))); // Move right
 		World.Set(player, new LastMovedDirection(Vector2.Zero));
 		World.Set(player, new AdjustFramerateToSpeed());
@@ -109,59 +116,6 @@ public class PlayerController : MoonTools.ECS.System
 				}
 			}
 			#endregion
-
-			#region Movement
-			{
-				var moveTimer = Get<MovementTimer>(entity);
-				var timeLeft = moveTimer.TimeLeftInSecs - deltaTime;
-				if (timeLeft <= 0) 
-				{
-					// If an enemy and the player moves at the same time to reach a spot, the player wins the tie.
-					Send(new DoMovementFirstMessage(entity, velocity));
-					//Set(entity, new LastMovedDirection(velocity));
-
-					// Reset movement timer.
-					Set(entity, new MovementTimer(moveTimer.Max));
-				}
-				else {
-					// Store the ticking down.
-					Set(entity, new MovementTimer(timeLeft, moveTimer.Max));
-				}
-			}
-			#endregion
-
-
-			// #region walking sfx
-			// if (!HasOutRelation<TimingFootstepAudio>(entity) && framerate > 0)
-			// {
-			// 	PlayRandomFootstep();
-
-			// 	var footstepTimer = World.CreateEntity();
-			// 	var footstepDuration = Math.Clamp(1f - (framerate / 50f), .5f, 1f);
-			// 	Set(footstepTimer, new Timer(footstepDuration));
-			// 	World.Relate(entity, footstepTimer, new TimingFootstepAudio());
-			// }
-			// #endregion
 		}
 	}
-
-	/*
-	private void PlayRandomFootstep()
-	{
-		Send(
-			new PlayStaticSoundMessage(
-				new StaticSoundID[]
-				{
-					StaticAudio.Footstep1,
-					StaticAudio.Footstep2,
-					StaticAudio.Footstep3,
-					StaticAudio.Footstep4,
-					StaticAudio.Footstep5,
-				}.GetRandomItem<StaticSoundID>(),
-			SoundCategory.Generic,
-			Rando.Range(0.66f, 0.88f),
-			Rando.Range(-.05f, .05f)
-			)
-		);
-	}*/
 }

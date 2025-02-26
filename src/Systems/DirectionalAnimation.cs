@@ -5,6 +5,7 @@ using MoonTools.ECS;
 using Snake.Components;
 using Snake.Data;
 using Snake.Messages;
+using Snake.Relations;
 
 namespace Snake.Systems;
 
@@ -58,11 +59,18 @@ public class DirectionalAnimation : MoonTools.ECS.System
             {
                 float moveTimerMax = 1f;
                 var speedEntity = entity;
+
                 if (Has<AdjustFramerateToTopParentSpeed>(entity))
                 {
                     speedEntity = Has<TopParent>(entity) ? Get<TopParent>(entity).Parent : default;
                 }
-                moveTimerMax = Has<MovementTimer>(speedEntity) ? Get<MovementTimer>(speedEntity).Max : 1f;
+
+                if (HasInRelation<MovementTimer>(speedEntity))
+                {
+                    var moveTimer = InRelationSingleton<MovementTimer>(speedEntity);
+                    moveTimerMax = Get<Timer>(moveTimer).Max;
+                }
+
                 framerate = (int)((1 / moveTimerMax) * 2f);
             }
 
