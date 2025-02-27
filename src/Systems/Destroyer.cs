@@ -23,16 +23,6 @@ public class Destroyer : MoonTools.ECS.System
                         .Build();
     }
 
-    void DestroyAndReclaimTileSpace(Entity entity)
-    {
-        if (Has<TilePosition>(entity))
-        {
-            var position = Get<TilePosition>(entity);
-            TileGrid.EmptyOutTile(position.X, position.Y);
-        }
-        Destroy(entity);
-    }
-
     void DestroyTailParts(Entity entity)
     {
         // Get lowest part
@@ -49,7 +39,7 @@ public class Destroyer : MoonTools.ECS.System
         {
             currentPart = nextPart;
             nextPart = InRelationSingleton<TailPart>(nextPart);
-            DestroyAndReclaimTileSpace(currentPart);
+            TileGrid.DestroyAndReclaimTileSpace(currentPart);
         }
     }
 
@@ -64,7 +54,7 @@ public class Destroyer : MoonTools.ECS.System
                 Send(new EndGame());
             }
 
-            DestroyAndReclaimTileSpace(entity);
+            TileGrid.DestroyAndReclaimTileSpace(entity);
         }
     }
 }

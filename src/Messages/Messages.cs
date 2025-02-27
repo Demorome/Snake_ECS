@@ -37,3 +37,7 @@ public readonly record struct DoMovementFirstMessage(
 	Entity Entity,
 	Vector2 Velocity
 );
+public readonly record struct SpawnEnemy(
+	Vector2 Position,
+	int NumTailParts = 0
+);

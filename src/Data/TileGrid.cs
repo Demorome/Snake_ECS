@@ -25,6 +25,16 @@ public class TileGrid
         Grid[x, y] = default;
     }
 
+    public void DestroyAndReclaimTileSpace(Entity entity)
+    {
+        if (World.Has<TilePosition>(entity))
+        {
+            var position = World.Get<TilePosition>(entity);
+            EmptyOutTile(position.X, position.Y);
+        }
+        World.Destroy(entity);
+    }
+
     public bool IsTileEmpty(int x, int y)
     {
         return Grid[x, y] == default;

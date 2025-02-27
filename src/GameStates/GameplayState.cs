@@ -49,7 +49,7 @@ public class GameplayState : GameState
         TileGrid = new TileGrid(World);
 
         //GameTimer = new(World);
-        Timing = new(World);
+        Timing = new(World, TileGrid);
         Input = new Input(World, Game.Inputs);
         Motion = new Motion(World, TileGrid);
         Audio = new Audio(World, Game.AudioDevice);

@@ -98,7 +98,19 @@ public class NPCController : MoonTools.ECS.System
 
 		var deltaTime = (float)delta.TotalSeconds;
 
-        #region SPAWN NPC
+        #region SPAWN NPCs
+        foreach (var message in ReadMessages<SpawnEnemy>())
+        {
+            if (TileGrid.IsTileEmpty((int)message.Position.X, (int)message.Position.Y))
+            {
+                var npc = SpawnNPC(message.Position);
+                if (message.NumTailParts > 0)
+                {
+                    Send(new GrowActor(npc, message.NumTailParts));
+                }
+            }
+        }
+
         if (NPCFilter.Empty)
         {
             SpawnNPC(TileGrid.GetSafeSpawnPosition());

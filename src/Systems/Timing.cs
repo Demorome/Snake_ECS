@@ -11,9 +11,12 @@ namespace Snake.Systems;
 public class Timing : MoonTools.ECS.System
 {
     private Filter TimerFilter;
+    TileGrid TileGrid;
 
-    public Timing(World world) : base(world)
+    public Timing(World world, TileGrid tileGrid) : base(world)
     {
+        TileGrid = tileGrid;
+
         TimerFilter = FilterBuilder
             .Include<Timer>()
             .Build();
@@ -55,6 +58,16 @@ public class Timing : MoonTools.ECS.System
                     // 	World.Relate(entity, footstepTimer, new TimingFootstepAudio());
                     // }
                     // #endregion
+                }
+
+                if (HasOutRelation<SpawnEnemyFromFood>(timerEntity))
+                {
+                    var spawner = OutRelationSingleton<SpawnEnemyFromFood>(timerEntity);
+                    var position = Get<TilePosition>(spawner).Position;
+
+                    Send(new Messages.SpawnEnemy(position, 1));
+
+                    TileGrid.DestroyAndReclaimTileSpace(spawner);
                 }
 
                 /*

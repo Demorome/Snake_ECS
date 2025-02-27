@@ -35,14 +35,17 @@ public class FoodSpawner : MoonTools.ECS.System
             Utility.Rando.Int(0, Content.SpriteAnimations.Item_Food.Frames.Length))
             );
 
-        /*
         if (Utility.Rando.Int(0, 3) == 2)
         {
-            int numTurnsToSpawnEnemy = 3;
-            float turnLength = 0.2f;
-            World.Set(food, new SpawnsEnemy());
-            World.Set(food, new Change)
-        }*/
+            // Enemy will burst out from this food!
+            World.Set(food, new ColorBlend(Color.Orange));
+            //World.Set(food, new SpawnsEnemy());
+
+            var spawnTimer = World.CreateEntity();
+            World.Set(spawnTimer, new Timer(3f, false));
+            World.Relate(spawnTimer, food, new SpawnEnemyFromFood());
+            //World.Set(food, new VisualChangePerSeconds)
+        }
 
         // TODO: Handle case where there is no safe spawn position!
         World.Set(food, new TilePosition(TileGrid.GetSafeSpawnPosition()));
