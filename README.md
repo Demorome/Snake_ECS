@@ -1,3 +1,8 @@
+# Snake ECS
+An amateur project to reimplement the classic Snake game in Moonworks using its ECS tools, made for learning and practice.
+
+It uses code and assets from the GGJ2024 (ROLL AND CASH: GROCERY LORDS) project, details given below.
+
 # ROLL AND CASH: GROCERY LORDS
 
 A game made in 48 hours for Global Game Jam 2024 using the [MoonWorks](https://github.com/MoonsideGames/MoonWorks) game framework.
