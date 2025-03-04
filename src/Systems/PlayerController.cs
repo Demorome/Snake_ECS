@@ -139,11 +139,6 @@ public class PlayerController : MoonTools.ECS.System
 				direction = MathUtilities.SafeNormalize(direction);
 
 				var maxAdd = deltaTime * 30;
-				if (HasOutRelation<Holding>(entity))
-				{
-					maxAdd /= 2;
-				}
-
 				maxSpeed = Math.Min(maxSpeed + maxAdd, 300);
 				Set(entity, new MaxSpeed(maxSpeed));
 				Set(entity, new LastDirection(direction));
