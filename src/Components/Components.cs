@@ -17,7 +17,6 @@ public readonly record struct LastTilePosition(Vector2 Position);
 
 public readonly record struct IntegerVelocity(Vector2 Value);
 public readonly record struct CanMove();
-public readonly record struct SpawnsEnemy();
 
 public readonly record struct Solid();
 public readonly record struct TailPartBecomeActiveNextMovement();
@@ -26,6 +25,7 @@ public readonly record struct CanBeGrabbed();
 public readonly record struct CanGrow();
 public readonly record struct GrowsActorOnPickup();
 public readonly record struct MarkedForDestroy();
+public readonly record struct SpawnsEnemy();
 
 
 public readonly record struct Score(int Value);

@@ -16,11 +16,13 @@ public static class GridInfo
     public const int PixelCellSize = 32;
 
     // Thickness of the cell borders.
-    public const int PixelBorderSize = 2;
+    //public const int PixelBorderSize = 2;
 
     public static Vector2 TilePositionToPixelPosition(Vector2 tilePos)
     {
         // Todo: account for PixelBorderSize?
-        return PixelCellSize * tilePos;
+        Vector2 result = PixelCellSize * tilePos;
+        result -= new Vector2(PixelCellSize - 12, 0); // TODO: hacky
+        return result;
     }
 }

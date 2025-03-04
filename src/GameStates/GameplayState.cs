@@ -29,7 +29,7 @@ public class GameplayState : GameState
     NPCController NPCController;
     PlayerController PlayerController;
     Growth Growth;
-    FoodSpawner FoodSpawner;
+    FoodController FoodController;
     Destroyer Destroyer;
     AssignTilePixelPositions AssignTilePixelPositions;
     GameState TransitionState;
@@ -55,7 +55,7 @@ public class GameplayState : GameState
         Audio = new Audio(World, Game.AudioDevice);
         PlayerController = new PlayerController(World);
         Growth = new Growth(World);
-        FoodSpawner = new FoodSpawner(World, TileGrid);
+        FoodController = new FoodController(World, TileGrid);
         AssignTilePixelPositions = new AssignTilePixelPositions(World, TileGrid);
         SetSpriteAnimationSystem = new SetSpriteAnimationSystem(World);
         UpdateSpriteAnimationSystem = new UpdateSpriteAnimationSystem(World);
@@ -76,8 +76,8 @@ public class GameplayState : GameState
                    var wall = World.CreateEntity();
                    var newPos = new Vector2(i, j);
                    World.Set(wall, new TilePosition(newPos));
-                   World.Set(wall, new Rectangle(0, 0, GridInfo.PixelCellSize, GridInfo.PixelCellSize));
-                   World.Set(wall, new DrawAsRectangle());
+                   //World.Set(wall, new Rectangle(0, 0, GridInfo.PixelCellSize, GridInfo.PixelCellSize));
+                   //World.Set(wall, new DrawAsRectangle());
                    World.Set(wall, new Solid());
                    //Motion.UpdateTilePosition(wall, newPos);
                 }
@@ -120,7 +120,7 @@ public class GameplayState : GameState
         //GameTimer.Update(dt);
         Input.Update(dt);
         PlayerController.Update(dt);
-        FoodSpawner.Update(dt);
+        FoodController.Update(dt);
         NPCController.Update(dt);
         Motion.Update(dt);
         Growth.Update(dt);

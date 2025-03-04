@@ -36,6 +36,8 @@ public class Timing : MoonTools.ECS.System
 
             if (time <= 0)
             {
+                bool resetTimer = false;
+
                 if (HasOutRelation<MovementTimer>(timerEntity))
                 {
                     var mover = OutRelationSingleton<MovementTimer>(timerEntity);
@@ -87,13 +89,34 @@ public class Timing : MoonTools.ECS.System
                     Send(soundMessage);
                 }*/
 
-                if (!timer.Repeats)
+                if (HasOutRelation<ChangeStage>(timerEntity))
                 {
-                    Destroy(timerEntity);
+                    var toChange = OutRelationSingleton<ChangeStage>(timerEntity);
+                    var stageInfo = GetRelationData<ChangeStage>(timerEntity, toChange);
+                    var newStage = stageInfo.CurrentStage + 1;
+                    if (newStage < stageInfo.NumStages)
+                    {
+                        Relate(timerEntity, 
+                            toChange, 
+                            stageInfo with { CurrentStage = newStage}
+                            );
+
+                        if (Has<SpawnsEnemy>(toChange))
+                        {
+                            Send(new Messages.AdvancedEnemySpawningStage(toChange, newStage));
+                        }
+                        
+                        resetTimer = newStage < (stageInfo.NumStages - 1);
+                    }
+                }
+
+                if (timer.Repeats || resetTimer)
+                {
+                    Set(timerEntity, timer with { Time = timer.Max });
                 }
                 else
                 {
-                    Set(timerEntity, timer with { Time = timer.Max });
+                    Destroy(timerEntity);
                 }
                 return;
             }

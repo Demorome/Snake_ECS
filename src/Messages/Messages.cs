@@ -28,7 +28,9 @@ public readonly record struct SetAnimationMessage(
 public readonly record struct PlaySongMessage();
 public readonly record struct PlayTitleMusic();
 public readonly record struct EndGame();
-public readonly record struct GrowActor(Entity WhichActor, int Amount = 1);
+public readonly record struct GrowActor(
+	Entity WhichActor, 
+	int Amount = 1);
 public readonly record struct DoMovementMessage(
 	Entity Entity,
 	Vector2 Velocity
@@ -41,3 +43,7 @@ public readonly record struct SpawnEnemy(
 	Vector2 Position,
 	int NumTailParts = 0
 );
+public readonly record struct AdvancedEnemySpawningStage(Entity ToChange, int NewStage)
+{
+	public int OldStage => NewStage - 1;
+};

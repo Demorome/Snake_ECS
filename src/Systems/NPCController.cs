@@ -111,10 +111,11 @@ public class NPCController : MoonTools.ECS.System
             }
         }
 
+        /*
         if (NPCFilter.Empty)
         {
             SpawnNPC(TileGrid.GetSafeSpawnPosition());
-        }
+        }*/
         #endregion
 
 		foreach (var npc in NPCFilter.Entities)

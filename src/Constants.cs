@@ -2,8 +2,8 @@ namespace Snake;
 
 public static class Dimensions
 {
-	public const int GAME_W = 640;
-	public const int GAME_H = 640; //360;
+	public const int GAME_W = GridInfo.PixelCellSize * GridInfo.Width;
+	public const int GAME_H = GridInfo.PixelCellSize * GridInfo.Height;
 }
 
 

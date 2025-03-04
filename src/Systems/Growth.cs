@@ -23,16 +23,21 @@ public class Growth : MoonTools.ECS.System
         .Build();
 	}
 
-    public void SpawnTailPart(Entity actor, int amount = 1)
+    public void SpawnTailPart(Entity actor, /*DirectionalSprites sprites,*/ int amount = 1)
 	{
         for (int i = 0; i < amount; ++i)
         {
             var tail = World.CreateEntity();
 
             //var randomColor = new Color(Rando.Range(0, 1), Rando.Range(0, 1), Rando.Range(0, 1));
-            Color color = Has<PlayerIndex>(actor) ? Color.Green : Color.Red;
+            Color color = Has<PlayerIndex>(actor) ? Color.LightGreen : Color.MediumVioletRed;
             World.Set(tail, new ColorBlend(color));
             World.Set(tail, new Depth(World.Get<Depth>(actor).Value + 1)); // Draw below actor
+
+            /*
+            World.Set(tail, new SpriteAnimation(Data.SpriteAnimationInfo.FromID(sprites.Down), 0));
+            World.Set(tail, sprites);
+            */
             World.Set(tail, new SpriteAnimation(Content.SpriteAnimations.NPC_Bizazss_Walk_Down, 0));
             World.Set(tail, new DirectionalSprites(
                 Content.SpriteAnimations.NPC_Bizazss_Walk_Up.ID,
@@ -40,6 +45,7 @@ public class Growth : MoonTools.ECS.System
                 Content.SpriteAnimations.NPC_Bizazss_Walk_Down.ID,
                 Content.SpriteAnimations.NPC_Bizazss_Walk_Left.ID
             ));
+            
             World.Set(tail, new AdjustFramerateToTopParentSpeed());
             World.Set(tail, new TopParent(actor));
 
