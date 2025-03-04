@@ -9,10 +9,8 @@ namespace RollAndCash
 	{
 		LoadState LoadState;
 		LogoState LogoState;
-		CreditsState CreditsState;
 		GameplayState GameplayState;
 		TitleState TitleState;
-		HowToPlayState HowToPlayState;
 
 		GameState CurrentState;
 
@@ -31,15 +29,11 @@ namespace RollAndCash
 			StreamingAudio.Init(AudioDevice);
 			Fonts.LoadAll(GraphicsDevice, RootTitleStorage);
 
-			CreditsState = new CreditsState(this, TitleState);
-			LogoState = new LogoState(this, CreditsState, TitleState);
-			TitleState = new TitleState(this, LogoState, HowToPlayState);
+			LogoState = new LogoState(this, TitleState);
+			TitleState = new TitleState(this, LogoState, GameplayState);
 			LoadState = new LoadState(this, LogoState);
-			CreditsState.SetTransitionState(TitleState); // i hate this
 
 			GameplayState = new GameplayState(this, TitleState);
-			HowToPlayState = new HowToPlayState(this, GameplayState);
-			TitleState.SetTransitionStateB(HowToPlayState);
 
 			SetState(LoadState);
 		}

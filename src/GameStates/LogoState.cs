@@ -13,8 +13,7 @@ public class LogoState : GameState
     RollAndCashGame Game;
     GraphicsDevice GraphicsDevice;
     AudioDevice AudioDevice;
-    GameState TransitionStateA;
-    GameState TransitionStateB;
+    GameState TransitionState;
 
     SpriteBatch HiResSpriteBatch;
     Sampler LinearSampler;
@@ -29,13 +28,12 @@ public class LogoState : GameState
 
     bool SoundPlayed = false;
 
-    public LogoState(RollAndCashGame game, GameState transitionStateA, GameState transitionStateB)
+    public LogoState(RollAndCashGame game, GameState transitionState)
     {
         Game = game;
         GraphicsDevice = game.GraphicsDevice;
         AudioDevice = game.AudioDevice;
-        TransitionStateA = transitionStateA;
-        TransitionStateB = transitionStateA;
+        TransitionState = transitionState;
 
         LinearSampler = Sampler.Create(GraphicsDevice, SamplerCreateInfo.LinearClamp);
         HiResSpriteBatch = new SpriteBatch(GraphicsDevice, Game.RootTitleStorage, game.MainWindow.SwapchainFormat);
@@ -80,11 +78,11 @@ public class LogoState : GameState
         FadeTimer += (float)delta.TotalSeconds;
         if (Game.Inputs.AnyPressed)
         {
-            Game.SetState(TransitionStateB);
+            Game.SetState(TransitionState);
         }
         else if (FadeTimer > FadeInDuration + FadeHoldDuration + FadeOutDuration + 0.5f)
         {
-            Game.SetState(TransitionStateA);
+            Game.SetState(TransitionState);
         }
     }
 
