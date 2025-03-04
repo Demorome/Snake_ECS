@@ -18,19 +18,11 @@ public class GameplayState : GameState
     Input Input;
     Motion Motion;
     Audio Audio;
-    Hold Hold;
-    ProductSpawner ProductSpawner;
-    ShelfSpawner ShelfSpawner;
-    Ticker Ticker;
-    Systems.GameTimer GameTimer;
     Timing Timing;
-    Orders Orders;
     SetSpriteAnimationSystem SetSpriteAnimationSystem;
     DirectionalAnimation DirectionalAnimation;
     UpdateSpriteAnimationSystem UpdateSpriteAnimationSystem;
     ColorAnimation ColorAnimation;
-    NPCController NPCController;
-    DroneController DroneController;
     PlayerController PlayerController;
     GameState TransitionState;
 
@@ -44,27 +36,15 @@ public class GameplayState : GameState
     {
         World = new World();
 
-        GameTimer = new(World);
         Timing = new(World);
         Input = new Input(World, Game.Inputs);
         Motion = new Motion(World);
         Audio = new Audio(World, Game.AudioDevice);
         PlayerController = new PlayerController(World);
-        Hold = new Hold(World);
-        Orders = new Orders(World);
-        ProductSpawner = new ProductSpawner(World);
-        ShelfSpawner = new ShelfSpawner(World);
         SetSpriteAnimationSystem = new SetSpriteAnimationSystem(World);
         UpdateSpriteAnimationSystem = new UpdateSpriteAnimationSystem(World);
         ColorAnimation = new ColorAnimation(World);
         DirectionalAnimation = new DirectionalAnimation(World);
-        NPCController = new NPCController(World);
-        DroneController = new DroneController(World);
-
-        CategoriesAndIngredients cats = new CategoriesAndIngredients(World);
-        cats.Initialize(World);
-
-        Ticker = new Ticker(World, cats);
 
         Renderer = new Renderer(World, Game.GraphicsDevice, Game.RootTitleStorage, Game.MainWindow.SwapchainFormat);
 
@@ -102,8 +82,6 @@ public class GameplayState : GameState
         World.Set(uiBottomBackground, new Position(0, Dimensions.GAME_H - 40));
         World.Set(uiBottomBackground, new Depth(9));
         World.Set(uiBottomBackground, new SpriteAnimation(Content.SpriteAnimations.HUD_Bottom, 0));
-
-        Orders.InitializeOrders();
 
         var cashRegisterLeftCollision = World.CreateEntity();
         World.Set(cashRegisterLeftCollision, new Position(15, 70));
@@ -160,8 +138,6 @@ public class GameplayState : GameState
         var gameInProgressEntity = World.CreateEntity();
         World.Set(gameInProgressEntity, new GameInProgress());
 
-        ShelfSpawner.SpawnShelves();
-        ProductSpawner.SpawnAllProducts();
         World.Send(new PlaySongMessage());
 
     }
@@ -170,15 +146,9 @@ public class GameplayState : GameState
     {
         Timing.Update(dt);
         UpdateSpriteAnimationSystem.Update(dt);
-        GameTimer.Update(dt);
-        Ticker.Update(dt);
         Input.Update(dt);
         PlayerController.Update(dt);
-        NPCController.Update(dt);
-        DroneController.Update(dt);
         Motion.Update(dt);
-        Hold.Update(dt);
-        Orders.Update(dt);
         DirectionalAnimation.Update(dt);
         SetSpriteAnimationSystem.Update(dt);
         ColorAnimation.Update(dt);
