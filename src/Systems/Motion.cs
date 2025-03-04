@@ -12,25 +12,27 @@ namespace RollAndCash.Systems;
 public class Motion : MoonTools.ECS.System
 {
     Filter VelocityFilter;
-    Filter InteractFilter;
+    //Filter InteractFilter;
     Filter SolidFilter;
     Filter AccelerateToPositionFilter;
 
-    SpatialHash<Entity> InteractSpatialHash = new SpatialHash<Entity>(0, 0, Dimensions.GAME_W, Dimensions.GAME_H, 32);
+    //SpatialHash<Entity> InteractSpatialHash = new SpatialHash<Entity>(0, 0, Dimensions.GAME_W, Dimensions.GAME_H, 32);
     SpatialHash<Entity> SolidSpatialHash = new SpatialHash<Entity>(0, 0, Dimensions.GAME_W, Dimensions.GAME_H, 32);
 
     public Motion(World world) : base(world)
     {
         VelocityFilter = FilterBuilder.Include<Position>().Include<Velocity>().Build();
-        InteractFilter = FilterBuilder.Include<Position>().Include<Rectangle>().Include<CanInteract>().Build();
+        //InteractFilter = FilterBuilder.Include<Position>().Include<Rectangle>().Include<CanInteract>().Build();
         SolidFilter = FilterBuilder.Include<Position>().Include<Rectangle>().Include<Solid>().Build();
         AccelerateToPositionFilter = FilterBuilder.Include<Position>().Include<AccelerateToPosition>().Include<Velocity>().Build();
     }
 
+/*
     void ClearCanBeHeldSpatialHash()
     {
         InteractSpatialHash.Clear();
     }
+*/
 
     void ClearSolidSpatialHash()
     {
@@ -115,9 +117,10 @@ public class Motion : MoonTools.ECS.System
 
     public override void Update(TimeSpan delta)
     {
-        ClearCanBeHeldSpatialHash();
+        //ClearCanBeHeldSpatialHash();
         ClearSolidSpatialHash();
 
+        /*
         foreach (var entity in InteractFilter.Entities)
         {
             var position = Get<Position>(entity);
@@ -147,7 +150,7 @@ public class Motion : MoonTools.ECS.System
                 }
 
             }
-        }
+        }*/
 
         foreach (var entity in SolidFilter.Entities)
         {
@@ -195,6 +198,7 @@ public class Motion : MoonTools.ECS.System
 
             if (Has<DestroyAtScreenBottom>(entity) && pos.Y > Dimensions.GAME_H - 32)
             {
+                /*
                 if (HasOutRelation<UpdateDisplayScoreOnDestroy>(entity))
                 {
                     var outEntity = OutRelationSingleton<UpdateDisplayScoreOnDestroy>(entity);
@@ -215,7 +219,7 @@ public class Motion : MoonTools.ECS.System
                         pitch,
                         pan
                     ));
-                }
+                }*/
 
                 Destroy(entity);
             }
@@ -224,10 +228,11 @@ public class Motion : MoonTools.ECS.System
             {
                 if (pos.X < -100 || pos.X > Dimensions.GAME_W + 100 || pos.Y < -100 || pos.Y > Dimensions.GAME_H + 100)
                 {
+                    /*
                     foreach (var heldEntity in OutRelations<Holding>(entity))
                     {
                         Destroy(heldEntity);
-                    }
+                    }*/
 
                     Destroy(entity);
                 }
@@ -235,13 +240,14 @@ public class Motion : MoonTools.ECS.System
 
             // update spatial hashes
 
+            /*
             if (Has<CanInteract>(entity))
             {
                 var position = Get<Position>(entity);
                 var rect = Get<Rectangle>(entity);
 
                 InteractSpatialHash.Insert(entity, GetWorldRect(position, rect));
-            }
+            }*/
 
             if (Has<Solid>(entity))
             {

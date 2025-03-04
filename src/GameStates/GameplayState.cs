@@ -91,8 +91,6 @@ public class GameplayState : GameState
         var cashRegisterLeftInteraction = World.CreateEntity();
         World.Set(cashRegisterLeftInteraction, new Position(8, 70));
         World.Set(cashRegisterLeftInteraction, new Rectangle(0, 0, 80, 90));
-        World.Set(cashRegisterLeftInteraction, new CanInteract());
-        World.Set(cashRegisterLeftInteraction, new CanFillOrders());
 
         var cashRegisterRightCollision = World.CreateEntity();
         World.Set(cashRegisterRightCollision, new Position(Dimensions.GAME_W, 70));
@@ -102,38 +100,22 @@ public class GameplayState : GameState
         var cashRegisterRight = World.CreateEntity();
         World.Set(cashRegisterRight, new Position(Dimensions.GAME_W, 70));
         World.Set(cashRegisterRight, new Rectangle(-80, 0, 80, 90));
-        World.Set(cashRegisterRight, new CanInteract());
-        World.Set(cashRegisterRight, new CanFillOrders());
 
-        var exit = World.CreateEntity();
-        World.Set(exit, new Position(Dimensions.GAME_W * 0.5f - 44, 0));
-        World.Set(exit, new Rectangle(0, 0, 80, 88));
-        World.Set(exit, new StoreExit());
-        World.Set(exit, new CanInteract());
-
+        /*
         var timer = World.CreateEntity();
-        World.Set(timer, new Components.GameTimer(90));
         World.Set(timer, new Position(Dimensions.GAME_W * 0.5f, 38));
         World.Set(timer, new TextDropShadow(1, 1));
+        */
 
+        /*
         var scoreOne = World.CreateEntity();
         World.Set(scoreOne, new Position(80, 345));
         World.Set(scoreOne, new Score(0));
         World.Set(scoreOne, new DisplayScore(0));
         World.Set(scoreOne, new Text(Fonts.KosugiID, FontSizes.SCORE, "0"));
-
-        var scoreTwo = World.CreateEntity();
-        World.Set(scoreTwo, new Position(560, 345));
-        World.Set(scoreTwo, new Score(0));
-        World.Set(scoreTwo, new DisplayScore(0));
-
-        World.Set(scoreTwo, new Text(Fonts.KosugiID, FontSizes.SCORE, "0"));
+        */
 
         var playerOne = PlayerController.SpawnPlayer(0);
-        var playerTwo = PlayerController.SpawnPlayer(1);
-
-        World.Relate(playerOne, scoreOne, new HasScore());
-        World.Relate(playerTwo, scoreTwo, new HasScore());
 
         var gameInProgressEntity = World.CreateEntity();
         World.Set(gameInProgressEntity, new GameInProgress());

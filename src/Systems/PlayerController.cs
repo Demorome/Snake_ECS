@@ -33,10 +33,6 @@ public class PlayerController : MoonTools.ECS.System
 		World.Set(player, new SpriteAnimation(index == 0 ? Content.SpriteAnimations.Char_Walk_Down : Content.SpriteAnimations.Char2_Walk_Down, 0));
 		World.Set(player, new Player(index));
 		World.Set(player, new Rectangle(-8, -8, 16, 16));
-		World.Set(player, new CanInteract());
-		World.Set(player, new CanInspect());
-		World.Set(player, new CanHold());
-		World.Set(player, new CanBeStolenFrom());
 		World.Set(player, new Solid());
 		World.Set(player, index == 0 ? Color.Green : Color.Blue);
 		World.Set(player, new Depth(5));
@@ -94,7 +90,7 @@ public class PlayerController : MoonTools.ECS.System
 
 			if (inputState.Interact.IsPressed)
 			{
-				Set(entity, new TryHold());
+				//Set(entity, new TryHold());
 			}
 
 			// Movement
