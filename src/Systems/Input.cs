@@ -35,14 +35,11 @@ public class Input : MoonTools.ECS.System
 	ControlSet PlayerTwoKeyboard = new ControlSet();
 	ControlSet PlayerTwoGamepad = new ControlSet();
 
-	GameLoopManipulator GameLoopManipulator;
 
 	public Input(World world, Inputs inputs) : base(world)
 	{
 		Inputs = inputs;
 		PlayerFilter = FilterBuilder.Include<Player>().Build();
-
-		GameLoopManipulator = new GameLoopManipulator(world);
 
 		PlayerOneKeyboard.Up = Inputs.Keyboard.Button(KeyCode.W);
 		PlayerOneKeyboard.Down = Inputs.Keyboard.Button(KeyCode.S);
