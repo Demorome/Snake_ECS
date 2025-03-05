@@ -57,11 +57,6 @@ public class Audio : MoonTools.ECS.System
 			Music.SendTo(MusicVoice);
 			MusicVoice.Play();
 		}
-
-		if (SomeMessage<StopDroneSounds>())
-		{
-			DroneVoice.Stop();
-		}
 	}
 
 	public void Cleanup()
