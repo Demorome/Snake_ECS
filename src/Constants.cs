@@ -4,6 +4,9 @@ public static class Dimensions
 {
 	public const int GAME_W = 640;
 	public const int GAME_H = 360;
+
+	public const int BATTLE_AREA_W = GAME_W / 2;
+	public const int BATTLE_AREA_H = GAME_H / 2;
 }
 
 

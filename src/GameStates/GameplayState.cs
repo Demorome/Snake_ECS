@@ -32,6 +32,59 @@ public class GameplayState : GameState
         TransitionState = transitionState;
     }
 
+    void CreateGameDimensionBorderCollision()
+    {
+        var topBorder = World.CreateEntity();
+        World.Set(topBorder, new Position(0, 0));
+        World.Set(topBorder, new Rectangle(0, 0, Dimensions.GAME_W, 10));
+        World.Set(topBorder, new Solid());
+
+        var leftBorder = World.CreateEntity();
+        World.Set(leftBorder, new Position(0, 0));
+        World.Set(leftBorder, new Rectangle(0, 0, 10, Dimensions.GAME_H));
+        World.Set(leftBorder, new Solid());
+
+        var rightBorder = World.CreateEntity();
+        World.Set(rightBorder, new Position(Dimensions.GAME_W, 0));
+        World.Set(rightBorder, new Rectangle(0, 0, 10, Dimensions.GAME_H));
+        World.Set(rightBorder, new Solid());
+
+        var bottomBorder = World.CreateEntity();
+        World.Set(bottomBorder, new Position(0, Dimensions.GAME_H));
+        World.Set(bottomBorder, new Rectangle(0, 0, Dimensions.GAME_W, 10));
+        World.Set(bottomBorder, new Solid());
+    }
+
+    void CreateBattleAreaBorder()
+    {
+        var x_offset = Dimensions.BATTLE_AREA_W / 2;
+        var y_offset = Dimensions.BATTLE_AREA_H / 2;
+
+        var topBorder = World.CreateEntity();
+        World.Set(topBorder, new Position(x_offset, y_offset));
+        World.Set(topBorder, new Rectangle(0, 0, Dimensions.BATTLE_AREA_W, 10));
+        World.Set(topBorder, new Solid());
+        World.Set(topBorder, new DrawAsRectangle());
+
+        var leftBorder = World.CreateEntity();
+        World.Set(leftBorder, new Position(x_offset, y_offset));
+        World.Set(leftBorder, new Rectangle(0, 0, 10, Dimensions.BATTLE_AREA_H));
+        World.Set(leftBorder, new Solid());
+        World.Set(leftBorder, new DrawAsRectangle());
+
+        var rightBorder = World.CreateEntity();
+        World.Set(rightBorder, new Position(x_offset + Dimensions.BATTLE_AREA_W, y_offset));
+        World.Set(rightBorder, new Rectangle(0, 0, 10, Dimensions.BATTLE_AREA_H));
+        World.Set(rightBorder, new Solid());
+        World.Set(rightBorder, new DrawAsRectangle());
+
+        var bottomBorder = World.CreateEntity();
+        World.Set(bottomBorder, new Position(x_offset, y_offset + Dimensions.BATTLE_AREA_H));
+        World.Set(bottomBorder, new Rectangle(0, 0, Dimensions.BATTLE_AREA_W, 10));
+        World.Set(bottomBorder, new Solid());
+        World.Set(bottomBorder, new DrawAsRectangle());
+    }
+
     public override void Start()
     {
         World = new World();
@@ -48,58 +101,15 @@ public class GameplayState : GameState
 
         Renderer = new Renderer(World, Game.GraphicsDevice, Game.RootTitleStorage, Game.MainWindow.SwapchainFormat);
 
-        var topBorder = World.CreateEntity();
-        World.Set(topBorder, new Position(0, 65));
-        World.Set(topBorder, new Rectangle(0, 0, Dimensions.GAME_W, 10));
-        World.Set(topBorder, new Solid());
+        CreateGameDimensionBorderCollision();
+        CreateBattleAreaBorder();
 
-        var leftBorder = World.CreateEntity();
-        World.Set(leftBorder, new Position(-10, 0));
-        World.Set(leftBorder, new Rectangle(0, 0, 10, Dimensions.GAME_H));
-        World.Set(leftBorder, new Solid());
-
-        var rightBorder = World.CreateEntity();
-        World.Set(rightBorder, new Position(Dimensions.GAME_W, 0));
-        World.Set(rightBorder, new Rectangle(0, 0, 10, Dimensions.GAME_H));
-        World.Set(rightBorder, new Solid());
-
-        var bottomBorder = World.CreateEntity();
-        World.Set(bottomBorder, new Position(0, Dimensions.GAME_H));
-        World.Set(bottomBorder, new Rectangle(0, 0, Dimensions.GAME_W, 10));
-        World.Set(bottomBorder, new Solid());
-
+        /*
         var background = World.CreateEntity();
         World.Set(background, new Position(0, 0));
         World.Set(background, new Depth(999));
         World.Set(background, new SpriteAnimation(Content.SpriteAnimations.BG, 0));
-
-        var uiTickerBackground = World.CreateEntity();
-        World.Set(uiTickerBackground, new Position(0, 0));
-        World.Set(uiTickerBackground, new Depth(1));
-        World.Set(uiTickerBackground, new SpriteAnimation(Content.SpriteAnimations.HUD_Ticker, 0));
-
-        var uiBottomBackground = World.CreateEntity();
-        World.Set(uiBottomBackground, new Position(0, Dimensions.GAME_H - 40));
-        World.Set(uiBottomBackground, new Depth(9));
-        World.Set(uiBottomBackground, new SpriteAnimation(Content.SpriteAnimations.HUD_Bottom, 0));
-
-        var cashRegisterLeftCollision = World.CreateEntity();
-        World.Set(cashRegisterLeftCollision, new Position(15, 70));
-        World.Set(cashRegisterLeftCollision, new Rectangle(0, 0, 60, 50));
-        World.Set(cashRegisterLeftCollision, new Solid());
-
-        var cashRegisterLeftInteraction = World.CreateEntity();
-        World.Set(cashRegisterLeftInteraction, new Position(8, 70));
-        World.Set(cashRegisterLeftInteraction, new Rectangle(0, 0, 80, 90));
-
-        var cashRegisterRightCollision = World.CreateEntity();
-        World.Set(cashRegisterRightCollision, new Position(Dimensions.GAME_W, 70));
-        World.Set(cashRegisterRightCollision, new Rectangle(-80, 0, 80, 50));
-        World.Set(cashRegisterRightCollision, new Solid());
-
-        var cashRegisterRight = World.CreateEntity();
-        World.Set(cashRegisterRight, new Position(Dimensions.GAME_W, 70));
-        World.Set(cashRegisterRight, new Rectangle(-80, 0, 80, 90));
+        */
 
         /*
         var timer = World.CreateEntity();
