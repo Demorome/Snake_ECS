@@ -29,11 +29,13 @@ namespace RollAndCash
 			StreamingAudio.Init(AudioDevice);
 			Fonts.LoadAll(GraphicsDevice, RootTitleStorage);
 
-			LogoState = new LogoState(this, TitleState);
-			TitleState = new TitleState(this, LogoState, GameplayState);
+			LogoState = new LogoState(this, null);
+			TitleState = new TitleState(this, LogoState, null);
 			LoadState = new LoadState(this, LogoState);
 
 			GameplayState = new GameplayState(this, TitleState);
+			TitleState.SetTransitionStateB(GameplayState);
+			LogoState.SetTransitionState(TitleState);
 
 			SetState(LoadState);
 		}

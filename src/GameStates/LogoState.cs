@@ -144,4 +144,9 @@ public class LogoState : GameState
             1000
         );
     }
+
+    public void SetTransitionState(GameState transitionState)
+    {
+         TransitionState = transitionState;
+    }
 }
