@@ -7,6 +7,7 @@ public static class Dimensions
 
 	public const int BATTLE_AREA_W = GAME_W / 2;
 	public const int BATTLE_AREA_H = GAME_H / 2;
+	public const int BATTLE_AREA_THICKNESS = 10;
 }
 
 
