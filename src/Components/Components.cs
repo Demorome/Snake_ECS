@@ -64,8 +64,6 @@ public readonly record struct ForceIntegerMovement();
 public readonly record struct MaxSpeed(float Value);
 
 public readonly record struct AdjustFramerateToSpeed();
-public readonly record struct FunnyRunTimer(float Time); //Scooby doo style quick run when starting to move
-public readonly record struct CanFunnyRun();
 
 public readonly record struct LastDirection(System.Numerics.Vector2 Direction);
 public readonly record struct SlowDownAnimation(int BaseSpeed, int step);

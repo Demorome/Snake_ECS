@@ -81,10 +81,6 @@ public class DirectionalAnimation : MoonTools.ECS.System
             if (Has<AdjustFramerateToSpeed>(entity))
             {
                 framerate = (int)(velocity.Length() / 20f);
-                if (Has<FunnyRunTimer>(entity))
-                {
-                    framerate = 25;
-                }
             }
 
             if (direction.LengthSquared() > 0)
