@@ -31,3 +31,4 @@ public readonly record struct EndGame();
 
 // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
 public readonly record struct Shoot(Entity Source, CollisionLayer Layer, Vector2 Direction, float Speed);
+public readonly record struct DealDamage(Entity Target, int Damage);

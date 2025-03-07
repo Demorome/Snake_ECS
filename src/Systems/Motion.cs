@@ -13,18 +13,35 @@ public class Motion : MoonTools.ECS.System
 {
     Filter VelocityFilter;
     //Filter InteractFilter;
-    Filter SolidFilter;
+    Filter CollisionFilter;
     Filter AccelerateToPositionFilter;
 
     //SpatialHash<Entity> InteractSpatialHash = new SpatialHash<Entity>(0, 0, Dimensions.GAME_W, Dimensions.GAME_H, 32);
-    SpatialHash<Entity> SolidSpatialHash = new SpatialHash<Entity>(0, 0, Dimensions.GAME_W, Dimensions.GAME_H, 32);
+    SpatialHash<Entity> CollidersSpatialHash = new SpatialHash<Entity>(0, 0, Dimensions.GAME_W, Dimensions.GAME_H, 32);
 
     public Motion(World world) : base(world)
     {
-        VelocityFilter = FilterBuilder.Include<Position>().Include<Velocity>().Build();
+        VelocityFilter = 
+        FilterBuilder
+        .Include<Position>()
+        .Include<Velocity>()
+        .Build();
+
         //InteractFilter = FilterBuilder.Include<Position>().Include<Rectangle>().Include<CanInteract>().Build();
-        SolidFilter = FilterBuilder.Include<Position>().Include<Rectangle>().Include<Solid>().Build();
-        AccelerateToPositionFilter = FilterBuilder.Include<Position>().Include<AccelerateToPosition>().Include<Velocity>().Build();
+
+        CollisionFilter = 
+        FilterBuilder
+        .Include<Position>()
+        .Include<Rectangle>()
+        .Include<Layer>()
+        .Build();
+
+        AccelerateToPositionFilter = 
+        FilterBuilder
+        .Include<Position>()
+        .Include<AccelerateToPosition>()
+        .Include<Velocity>()
+        .Build();
     }
 
 /*
@@ -36,7 +53,7 @@ public class Motion : MoonTools.ECS.System
 
     void ClearSolidSpatialHash()
     {
-        SolidSpatialHash.Clear();
+        CollidersSpatialHash.Clear();
     }
 
     Rectangle GetWorldRect(Position p, Rectangle r)
@@ -44,13 +61,23 @@ public class Motion : MoonTools.ECS.System
         return new Rectangle(p.X + r.X, p.Y + r.Y, r.Width, r.Height);
     }
 
-    (Entity other, bool hit) CheckSolidCollision(Entity e, Rectangle rect)
+    (Entity other, bool hit) CheckCollision(Entity e, Rectangle rect)
     {
-        foreach (var (other, otherRect) in SolidSpatialHash.Retrieve(e, rect))
+        var layer = Get<Layer>(e);
+
+        foreach (var (other, otherRect) in CollidersSpatialHash.Retrieve(e, rect))
         {
             if (rect.Intersects(otherRect))
             {
-                return (other, true);
+                var otherLayer = Get<Layer>(other);
+
+                // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
+                if ((layer.Collide & otherLayer.Collide) != 0 &&
+                    (layer.Exclude & otherLayer.Collide) == 0
+                    )
+                {
+                    return (other, true);
+                }
             }
         }
 
@@ -80,11 +107,11 @@ public class Motion : MoonTools.ECS.System
             var newPos = new Position(x, position.Y);
             var rect = GetWorldRect(newPos, r);
 
-            (var other, var hit) = CheckSolidCollision(e, rect);
+            (var other, var hit) = CheckCollision(e, rect);
 
             xHit = hit;
 
-            if (xHit && Has<Solid>(other) && Has<Solid>(e))
+            if (xHit)
             {
                 movement.X = mostRecentValidXPosition - position.X;
                 position = position.SetX(position.X); // truncates x coord
@@ -99,10 +126,10 @@ public class Motion : MoonTools.ECS.System
             var newPos = new Position(mostRecentValidXPosition, y);
             var rect = GetWorldRect(newPos, r);
 
-            (var other, var hit) = CheckSolidCollision(e, rect);
+            (var other, var hit) = CheckCollision(e, rect);
             yHit = hit;
 
-            if (yHit && Has<Solid>(other) && Has<Solid>(e))
+            if (yHit)
             {
                 movement.Y = mostRecentValidYPosition - position.Y;
                 position = position.SetY(position.Y); // truncates y coord
@@ -152,11 +179,11 @@ public class Motion : MoonTools.ECS.System
             }
         }*/
 
-        foreach (var entity in SolidFilter.Entities)
+        foreach (var entity in CollisionFilter.Entities)
         {
             var position = Get<Position>(entity);
             var rect = Get<Rectangle>(entity);
-            SolidSpatialHash.Insert(entity, GetWorldRect(position, rect));
+            CollidersSpatialHash.Insert(entity, GetWorldRect(position, rect));
         }
 
         foreach (var entity in VelocityFilter.Entities)
@@ -167,7 +194,7 @@ public class Motion : MoonTools.ECS.System
             var pos = Get<Position>(entity);
             var vel = (Vector2)Get<Velocity>(entity);
 
-            if (Has<Rectangle>(entity) && Has<Solid>(entity))
+            if (Has<Rectangle>(entity) && Has<Layer>(entity))
             {
                 var result = SweepTest(entity, (float)delta.TotalSeconds);
                 Set(entity, result);
@@ -249,20 +276,20 @@ public class Motion : MoonTools.ECS.System
                 InteractSpatialHash.Insert(entity, GetWorldRect(position, rect));
             }*/
 
-            if (Has<Solid>(entity))
+            if (Has<Layer>(entity))
             {
                 var position = Get<Position>(entity);
                 var rect = Get<Rectangle>(entity);
-                SolidSpatialHash.Insert(entity, GetWorldRect(position, rect));
+                CollidersSpatialHash.Insert(entity, GetWorldRect(position, rect));
             }
         }
 
-        foreach (var entity in SolidFilter.Entities)
+        foreach (var entity in CollisionFilter.Entities)
         {
             UnrelateAll<TouchingSolid>(entity);
         }
 
-        foreach (var entity in SolidFilter.Entities)
+        foreach (var entity in CollisionFilter.Entities)
         {
             var position = Get<Position>(entity);
             var rectangle = Get<Rectangle>(entity);
@@ -277,10 +304,10 @@ public class Motion : MoonTools.ECS.System
             var upRectangle = GetWorldRect(upPos, rectangle);
             var downRectangle = GetWorldRect(downPos, rectangle);
 
-            var (leftOther, leftCollided) = CheckSolidCollision(entity, leftRectangle);
-            var (rightOther, rightCollided) = CheckSolidCollision(entity, rightRectangle);
-            var (upOther, upCollided) = CheckSolidCollision(entity, upRectangle);
-            var (downOther, downCollided) = CheckSolidCollision(entity, downRectangle);
+            var (leftOther, leftCollided) = CheckCollision(entity, leftRectangle);
+            var (rightOther, rightCollided) = CheckCollision(entity, rightRectangle);
+            var (upOther, upCollided) = CheckCollision(entity, upRectangle);
+            var (downOther, downCollided) = CheckCollision(entity, downRectangle);
 
             if (leftCollided)
             {

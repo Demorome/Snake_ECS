@@ -12,3 +12,6 @@ public readonly record struct DontMove();
 public readonly record struct DontDraw();
 public readonly record struct CountUpScore(int Start, int End);
 public readonly record struct DontTime();
+
+// Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
+public readonly record struct Invincible();

@@ -29,22 +29,22 @@ public class PlayerController : MoonTools.ECS.System
 	public Entity SpawnPlayer(int index)
 	{
 		var player = World.CreateEntity();
-		World.Set(player, new Position(Dimensions.GAME_W / 2, Dimensions.GAME_H / 2));
-		//World.Set(player, new SpriteAnimation(index == 0 ? Content.SpriteAnimations.Char_Walk_Down : Content.SpriteAnimations.Char2_Walk_Down, 0));
-		World.Set(player, new DrawAsRectangle());
-		World.Set(player, new Player(index));
-		World.Set(player, new Rectangle(-8, -8, 16, 16));
-		World.Set(player, new Solid());
-		//World.Set(player, index == 0 ? Color.Green : Color.Blue);
-		World.Set(player, new ColorBlend(Color.Red));
-		World.Set(player, new Depth(5));
-		World.Set(player, new MaxSpeed(MaxSpeedBase));
-		World.Set(player, new Velocity(Vector2.Zero));
-		//World.Set(player, new LastDirection(Vector2.Zero));
-		//World.Set(player, new AdjustFramerateToSpeed());
-		World.Set(player, new InputState());
+		Set(player, new Position(Dimensions.GAME_W / 2, Dimensions.GAME_H / 2));
+		//Set(player, new SpriteAnimation(index == 0 ? Content.SpriteAnimations.Char_Walk_Down : Content.SpriteAnimations.Char2_Walk_Down, 0));
+		Set(player, new SpriteAnimation(Content.SpriteAnimations.Heart));
+		Set(player, new Player(index));
+		Set(player, new Rectangle(0, 0, 24, 24));
+		Set(player, new Layer(CollisionLayer.PlayerActor));
+		//Set(player, index == 0 ? Color.Green : Color.Blue);
+		Set(player, new ColorBlend(Color.Red));
+		Set(player, new Depth(5));
+		Set(player, new MaxSpeed(MaxSpeedBase));
+		Set(player, new Velocity(Vector2.Zero));
+		//Set(player, new LastDirection(Vector2.Zero));
+		//Set(player, new AdjustFramerateToSpeed());
+		Set(player, new InputState());
 		/*
-		World.Set(player, new DirectionalSprites(
+		Set(player, new DirectionalSprites(
 			index == 0 ? Content.SpriteAnimations.Char_Walk_Up.ID : Content.SpriteAnimations.Char2_Walk_Up.ID,
 			index == 0 ? Content.SpriteAnimations.Char_Walk_UpRight.ID : Content.SpriteAnimations.Char2_Walk_UpRight.ID,
 			index == 0 ? Content.SpriteAnimations.Char_Walk_Right.ID : Content.SpriteAnimations.Char2_Walk_Right.ID,

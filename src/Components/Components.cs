@@ -46,7 +46,7 @@ public readonly record struct Rectangle(int X, int Y, int Width, int Height)
 
 public readonly record struct Player(int Index);
 public readonly record struct Angle(float Value);
-public readonly record struct Solid();
+//public readonly record struct Solid();
 public readonly record struct TouchingSolid();
 public readonly record struct Name(int TextID);
 
@@ -114,3 +114,7 @@ public enum CollisionLayer
     EnemyBullet = Player | Bullet
 }
 public readonly record struct Layer(CollisionLayer Collide, CollisionLayer Exclude = 0);
+public readonly record struct BecomeInvincibleOnDamage(float Time = 0.5f);
+public readonly record struct MarkedForDestroy();
+
+public readonly record struct HasHealth(int Health = 1);
