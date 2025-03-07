@@ -96,7 +96,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			{
 				var position = Get<Position>(entity);
 				var rectangle = Get<Rectangle>(entity);
-				var orientation = Has<Orientation>(entity) ? Get<Orientation>(entity).Angle : 0.0f;
+				var orientation = Has<Angle>(entity) ? Get<Angle>(entity).Value : 0.0f;
 				var color = Has<ColorBlend>(entity) ? Get<ColorBlend>(entity).Color : Color.White;
 				var depth = -2f;
 				if (Has<Depth>(entity))

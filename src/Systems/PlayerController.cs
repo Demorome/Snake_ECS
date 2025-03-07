@@ -15,7 +15,7 @@ namespace RollAndCash.Systems;
 public class PlayerController : MoonTools.ECS.System
 {
 	MoonTools.ECS.Filter PlayerFilter;
-	float MaxSpeedBase = 128f;
+	float MaxSpeedBase = 200f;
 
 	public PlayerController(World world) : base(world)
 	{
@@ -35,7 +35,8 @@ public class PlayerController : MoonTools.ECS.System
 		World.Set(player, new Player(index));
 		World.Set(player, new Rectangle(-8, -8, 16, 16));
 		World.Set(player, new Solid());
-		World.Set(player, index == 0 ? Color.Green : Color.Blue);
+		//World.Set(player, index == 0 ? Color.Green : Color.Blue);
+		World.Set(player, new ColorBlend(Color.Red));
 		World.Set(player, new Depth(5));
 		World.Set(player, new MaxSpeed(MaxSpeedBase));
 		World.Set(player, new Velocity(Vector2.Zero));

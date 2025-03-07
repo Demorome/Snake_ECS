@@ -4,6 +4,7 @@ using MoonTools.ECS;
 using MoonWorks.Audio;
 using RollAndCash.Components;
 using RollAndCash.Data;
+using System.Numerics;
 
 namespace RollAndCash.Messages;
 
@@ -27,3 +28,6 @@ public readonly record struct SetAnimationMessage(
 public readonly record struct PlaySongMessage();
 public readonly record struct PlayTitleMusic();
 public readonly record struct EndGame();
+
+// Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
+public readonly record struct Shoot(Entity Source, CollisionLayer Layer, Vector2 Direction, float Speed);

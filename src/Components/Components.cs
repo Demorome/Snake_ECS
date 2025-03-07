@@ -45,7 +45,7 @@ public readonly record struct Rectangle(int X, int Y, int Width, int Height)
 }
 
 public readonly record struct Player(int Index);
-public readonly record struct Orientation(float Angle);
+public readonly record struct Angle(float Value);
 public readonly record struct Solid();
 public readonly record struct TouchingSolid();
 public readonly record struct Name(int TextID);
@@ -62,10 +62,9 @@ public readonly record struct DrawAsRectangle();
 public readonly record struct TextDropShadow(int OffsetX, int OffsetY);
 public readonly record struct ForceIntegerMovement();
 public readonly record struct MaxSpeed(float Value);
-
 public readonly record struct AdjustFramerateToSpeed();
 
-public readonly record struct LastDirection(System.Numerics.Vector2 Direction);
+public readonly record struct Direction(System.Numerics.Vector2 Value);
 public readonly record struct SlowDownAnimation(int BaseSpeed, int step);
 
 //public readonly record struct IsPopupBox(); // jank because we cant check relation type count
@@ -87,8 +86,7 @@ public readonly record struct DirectionalSprites(
 
 public readonly record struct AccelerateToPosition(Position Target, float Acceleration, float MotionDampFactor);
 public readonly record struct DestroyAtGameEnd();
-
-public readonly record struct CanBeStolenFrom();
+public readonly record struct DealsDamageOnContact();
 
 public readonly record struct DestroyWhenOutOfBounds();
 
@@ -98,3 +96,21 @@ public readonly record struct MotionDamp(float Damping);
 public readonly record struct SpriteScale(System.Numerics.Vector2 Scale);
 public readonly record struct LastValue(int value);
 public readonly record struct PlaySoundOnTimerEnd(PlayStaticSoundMessage PlayStaticSoundMessage);
+
+// Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
+[System.Flags]
+public enum CollisionLayer
+{
+    None = 0,
+    Level = 1,
+    Actor = 2,
+    Player = 4,
+    Enemy = 8,
+    Bullet = 16,
+    Pickup = 32,
+    PlayerActor = Player | Actor | Level | Pickup,
+    EnemyActor = Enemy | Actor,
+    PlayerBullet = Enemy | Bullet,
+    EnemyBullet = Player | Bullet
+}
+public readonly record struct Layer(CollisionLayer Collide, CollisionLayer Exclude = 0);
