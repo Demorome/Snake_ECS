@@ -58,4 +58,9 @@ public readonly record struct Position
         return $"({X}, {Y})";
     }
 
+    public Vector2 AsVector()
+    {
+        return new Vector2(X, Y);
+    }
+
 }

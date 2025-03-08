@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 using MoonTools.ECS;
 using RollAndCash.Components;
 using RollAndCash.Content;
@@ -9,6 +10,7 @@ using RollAndCash.Utility;
 public class Projectile : MoonTools.ECS.System
 {
     public Filter ProjectileFilter;
+    public Filter PlayerFilter;
 
     public Projectile(World world) : base(world)
     {
@@ -19,23 +21,77 @@ public class Projectile : MoonTools.ECS.System
         .Include<Direction>()
         .Include<Velocity>()
         .Include<DealsDamageOnContact>()
+        .Include<DestroyOnCollision>()
         .Build();
+
+        /*
+        PlayerFilter =
+        FilterBuilder
+        .Include<SpriteAnimation>()
+        .Include<Position>()
+        .Include<Velocity>()
+        .Include<Player>()
+        .Build();*/
+    }
+
+    void SpawnFriendlinessPellets_Pattern1()
+    {
+        var spawn_pos = new Vector2(200, 100);
+        var x_offset = 50;
+        const float Speed = 200f;
+        const int NumProjectiles = 5;
+
+        var player = GetSingletonEntity<Player>();
+        var playerPosition = Get<Position>(player).AsVector();
+
+        for (int i = 0; i < NumProjectiles; ++i)
+        {
+            //var angleToPlayer = playerPosition %;
+            
+            Vector2 projectileDirection = MathUtilities.SafeNormalize(playerPosition - spawn_pos);
+
+            //Vector2 projectileDirection = new Vector2(MathF.Sin(angleToPlayer), MathF.Cos(angleToPlayer));
+
+            Send(new ShootFromArea(spawn_pos, CollisionLayer.EnemyBullet, projectileDirection, Speed));
+
+            spawn_pos.X += x_offset;
+        }
+    }
+
+    Entity CreateProjectile(Vector2 position, CollisionLayer layer, Vector2 direction, float speed)
+    {
+        var entity = CreateEntity();
+        Set(entity, new SpriteAnimation(SpriteAnimations.Projectile));
+        Set(entity, new Position(position));
+        Set(entity, new Rectangle(0, 0, 24, 24));
+        Set(entity, new Layer(layer, CollisionLayer.Bullet));
+        direction = MathUtilities.SafeNormalize(direction);
+        Set(entity, new Direction(direction));
+        Set(entity, new Velocity(direction * speed));
+        Set(entity, new DealsDamageOnContact(1));
+        Set(entity, new DestroyWhenOutOfBounds());
+        Set(entity, new DestroyOnCollision());
+
+        return entity;
     }
 
     public override void Update(TimeSpan delta)
     {
-        foreach (var message in ReadMessages<Shoot>())
+        if (ProjectileFilter.Empty)
         {
-            var position = Get<Position>(message.Source);
+            SpawnFriendlinessPellets_Pattern1();
+        }
 
-            var entity = CreateEntity();
-            Set(entity, new SpriteAnimation(SpriteAnimations.Projectile));
-            Set(entity, new Position(position.X, position.Y));
-            var direction = MathUtilities.SafeNormalize(message.Direction);
-            Set(entity, new Direction(direction));
-            Set(entity, new Velocity(direction * message.Speed));
-            Set(entity, new DealsDamageOnContact());
-            Set(entity, new DestroyWhenOutOfBounds());
+        foreach (var message in ReadMessages<ShootFromEntity>())
+        {
+            var positionComponent = Get<Position>(message.Source);
+            var position = new Vector2(positionComponent.X, positionComponent.Y);
+            CreateProjectile(position, message.Layer, message.Direction, message.Speed);
+        }
+
+        foreach (var message in ReadMessages<ShootFromArea>())
+        {
+            CreateProjectile(message.Position, message.Layer, message.Direction, message.Speed);
         }
     }
 }

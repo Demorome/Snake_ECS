@@ -6,6 +6,7 @@ using RollAndCash.Components;
 using RollAndCash.Relations;
 using RollAndCash.Messages;
 using RollAndCash.Content;
+using System.Collections.Generic;
 
 namespace RollAndCash.Systems;
 
@@ -19,6 +20,8 @@ public class Motion : MoonTools.ECS.System
     //SpatialHash<Entity> InteractSpatialHash = new SpatialHash<Entity>(0, 0, Dimensions.GAME_W, Dimensions.GAME_H, 32);
     SpatialHash<Entity> CollidersSpatialHash = new SpatialHash<Entity>(0, 0, Dimensions.GAME_W, Dimensions.GAME_H, 32);
 
+    HashSet<Entity> HitEntities = new HashSet<Entity>();
+   
     public Motion(World world) : base(world)
     {
         VelocityFilter = 
@@ -61,9 +64,11 @@ public class Motion : MoonTools.ECS.System
         return new Rectangle(p.X + r.X, p.Y + r.Y, r.Width, r.Height);
     }
 
-    (Entity other, bool hit) CheckCollision(Entity e, Rectangle rect)
+    // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
+    bool CheckCollisions(Entity e, Rectangle rect)
     {
         var layer = Get<Layer>(e);
+        bool hit = false;
 
         foreach (var (other, otherRect) in CollidersSpatialHash.Retrieve(e, rect))
         {
@@ -71,17 +76,17 @@ public class Motion : MoonTools.ECS.System
             {
                 var otherLayer = Get<Layer>(other);
 
-                // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
                 if ((layer.Collide & otherLayer.Collide) != 0 &&
                     (layer.Exclude & otherLayer.Collide) == 0
                     )
                 {
-                    return (other, true);
+                    HitEntities.Add(other);
+                    hit = true;
                 }
             }
         }
 
-        return (default, false);
+        return hit;
     }
 
     Position SweepTest(Entity e, float dt)
@@ -99,6 +104,7 @@ public class Motion : MoonTools.ECS.System
         int mostRecentValidXPosition = position.X;
         int mostRecentValidYPosition = position.Y;
 
+        HitEntities.Clear();
         bool xHit = false;
         bool yHit = false;
 
@@ -107,7 +113,7 @@ public class Motion : MoonTools.ECS.System
             var newPos = new Position(x, position.Y);
             var rect = GetWorldRect(newPos, r);
 
-            (var other, var hit) = CheckCollision(e, rect);
+            var hit = CheckCollisions(e, rect);
 
             xHit = hit;
 
@@ -126,7 +132,7 @@ public class Motion : MoonTools.ECS.System
             var newPos = new Position(mostRecentValidXPosition, y);
             var rect = GetWorldRect(newPos, r);
 
-            (var other, var hit) = CheckCollision(e, rect);
+            var hit = CheckCollisions(e, rect);
             yHit = hit;
 
             if (yHit)
@@ -137,6 +143,25 @@ public class Motion : MoonTools.ECS.System
             }
 
             mostRecentValidYPosition = y;
+        }
+
+        // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
+        foreach (var other in HitEntities)
+        {
+            bool duplicate = false;
+            foreach (var msg in ReadMessages<Collide>())
+            {
+                if (msg.A == other && msg.B == e)
+                {
+                    duplicate = true;
+                    break;
+                }
+            }
+
+            if (!duplicate)
+            {
+                Send(new Collide(e, other));
+            }
         }
 
         return position + movement;
@@ -289,6 +314,7 @@ public class Motion : MoonTools.ECS.System
             UnrelateAll<TouchingSolid>(entity);
         }
 
+        /*
         foreach (var entity in CollisionFilter.Entities)
         {
             var position = Get<Position>(entity);
@@ -304,10 +330,10 @@ public class Motion : MoonTools.ECS.System
             var upRectangle = GetWorldRect(upPos, rectangle);
             var downRectangle = GetWorldRect(downPos, rectangle);
 
-            var (leftOther, leftCollided) = CheckCollision(entity, leftRectangle);
-            var (rightOther, rightCollided) = CheckCollision(entity, rightRectangle);
-            var (upOther, upCollided) = CheckCollision(entity, upRectangle);
-            var (downOther, downCollided) = CheckCollision(entity, downRectangle);
+            var (leftOther, leftCollided) = CheckCollisions(entity, leftRectangle);
+            var (rightOther, rightCollided) = CheckCollisions(entity, rightRectangle);
+            var (upOther, upCollided) = CheckCollisions(entity, upRectangle);
+            var (downOther, downCollided) = CheckCollisions(entity, downRectangle);
 
             if (leftCollided)
             {
@@ -327,7 +353,7 @@ public class Motion : MoonTools.ECS.System
             {
                 Relate(entity, downOther, new TouchingSolid());
             }
-        }
+        }*/
 
         foreach (var entity in AccelerateToPositionFilter.Entities)
         {

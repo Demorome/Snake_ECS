@@ -25,6 +25,10 @@ public class GameplayState : GameState
     ColorAnimation ColorAnimation;
     PlayerController PlayerController;
     GameState TransitionState;
+    Health Health;
+    Projectile Projectile;
+    Collision Collision;
+    Destroyer Destroyer;
 
     public GameplayState(RollAndCashGame game, GameState transitionState)
     {
@@ -99,6 +103,10 @@ public class GameplayState : GameState
         UpdateSpriteAnimationSystem = new UpdateSpriteAnimationSystem(World);
         ColorAnimation = new ColorAnimation(World);
         DirectionalAnimation = new DirectionalAnimation(World);
+        Health = new Health(World);
+        Projectile = new Projectile(World);
+        Collision = new Collision(World);
+        Destroyer = new Destroyer(World);
 
         Renderer = new Renderer(World, Game.GraphicsDevice, Game.RootTitleStorage, Game.MainWindow.SwapchainFormat);
 
@@ -141,11 +149,15 @@ public class GameplayState : GameState
         UpdateSpriteAnimationSystem.Update(dt);
         Input.Update(dt);
         PlayerController.Update(dt);
+        Projectile.Update(dt);
         Motion.Update(dt);
+        Collision.Update(dt);
+        Health.Update(dt);
         DirectionalAnimation.Update(dt);
         SetSpriteAnimationSystem.Update(dt);
         ColorAnimation.Update(dt);
         Audio.Update(dt);
+        Destroyer.Update(dt);
 
         if (World.SomeMessage<EndGame>())
         {

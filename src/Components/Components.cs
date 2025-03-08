@@ -86,7 +86,7 @@ public readonly record struct DirectionalSprites(
 
 public readonly record struct AccelerateToPosition(Position Target, float Acceleration, float MotionDampFactor);
 public readonly record struct DestroyAtGameEnd();
-public readonly record struct DealsDamageOnContact();
+public readonly record struct DealsDamageOnContact(int Damage);
 
 public readonly record struct DestroyWhenOutOfBounds();
 
@@ -114,7 +114,7 @@ public enum CollisionLayer
     EnemyBullet = Player | Bullet
 }
 public readonly record struct Layer(CollisionLayer Collide, CollisionLayer Exclude = 0);
-public readonly record struct BecomeInvincibleOnDamage(float Time = 0.5f);
+public readonly record struct BecomeInvincibleOnDamage(float Time);
 public readonly record struct MarkedForDestroy();
-
-public readonly record struct HasHealth(int Health = 1);
+public readonly record struct DestroyOnCollision();
+public readonly record struct HasHealth(int Health);
