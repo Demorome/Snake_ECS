@@ -51,7 +51,7 @@ public class Timing : MoonTools.ECS.System
                 {
                     Destroy(entity);
                 }
-                return;
+                continue;
             }
 
             Set(entity, timer with { Time = time });
