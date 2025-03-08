@@ -29,11 +29,12 @@ public class PlayerController : MoonTools.ECS.System
 	public Entity SpawnPlayer(int index)
 	{
 		var player = World.CreateEntity();
+		Set(player, new Player(index));
 		Set(player, new Position(Dimensions.GAME_W / 2, Dimensions.GAME_H / 2));
 		//Set(player, new SpriteAnimation(index == 0 ? Content.SpriteAnimations.Char_Walk_Down : Content.SpriteAnimations.Char2_Walk_Down, 0));
+		//Set(player, new DrawAsRectangle());
 		Set(player, new SpriteAnimation(Content.SpriteAnimations.Heart));
-		Set(player, new Player(index));
-		Set(player, new Rectangle(0, 0, 24, 24));
+		Set(player, new Rectangle(-12, -12, 24, 24));
 		Set(player, new Layer(CollisionLayer.PlayerActor));
 		//Set(player, index == 0 ? Color.Green : Color.Blue);
 		Set(player, new ColorBlend(Color.Red));

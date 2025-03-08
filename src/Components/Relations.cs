@@ -13,7 +13,15 @@ public readonly record struct DontDraw();
 public readonly record struct CountUpScore(int Start, int End);
 public readonly record struct DontTime();
 
+public readonly record struct WillFlipHorizontally(float TimePerFlip);
+public readonly record struct WillFlipVertically(float TimePerFlip);
+public readonly record struct WillRotate(float TimePerRotation, float Angle);
+
+public readonly record struct FlippedHorizontally();
+public readonly record struct FlippedVertically();
+public readonly record struct Rotated(float Angle);
+
 // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
 public readonly record struct Invincible();
-public readonly record struct Flickering(float TimePerFlicker);
-//public readonly record struct Flicker();
+public readonly record struct WillFlicker(float TimePerFlicker); // called "Flickering" in the tutorial
+

@@ -1,9 +1,11 @@
 using System;
 using System.Numerics;
 using MoonTools.ECS;
+using MoonWorks.Math;
 using RollAndCash.Components;
 using RollAndCash.Content;
 using RollAndCash.Messages;
+using RollAndCash.Relations;
 using RollAndCash.Utility;
 
 // Inspired from Cassandra Lugo's Bullet system from https://blood.church/posts/2023-09-25-shmup-tutorial/
@@ -36,9 +38,9 @@ public class Projectile : MoonTools.ECS.System
 
     void SpawnFriendlinessPellets_Pattern1()
     {
-        var spawn_pos = new Vector2(200, 100);
-        var x_offset = 50;
-        const float Speed = 200f;
+        var spawn_pos = new Vector2(170, 50);
+        var x_offset = 80;
+        const float Speed = 0f/*200f*/;
         const int NumProjectiles = 5;
 
         if (!Some<Player>()) return;
@@ -64,7 +66,7 @@ public class Projectile : MoonTools.ECS.System
         var entity = CreateEntity();
         Set(entity, new SpriteAnimation(SpriteAnimations.Projectile));
         Set(entity, new Position(position));
-        Set(entity, new Rectangle(0, 0, 24, 24));
+        Set(entity, new Rectangle(-1, -3, 3, 5));
         Set(entity, new Layer(layer, CollisionLayer.Bullet));
         direction = MathUtilities.SafeNormalize(direction);
         Set(entity, new Direction(direction));
@@ -72,6 +74,10 @@ public class Projectile : MoonTools.ECS.System
         Set(entity, new DealsDamageOnContact(1));
         Set(entity, new DestroyWhenOutOfBounds());
         Set(entity, new DestroyOnCollision());
+
+        var flipTimer = CreateEntity();
+        Set(flipTimer, new Timer(1f, true));
+        Relate(entity, flipTimer, new WillRotate(0.1f, float.DegreesToRadians(90)));
 
         return entity;
     }

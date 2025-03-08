@@ -118,12 +118,35 @@ public class Renderer : MoonTools.ECS.Renderer
 				var sprite = animation.CurrentSprite;
 				var origin = animation.Origin;
 				var depth = -1f;
+				var orientation = Has<Angle>(entity) ? Get<Angle>(entity).Value : 0.0f;
 				var color = Color.White;
+
+				foreach (var timerEntity in OutRelations<Rotated>(entity))
+				{
+					var rotationData = GetRelationData<Rotated>(entity, timerEntity);
+					orientation += rotationData.Angle;
+				}
+				if (orientation != 0.0f)
+				{
+					// TODO: ???
+					//origin *= orientation;
+				}
 
 				Vector2 scale = Vector2.One;
 				if (Has<SpriteScale>(entity))
 				{
 					scale *= Get<SpriteScale>(entity).Scale;
+				}
+				if ((OutRelationCount<FlippedHorizontally>(entity) % 2) == 1)
+				{
+					scale.X *= -1;
+				}
+				if ((OutRelationCount<FlippedVertically>(entity) % 2) == 1)
+				{
+					scale.Y *= -1;
+				}
+				if (scale != Vector2.One)
+				{
 					origin *= scale;
 				}
 
@@ -148,7 +171,12 @@ public class Renderer : MoonTools.ECS.Renderer
 					depth = -Get<Depth>(entity).Value;
 				}
 
-				ArtSpriteBatch.Add(new Vector3(position.X + offset.X, position.Y + offset.Y, depth), 0, new Vector2(sprite.SliceRect.W, sprite.SliceRect.H) * scale, color, sprite.UV.LeftTop, sprite.UV.Dimensions);
+				ArtSpriteBatch.Add(
+					new Vector3(position.X + offset.X, position.Y + offset.Y, depth), 
+					orientation, 
+					new Vector2(sprite.SliceRect.W, sprite.SliceRect.H) * scale, color, sprite.UV.LeftTop, 
+					sprite.UV.Dimensions
+				);
 			}
 
 			TextBatch.Start();

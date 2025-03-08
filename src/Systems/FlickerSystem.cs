@@ -22,20 +22,20 @@ public class FlickerSystem : MoonTools.ECS.System
 
         foreach (var message in ReadMessages<StartFlickering>())
         {
-            if (HasOutRelation<Flickering>(message.Target))
+            if (HasOutRelation<WillFlicker>(message.Target))
             {
                 continue;
             }
 
             var timer = CreateEntity();
             Set(timer, new Timer(message.TotalTime));
-            Relate(message.Target, timer, new Flickering(message.FlickerTime));
+            Relate(message.Target, timer, new WillFlicker(message.FlickerTime));
         }
 
-        foreach (var (entity, flickeringTimerEntity) in Relations<Relations.Flickering>())
+        foreach (var (entity, flickeringTimerEntity) in Relations<Relations.WillFlicker>())
         {
             var flickeringTimer = Get<Timer>(flickeringTimerEntity);
-            var flickeringData = GetRelationData<Flickering>(entity, flickeringTimerEntity);
+            var flickeringData = GetRelationData<WillFlicker>(entity, flickeringTimerEntity);
 
             if (TimeUtilities.OnTime(
                 flickeringTimer.Time, 

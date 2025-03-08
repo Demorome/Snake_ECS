@@ -62,7 +62,7 @@ public class UpdateSpriteAnimationSystem : MoonTools.ECS.System
 			if (HasOutRelation<CountUpScore>(entity) && !HasOutRelation<DontDraw>(entity))
 			{
 				var timerEntity = OutRelationSingleton<CountUpScore>(entity);
-				var timeFactor = 1 - Get<Timer>(timerEntity).Remaining;
+				var timeFactor = 1 - Get<Timer>(timerEntity).RemainingPercentage;
 				var data = GetRelationData<CountUpScore>(entity, timerEntity);
 				var value = (int)Math.Floor(float.Lerp(data.Start, data.End, Easing.InOutExpo(timeFactor)));
 				Set(entity, new Text(

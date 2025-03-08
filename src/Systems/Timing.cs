@@ -43,7 +43,14 @@ public class Timing : MoonTools.ECS.System
                     Send(soundMessage);
                 }
 
-                Destroy(entity);
+                if (timer.Repeats)
+                {
+                    Set(entity, timer with {Time = timer.Max});
+                }
+                else
+                {
+                    Destroy(entity);
+                }
                 return;
             }
 
