@@ -66,7 +66,7 @@ public class Projectile : MoonTools.ECS.System
         var entity = CreateEntity();
         Set(entity, new SpriteAnimation(SpriteAnimations.Projectile));
         Set(entity, new Position(position));
-        Set(entity, new Rectangle(-1, -3, 3, 5));
+        Set(entity, new Rectangle(-2, -3, 4, 6));
         Set(entity, new Layer(layer, CollisionLayer.Bullet));
         direction = MathUtilities.SafeNormalize(direction);
         Set(entity, new Direction(direction));
