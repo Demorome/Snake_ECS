@@ -41,6 +41,7 @@ public class Projectile : MoonTools.ECS.System
         const float Speed = 200f;
         const int NumProjectiles = 5;
 
+        if (!Some<Player>()) return;
         var player = GetSingletonEntity<Player>();
         var playerPosition = Get<Position>(player).AsVector();
 

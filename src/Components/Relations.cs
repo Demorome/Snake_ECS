@@ -15,3 +15,5 @@ public readonly record struct DontTime();
 
 // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
 public readonly record struct Invincible();
+public readonly record struct Flickering(float TimePerFlicker);
+//public readonly record struct Flicker();

@@ -34,3 +34,4 @@ public readonly record struct ShootFromEntity(Entity Source, CollisionLayer Laye
 public readonly record struct ShootFromArea(Vector2 Position, CollisionLayer Layer, Vector2 Direction, float Speed);
 public readonly record struct DealDamage(Entity Target, int Damage);
 public readonly record struct Collide(Entity A, Entity B);
+public readonly record struct StartFlickering(Entity Target, float TotalTime, float FlickerTime);

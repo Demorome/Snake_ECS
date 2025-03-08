@@ -29,6 +29,7 @@ public class GameplayState : GameState
     Projectile Projectile;
     Collision Collision;
     Destroyer Destroyer;
+    FlickerSystem FlickerSystem;
 
     public GameplayState(RollAndCashGame game, GameState transitionState)
     {
@@ -107,6 +108,7 @@ public class GameplayState : GameState
         Projectile = new Projectile(World);
         Collision = new Collision(World);
         Destroyer = new Destroyer(World);
+        FlickerSystem = new FlickerSystem(World);
 
         Renderer = new Renderer(World, Game.GraphicsDevice, Game.RootTitleStorage, Game.MainWindow.SwapchainFormat);
 
@@ -156,6 +158,7 @@ public class GameplayState : GameState
         DirectionalAnimation.Update(dt);
         SetSpriteAnimationSystem.Update(dt);
         ColorAnimation.Update(dt);
+        FlickerSystem.Update(dt);
         Audio.Update(dt);
         Destroyer.Update(dt);
 
