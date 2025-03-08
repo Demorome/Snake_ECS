@@ -8,6 +8,7 @@ using MoonWorks.Graphics.Font;
 using System.Numerics;
 using RollAndCash.Relations;
 using MoonWorks.Storage;
+using System;
 
 namespace RollAndCash;
 
@@ -105,7 +106,13 @@ public class Renderer : MoonTools.ECS.Renderer
 				}
 
 				var sprite = SpriteAnimations.Pixel.Frames[0];
-				ArtSpriteBatch.Add(new Vector3(position.X + rectangle.X, position.Y + rectangle.Y, depth), orientation, new Vector2(rectangle.Width, rectangle.Height), color, sprite.UV.LeftTop, sprite.UV.Dimensions);
+				ArtSpriteBatch.Add(
+					new Vector3(position.X + rectangle.X, position.Y + rectangle.Y, depth), 
+					orientation, 
+					new Vector2(rectangle.Width, rectangle.Height), 
+					color, 
+					sprite.UV.LeftTop, 
+					sprite.UV.Dimensions);
 			}
 
 			foreach (var entity in SpriteAnimationFilter.Entities)
@@ -128,8 +135,8 @@ public class Renderer : MoonTools.ECS.Renderer
 				}
 				if (orientation != 0.0f)
 				{
-					// TODO: ???
-					//origin *= orientation;
+					var rotationMatrix = Matrix3x2.CreateRotation(orientation);
+					origin = Vector2.Transform(origin, rotationMatrix);
 				}
 
 				Vector2 scale = Vector2.One;
@@ -174,7 +181,9 @@ public class Renderer : MoonTools.ECS.Renderer
 				ArtSpriteBatch.Add(
 					new Vector3(position.X + offset.X, position.Y + offset.Y, depth), 
 					orientation, 
-					new Vector2(sprite.SliceRect.W, sprite.SliceRect.H) * scale, color, sprite.UV.LeftTop, 
+					new Vector2(sprite.SliceRect.W, sprite.SliceRect.H) * scale, 
+					color, 
+					sprite.UV.LeftTop, 
 					sprite.UV.Dimensions
 				);
 			}
