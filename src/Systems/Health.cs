@@ -43,7 +43,7 @@ public class Health : MoonTools.ECS.System
                     var timer = CreateEntity();
                     Set(timer, new Timer(invicibleData.Time));
                     Relate(timer, entity, new Invincible());
-                    Send(new StartFlickering(entity, invicibleData.Time, 0.1f));
+                    Send(new StartFlickering(entity, invicibleData.Time, 0.09f));
                 }
             }
 

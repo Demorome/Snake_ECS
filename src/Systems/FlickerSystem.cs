@@ -40,8 +40,8 @@ public class FlickerSystem : MoonTools.ECS.System
             if (TimeUtilities.OnTime(
                 flickeringTimer.Time, 
                 flickeringData.TimePerFlicker, 
-                deltaTime, 
-                flickeringData.TimePerFlicker)
+                flickeringData.TimePerFlicker + deltaTime, 
+                flickeringData.TimePerFlicker * 2)
                 )
             {
                 Relate(entity, flickeringTimerEntity, new DontDraw());
