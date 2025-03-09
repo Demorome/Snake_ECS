@@ -12,7 +12,7 @@ namespace RollAndCash.Systems;
 
 public class Motion : MoonTools.ECS.System
 {
-    Filter VelocityFilter;
+    Filter SpeedFilter;
     //Filter InteractFilter;
     Filter CollisionFilter;
     Filter AccelerateToPositionFilter;
@@ -24,10 +24,10 @@ public class Motion : MoonTools.ECS.System
    
     public Motion(World world) : base(world)
     {
-        VelocityFilter = 
+        SpeedFilter = 
         FilterBuilder
         .Include<Position>()
-        .Include<Velocity>()
+        .Include<Speed>()
         .Build();
 
         //InteractFilter = FilterBuilder.Include<Position>().Include<Rectangle>().Include<CanInteract>().Build();
@@ -43,7 +43,7 @@ public class Motion : MoonTools.ECS.System
         FilterBuilder
         .Include<Position>()
         .Include<AccelerateToPosition>()
-        .Include<Velocity>()
+        .Include<Speed>()
         .Build();
     }
 
@@ -89,9 +89,8 @@ public class Motion : MoonTools.ECS.System
         return hit;
     }
 
-    Position SweepTest(Entity e, float dt)
+    Position SweepTest(Entity e, Vector2 velocity, float dt)
     {
-        var velocity = Get<Velocity>(e);
         var position = Get<Position>(e);
         var r = Get<Rectangle>(e);
 
@@ -167,6 +166,32 @@ public class Motion : MoonTools.ECS.System
         return position + movement;
     }
 
+    void DoMovement(Entity entity, Position pos, float baseSpeed, TimeSpan delta)
+    {
+        var speed = baseSpeed;
+        foreach (var otherEntity in OutRelations<SpeedMult>(entity))
+        {
+            var speedMult = GetRelationData<SpeedMult>(entity, otherEntity).Value;
+            speed *= speedMult;
+        }
+        var vel = speed * Get<Direction>(entity).Value;
+
+        if (Has<Rectangle>(entity) && Has<Layer>(entity))
+        {
+            var result = SweepTest(entity, vel, (float)delta.TotalSeconds);
+            Set(entity, result);
+        }
+        else
+        {
+            var scaledVelocity = vel * (float)delta.TotalSeconds;
+            if (Has<ForceIntegerMovement>(entity))
+            {
+                scaledVelocity = new Vector2((int)scaledVelocity.X, (int)scaledVelocity.Y);
+            }
+            Set(entity, pos + scaledVelocity);
+        }
+    }
+
     public override void Update(TimeSpan delta)
     {
         //ClearCanBeHeldSpatialHash();
@@ -211,42 +236,31 @@ public class Motion : MoonTools.ECS.System
             CollidersSpatialHash.Insert(entity, GetWorldRect(position, rect));
         }
 
-        foreach (var entity in VelocityFilter.Entities)
+        foreach (var entity in SpeedFilter.Entities)
         {
             if (HasOutRelation<DontMove>(entity))
                 continue;
 
             var pos = Get<Position>(entity);
-            var vel = (Vector2)Get<Velocity>(entity);
-
-            if (Has<Rectangle>(entity) && Has<Layer>(entity))
-            {
-                var result = SweepTest(entity, (float)delta.TotalSeconds);
-                Set(entity, result);
-            }
-            else
-            {
-                var scaledVelocity = vel * (float)delta.TotalSeconds;
-                if (Has<ForceIntegerMovement>(entity))
-                {
-                    scaledVelocity = new Vector2((int)scaledVelocity.X, (int)scaledVelocity.Y);
-                }
-                Set(entity, pos + scaledVelocity);
-            }
+            var baseSpeed = Get<Speed>(entity).Value;
+            var baseVel = baseSpeed * Get<Direction>(entity).Value;
+            DoMovement(entity, pos, baseSpeed, delta);
 
             if (Has<FallSpeed>(entity))
             {
                 var fallspeed = Get<FallSpeed>(entity).Speed;
-                Set(entity, new Velocity(vel + Vector2.UnitY * fallspeed));
+                baseVel += Vector2.UnitY * fallspeed;
             }
 
             if (Has<MotionDamp>(entity))
             {
-                var speed = Vector2.Distance(Vector2.Zero, vel) - Get<MotionDamp>(entity).Damping;
-                speed = MathF.Max(speed, 0);
-                vel = speed * MathUtilities.SafeNormalize(vel);
-                Set(entity, new Velocity(vel));
+                var dampSpeed = Vector2.Distance(Vector2.Zero, baseVel) - Get<MotionDamp>(entity).Damping;
+                dampSpeed = MathF.Max(dampSpeed, 0);
+                baseVel = dampSpeed * MathUtilities.SafeNormalize(baseVel);
             }
+
+            Set(entity, new Speed(baseVel.Length()));
+            Set(entity, new Direction(MathUtilities.SafeNormalize(baseVel)));
 
             if (Has<DestroyAtScreenBottom>(entity) && pos.Y > Dimensions.GAME_H - 32)
             {
@@ -274,6 +288,7 @@ public class Motion : MoonTools.ECS.System
                 }*/
 
                 Destroy(entity);
+                continue;
             }
 
             if (Has<DestroyWhenOutOfBounds>(entity))
@@ -287,6 +302,7 @@ public class Motion : MoonTools.ECS.System
                     }*/
 
                     Destroy(entity);
+                    continue;
                 }
             }
 
@@ -355,6 +371,7 @@ public class Motion : MoonTools.ECS.System
             }
         }*/
 
+        /*
         foreach (var entity in AccelerateToPositionFilter.Entities)
         {
             var velocity = Get<Velocity>(entity).Value;
@@ -364,6 +381,6 @@ public class Motion : MoonTools.ECS.System
             velocity /= accelTo.MotionDampFactor * (1 + (float)delta.TotalSeconds); // TODO: IDK if this is deltatime friction but game is fixed fps rn anyway
             velocity += MathUtilities.SafeNormalize(difference) * accelTo.Acceleration * (float)delta.TotalSeconds;
             Set(entity, new Velocity(velocity));
-        }
+        }*/
     }
 }

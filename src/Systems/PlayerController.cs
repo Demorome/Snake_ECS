@@ -23,6 +23,9 @@ public class PlayerController : MoonTools.ECS.System
 		FilterBuilder
 		.Include<Player>()
 		.Include<Position>()
+		.Include<Speed>()
+		.Include<Direction>()
+		.Include<HasHealth>()
 		.Build();
 	}
 
@@ -40,8 +43,8 @@ public class PlayerController : MoonTools.ECS.System
 		Set(player, new ColorBlend(Color.Red));
 		Set(player, new Depth(5));
 		Set(player, new MaxSpeed(MaxSpeedBase));
-		Set(player, new Velocity(Vector2.Zero));
-		//Set(player, new LastDirection(Vector2.Zero));
+		Set(player, new Speed(0f));
+		Set(player, new Direction(Vector2.Zero));
 		//Set(player, new AdjustFramerateToSpeed());
 		Set(player, new InputState());
 		Set(player, new HasHealth(5));
@@ -102,9 +105,10 @@ public class PlayerController : MoonTools.ECS.System
 			#region Movement
 			var maxSpeed = Get<MaxSpeed>(entity).Value;
 			direction = MathUtilities.SafeNormalize(direction);
-			var velocity = direction * maxSpeed;
+			//var velocity = direction * maxSpeed;
 
-			Set(entity, new Velocity(velocity));
+			Set(entity, new Direction(direction));
+			Set(entity, new Speed(maxSpeed));
 
 			#endregion
 		}

@@ -74,13 +74,13 @@ public class DirectionalAnimation : MoonTools.ECS.System
                 }
             }
 
-            var velocity = Has<Velocity>(entity) ? (Vector2)Get<Velocity>(entity) : Vector2.Zero;
+            var speed = Has<Speed>(entity) ? Get<Speed>(entity).Value : 0.0f;
 
             int framerate = Get<SpriteAnimation>(entity).FrameRate;
 
             if (Has<AdjustFramerateToSpeed>(entity))
             {
-                framerate = (int)(velocity.Length() / 20f);
+                framerate = (int)(speed / 20f);
             }
 
             if (direction.LengthSquared() > 0)

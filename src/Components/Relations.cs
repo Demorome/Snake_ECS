@@ -1,3 +1,4 @@
+using System.Numerics;
 using MoonTools.ECS;
 
 namespace RollAndCash.Relations;
@@ -20,6 +21,8 @@ public readonly record struct WillRotate(float TimePerRotation, float Angle);
 public readonly record struct FlippedHorizontally();
 public readonly record struct FlippedVertically();
 public readonly record struct Rotated(float Angle);
+
+public readonly record struct SpeedMult(float Value);
 
 // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
 public readonly record struct Invincible();

@@ -1,5 +1,6 @@
 using System.Numerics;
 
+/*
 public readonly record struct Velocity
 {
     public static Velocity Zero = new Velocity(0f, 0f);
@@ -37,3 +38,4 @@ public readonly record struct Velocity
 
 
 }
+*/

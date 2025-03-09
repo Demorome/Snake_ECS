@@ -62,6 +62,7 @@ public readonly record struct DrawAsRectangle();
 public readonly record struct TextDropShadow(int OffsetX, int OffsetY);
 public readonly record struct ForceIntegerMovement();
 public readonly record struct MaxSpeed(float Value);
+public readonly record struct Speed(float Value);
 public readonly record struct AdjustFramerateToSpeed();
 
 public readonly record struct Direction(System.Numerics.Vector2 Value);
@@ -96,6 +97,8 @@ public readonly record struct MotionDamp(float Damping);
 public readonly record struct SpriteScale(System.Numerics.Vector2 Scale);
 public readonly record struct LastValue(int value);
 public readonly record struct PlaySoundOnTimerEnd(PlayStaticSoundMessage PlayStaticSoundMessage);
+
+public readonly record struct UpdateDirectionToTargetPosition(bool DoOnce, bool OnlyIfSpeedNonZero);
 
 // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
 [System.Flags]
