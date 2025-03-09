@@ -26,6 +26,46 @@ public class Projectile : MoonTools.ECS.System
         .Build();
     }
 
+    Entity CreateProjectile(
+        Vector2 position, 
+        CollisionLayer layer, 
+        Vector2 direction, 
+        float hitscanSpeed,
+        float speed, // ignored if hitscanSpeed > 0
+        float maxDistance
+        )
+    {
+        var entity = CreateEntity();
+        Set(entity, new SpriteAnimation(SpriteAnimations.Projectile));
+        Set(entity, new Position(position));
+        Set(entity, new Rectangle(-2, -3, 4, 6));
+        Set(entity, new Layer(layer, CollisionLayer.Bullet));
+        direction = MathUtilities.SafeNormalize(direction);
+        Set(entity, new Direction(direction));
+        if (hitscanSpeed > 0)
+        {
+            Set(entity, new HitscanSpeed(hitscanSpeed));
+            Set(entity, new Speed(0f));
+        }
+        else
+        {
+            Set(entity, new Speed(speed));
+        }
+        if (maxDistance > 0)
+        {
+            Set(entity, new MaxDistance(maxDistance));
+        }
+        Set(entity, new DealsDamageOnContact(1));
+        Set(entity, new DestroyWhenOutOfBounds());
+        Set(entity, new DestroyOnCollision());
+
+        var flipTimer = CreateEntity();
+        Set(flipTimer, new Timer(1f, true));
+        Relate(entity, flipTimer, new WillRotate(0.1f, float.DegreesToRadians(90)));
+
+        return entity;
+    }
+
     void SpawnFriendlinessPellets_Pattern1()
     {
         var spawn_pos = new Vector2(170, 50);
@@ -41,7 +81,9 @@ public class Projectile : MoonTools.ECS.System
                 spawn_pos, 
                 CollisionLayer.EnemyBullet, 
                 new Vector2(0f, 1f), 
+                0f,
                 Speed,
+                -1,
                 waitTime,
                 Some<Player>() ? GetSingletonEntity<Player>() : default
                 )
@@ -51,39 +93,46 @@ public class Projectile : MoonTools.ECS.System
         }
     }
 
-    Entity CreateProjectile(Vector2 position, CollisionLayer layer, Vector2 direction, float speed)
+    void SpawnFriendlinessPellets_HitscanPattern()
     {
-        var entity = CreateEntity();
-        Set(entity, new SpriteAnimation(SpriteAnimations.Projectile));
-        Set(entity, new Position(position));
-        Set(entity, new Rectangle(-2, -3, 4, 6));
-        Set(entity, new Layer(layer, CollisionLayer.Bullet));
-        direction = MathUtilities.SafeNormalize(direction);
-        Set(entity, new Direction(direction));
-        Set(entity, new Speed(speed));
-        Set(entity, new DealsDamageOnContact(1));
-        Set(entity, new DestroyWhenOutOfBounds());
-        Set(entity, new DestroyOnCollision());
+        var spawn_pos = new Vector2(170, 50);
+        var x_offset = 80;
+        const int NumProjectiles = 5;
+        const float hitscanSpeed = 2000f;
 
-        var flipTimer = CreateEntity();
-        Set(flipTimer, new Timer(1f, true));
-        Relate(entity, flipTimer, new WillRotate(0.1f, float.DegreesToRadians(90)));
+        for (int i = 0; i < NumProjectiles; ++i)
+        {    
+            var waitTime = 1.0f;
 
-        return entity;
+            Send(new ShootFromArea(
+                spawn_pos, 
+                CollisionLayer.EnemyBullet, 
+                new Vector2(0f, 1f), 
+                hitscanSpeed,
+                0f,
+                -1,
+                waitTime,
+                Some<Player>() ? GetSingletonEntity<Player>() : default
+                )
+            );
+
+            spawn_pos.X += x_offset;
+        }
     }
 
     public override void Update(TimeSpan delta)
     {
         if (ProjectileFilter.Empty)
         {
-            SpawnFriendlinessPellets_Pattern1();
+            //SpawnFriendlinessPellets_Pattern1();
+            SpawnFriendlinessPellets_HitscanPattern();
         }
 
         foreach (var message in ReadMessages<ShootFromEntity>())
         {
             var positionComponent = Get<Position>(message.Source);
             var position = new Vector2(positionComponent.X, positionComponent.Y);
-            CreateProjectile(position, message.Layer, message.Direction, message.Speed);
+            CreateProjectile(position, message.Layer, message.Direction, 0f, message.Speed, -1f);
         }
 
         foreach (var message in ReadMessages<ShootFromArea>())
@@ -92,7 +141,9 @@ public class Projectile : MoonTools.ECS.System
                 message.Position, 
                 message.Layer, 
                 message.DelayTime <= 0.0f ? message.Direction : Vector2.Zero, 
-                message.Speed
+                message.HitscanSpeed,
+                message.Speed,
+                message.MaxDistance
             );
 
             if (message.DelayTime > 0.0f)
@@ -100,43 +151,13 @@ public class Projectile : MoonTools.ECS.System
                 var timerEntity = CreateEntity();
                 Set(timerEntity, new Timer(message.DelayTime));
                 Relate(projectile, timerEntity, new SpeedMult(0.0f));
-
-                if (message.DelayedTarget != default)
-                {
-                    Relate(projectile, message.DelayedTarget, new Targeting());
-                    Set(projectile, new UpdateDirectionToTargetPosition(true, true));
-                }
+                Relate(projectile, timerEntity, new DontUpdateDirection());
             }
-        }
 
-        foreach (var entity in ProjectileFilter.Entities)
-        {
-            if (Has<UpdateDirectionToTargetPosition>(entity))
+            if (message.Target != default)
             {
-                if (HasOutRelation<Targeting>(entity))
-                {
-                    var targetEntity = OutRelationSingleton<Targeting>(entity);
-                    var speed = Get<Speed>(entity).Value;
-                    var updateData = Get<UpdateDirectionToTargetPosition>(entity);
-                    if (!updateData.OnlyIfSpeedNonZero || speed != 0.0f)
-                    {
-                        var targetPosition = Get<Position>(targetEntity).AsVector();
-                        var projectilePosition = Get<Position>(entity).AsVector();
-                        Vector2 projectileDirection = MathUtilities.SafeNormalize(targetPosition - projectilePosition);
-                        //Vector2 projectileDirection = new Vector2(MathF.Sin(angleToPlayer), MathF.Cos(angleToPlayer));
-                        Set(entity, new Direction(projectileDirection));
-
-                        if (updateData.DoOnce)
-                        {
-                            Remove<UpdateDirectionToTargetPosition>(entity);
-                        }
-                    }
-                }
-                /*
-                else
-                {
-                    Remove<UpdateDirectionToTargetPosition>(entity);
-                }*/
+                Relate(projectile, message.Target, new TargetingEntity());
+                Set(projectile, new UpdateDirectionToTargetPosition(true));
             }
         }
     }

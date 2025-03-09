@@ -7,11 +7,14 @@ using RollAndCash.Relations;
 using RollAndCash.Messages;
 using RollAndCash.Content;
 using System.Collections.Generic;
+using System.Reflection.Metadata;
 
 namespace RollAndCash.Systems;
 
 public class Motion : MoonTools.ECS.System
 {
+    float HighSpeedMin = 1000f;
+
     Filter SpeedFilter;
     //Filter InteractFilter;
     Filter CollisionFilter;
@@ -54,7 +57,7 @@ public class Motion : MoonTools.ECS.System
     }
 */
 
-    void ClearSolidSpatialHash()
+    void ClearCollidersSpatialHash()
     {
         CollidersSpatialHash.Clear();
     }
@@ -64,15 +67,37 @@ public class Motion : MoonTools.ECS.System
         return new Rectangle(p.X + r.X, p.Y + r.Y, r.Width, r.Height);
     }
 
+    void HandleCollisions(Entity e)
+    {
+        // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
+        foreach (var other in HitEntities)
+        {
+            bool duplicate = false;
+            foreach (var msg in ReadMessages<Collide>())
+            {
+                if (msg.A == other && msg.B == e)
+                {
+                    duplicate = true;
+                    break;
+                }
+            }
+
+            if (!duplicate)
+            {
+                Send(new Collide(e, other));
+            }
+        }
+    }
+
     // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
-    bool CheckCollisions(Entity e, Rectangle rect)
+    bool CheckCollisions(Entity e, Rectangle positionRect)
     {
         var layer = Get<Layer>(e);
         bool hit = false;
 
-        foreach (var (other, otherRect) in CollidersSpatialHash.Retrieve(e, rect))
+        foreach (var (other, otherRect) in CollidersSpatialHash.Retrieve(e, positionRect))
         {
-            if (rect.Intersects(otherRect))
+            if (positionRect.Intersects(otherRect))
             {
                 var otherLayer = Get<Layer>(other);
 
@@ -87,6 +112,59 @@ public class Motion : MoonTools.ECS.System
         }
 
         return hit;
+    }
+
+    Position HighSpeedSweepTest(Entity e, float travelDistance, float dt)
+    {
+        var position = Get<Position>(e);
+        var direction = Get<Direction>(e);
+        var r = Get<Rectangle>(e);
+
+        var movement = direction.Value * travelDistance * dt;
+        var targetPosition = position + movement;
+
+        var xEnum = new IntegerEnumerator(position.X, targetPosition.X);
+        var yEnum = new IntegerEnumerator(position.Y, targetPosition.Y);
+        var xEnumSize = Math.Abs(targetPosition.X - position.X);
+        var yEnumSize = Math.Abs(targetPosition.Y - position.Y);
+        var biggestSize = Math.Max(xEnumSize, yEnumSize);
+
+        int mostRecentValidXPosition = position.X;
+        int mostRecentValidYPosition = position.Y;
+
+        HitEntities.Clear();
+
+        for (int i = 0; i < biggestSize; ++i)
+        {
+            var x = xEnum.Current;
+            var y = yEnum.Current;
+            var newPos = new Position(x, y);
+            var rect = GetWorldRect(newPos, r);
+
+            var hit = CheckCollisions(e, rect);
+            if (hit)
+            {
+                movement.X = mostRecentValidXPosition - position.X;
+                position = position.SetX(position.X); // truncates x coord
+
+                movement.Y = mostRecentValidYPosition - position.Y;
+                position = position.SetY(position.Y); // truncates y coord
+                break;
+            }
+
+            mostRecentValidXPosition = x;
+            mostRecentValidYPosition = y;
+
+            if (i < xEnumSize)
+            {
+                xEnum.MoveNext();
+            }
+            if (i < yEnumSize)
+            {
+                yEnum.MoveNext();
+            }
+        }
+        return position + movement;
     }
 
     Position SweepTest(Entity e, Vector2 velocity, float dt)
@@ -144,29 +222,10 @@ public class Motion : MoonTools.ECS.System
             mostRecentValidYPosition = y;
         }
 
-        // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
-        foreach (var other in HitEntities)
-        {
-            bool duplicate = false;
-            foreach (var msg in ReadMessages<Collide>())
-            {
-                if (msg.A == other && msg.B == e)
-                {
-                    duplicate = true;
-                    break;
-                }
-            }
-
-            if (!duplicate)
-            {
-                Send(new Collide(e, other));
-            }
-        }
-
         return position + movement;
     }
 
-    void DoMovement(Entity entity, Position pos, float baseSpeed, TimeSpan delta)
+    Position DoMovement(Entity entity, Position entityPos, float baseSpeed, TimeSpan delta)
     {
         var speed = baseSpeed;
         foreach (var otherEntity in OutRelations<SpeedMult>(entity))
@@ -176,10 +235,16 @@ public class Motion : MoonTools.ECS.System
         }
         var vel = speed * Get<Direction>(entity).Value;
 
-        if (Has<Rectangle>(entity) && Has<Layer>(entity))
+        if (Has<Rectangle>(entity) && Has<Layer>(entity)) // if has colliders
         {
-            var result = SweepTest(entity, vel, (float)delta.TotalSeconds);
-            Set(entity, result);
+            if (speed >= HighSpeedMin)
+            {
+                return HighSpeedSweepTest(entity, speed, (float)delta.TotalSeconds);
+            }
+            else
+            {
+                return SweepTest(entity, vel, (float)delta.TotalSeconds);
+            }
         }
         else
         {
@@ -188,14 +253,14 @@ public class Motion : MoonTools.ECS.System
             {
                 scaledVelocity = new Vector2((int)scaledVelocity.X, (int)scaledVelocity.Y);
             }
-            Set(entity, pos + scaledVelocity);
+            return entityPos + scaledVelocity;
         }
     }
 
     public override void Update(TimeSpan delta)
     {
         //ClearCanBeHeldSpatialHash();
-        ClearSolidSpatialHash();
+        ClearCollidersSpatialHash();
 
         /*
         foreach (var entity in InteractFilter.Entities)
@@ -242,9 +307,19 @@ public class Motion : MoonTools.ECS.System
                 continue;
 
             var pos = Get<Position>(entity);
-            var baseSpeed = Get<Speed>(entity).Value;
+            float baseSpeed;
+            if (Has<HitscanSpeed>(entity))
+            {
+                baseSpeed = Get<HitscanSpeed>(entity).Value;
+            }
+            else 
+            {
+                baseSpeed = Get<Speed>(entity).Value;
+            }
             var baseVel = baseSpeed * Get<Direction>(entity).Value;
-            DoMovement(entity, pos, baseSpeed, delta);
+            pos = DoMovement(entity, pos, baseSpeed, delta);
+            Set(entity, pos);
+            HandleCollisions(entity);
 
             if (Has<FallSpeed>(entity))
             {

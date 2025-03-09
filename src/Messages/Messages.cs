@@ -40,9 +40,11 @@ public readonly record struct ShootFromArea(
 	Vector2 Position, 
 	CollisionLayer Layer, 
 	Vector2 Direction,
-	float Speed,
+	float HitscanSpeed,
+	float Speed, // ignored if HitscanSpeed > 0
+	float MaxDistance,
 	float DelayTime = 0f,
-	Entity DelayedTarget = default
+	Entity Target = default
 );
 public readonly record struct DealDamage(Entity Target, int Damage);
 public readonly record struct Collide(Entity A, Entity B);

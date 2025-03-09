@@ -2,6 +2,7 @@ using MoonWorks.Graphics;
 using RollAndCash.Systems;
 using RollAndCash.Data;
 using RollAndCash.Messages;
+using System.Numerics;
 
 namespace RollAndCash.Components;
 
@@ -98,7 +99,10 @@ public readonly record struct SpriteScale(System.Numerics.Vector2 Scale);
 public readonly record struct LastValue(int value);
 public readonly record struct PlaySoundOnTimerEnd(PlayStaticSoundMessage PlayStaticSoundMessage);
 
-public readonly record struct UpdateDirectionToTargetPosition(bool DoOnce, bool OnlyIfSpeedNonZero);
+public readonly record struct UpdateDirectionToTargetPosition(bool DoOnce);
+public readonly record struct HitscanSpeed(float Value);
+public readonly record struct TargetPosition(Vector2 Value);
+
 
 // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
 [System.Flags]
@@ -121,3 +125,4 @@ public readonly record struct BecomeInvincibleOnDamage(float Time);
 public readonly record struct MarkedForDestroy();
 public readonly record struct DestroyOnCollision();
 public readonly record struct HasHealth(int Health);
+public readonly record struct MaxDistance(float Value);
