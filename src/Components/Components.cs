@@ -100,6 +100,8 @@ public readonly record struct LastValue(int value);
 public readonly record struct PlaySoundOnTimerEnd(PlayStaticSoundMessage PlayStaticSoundMessage);
 
 public readonly record struct UpdateDirectionToTargetPosition(bool DoOnce);
+public readonly record struct DestroyWhenNoSource(Vector2 Value);
+
 public readonly record struct HitscanSpeed(float Value);
 public readonly record struct TargetPosition(Vector2 Value);
 

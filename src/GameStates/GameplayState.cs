@@ -31,7 +31,8 @@ public class GameplayState : GameState
     Destroyer Destroyer;
     FlickerSystem FlickerSystem;
     FlipAnimationSystem FlipAnimationSystem;
-    TargetDirection TargetDirection;
+    TargetingDirection TargetingDirection;
+    FollowingSystem FollowingSystem;
 
     public GameplayState(RollAndCashGame game, GameState transitionState)
     {
@@ -112,7 +113,8 @@ public class GameplayState : GameState
         Destroyer = new Destroyer(World);
         FlickerSystem = new FlickerSystem(World);
         FlipAnimationSystem = new FlipAnimationSystem(World);
-        TargetDirection = new TargetDirection(World);
+        TargetingDirection = new TargetingDirection(World);
+        FollowingSystem = new FollowingSystem(World);
 
         Renderer = new Renderer(World, Game.GraphicsDevice, Game.RootTitleStorage, Game.MainWindow.SwapchainFormat);
 
@@ -156,10 +158,11 @@ public class GameplayState : GameState
         Input.Update(dt);
         PlayerController.Update(dt);
         Projectile.Update(dt);
-        TargetDirection.Update(dt);
+        TargetingDirection.Update(dt);
         Motion.Update(dt);
         Collision.Update(dt);
         Health.Update(dt);
+        FollowingSystem.Update(dt);
         DirectionalAnimation.Update(dt);
         SetSpriteAnimationSystem.Update(dt);
         ColorAnimation.Update(dt);

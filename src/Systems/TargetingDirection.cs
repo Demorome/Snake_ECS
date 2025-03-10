@@ -7,11 +7,11 @@ using System.Numerics;
 
 namespace RollAndCash.Systems;
 
-public class TargetDirection : MoonTools.ECS.System
+public class TargetingDirection : MoonTools.ECS.System
 {
     private Filter TargetDirectionFilter;
 
-    public TargetDirection(World world) : base(world)
+    public TargetingDirection(World world) : base(world)
     {
         TargetDirectionFilter = FilterBuilder
         .Include<Position>()
@@ -50,12 +50,10 @@ public class TargetDirection : MoonTools.ECS.System
                     Remove<UpdateDirectionToTargetPosition>(entity);
                 }
             }
-            /*
             else
             {
                 Remove<UpdateDirectionToTargetPosition>(entity);
-            }*/
+            }
         }
-
     }
 }

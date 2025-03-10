@@ -9,6 +9,8 @@ using System.Numerics;
 using RollAndCash.Relations;
 using MoonWorks.Storage;
 using System;
+using RollAndCash.Utility;
+using MoonWorks.Math;
 
 namespace RollAndCash;
 
@@ -128,15 +130,16 @@ public class Renderer : MoonTools.ECS.Renderer
 				var orientation = Has<Angle>(entity) ? Get<Angle>(entity).Value : 0.0f;
 				var color = Color.White;
 
-				foreach (var timerEntity in OutRelations<Rotated>(entity))
+				foreach (var rotationEnforcingEntity in OutRelations<Rotated>(entity))
 				{
-					var rotationData = GetRelationData<Rotated>(entity, timerEntity);
+					var rotationData = GetRelationData<Rotated>(entity, rotationEnforcingEntity);
 					orientation += rotationData.Angle;
 				}
 				if (orientation != 0.0f)
 				{
-					var rotationMatrix = Matrix3x2.CreateRotation(orientation);
-					origin = Vector2.Transform(origin, rotationMatrix);
+					//var rotationMatrix = Matrix3x2.CreateRotation(orientation);
+					//origin = Vector2.Transform(origin, rotationMatrix);
+					origin = MathUtilities.Rotate(origin, orientation);
 				}
 
 				Vector2 scale = Vector2.One;

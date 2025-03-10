@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Numerics;
 using RollAndCash.Components;
 
 namespace RollAndCash.Data;
@@ -16,6 +17,7 @@ public class SpriteAnimationInfo
 	public int FrameRate { get; }
 	public int OriginX { get; }
 	public int OriginY { get; }
+	public Vector2 GetOriginAsVector() { return new Vector2(OriginX, OriginY); }
 
 	public static SpriteAnimationInfo FromID(SpriteAnimationInfoID id)
 	{

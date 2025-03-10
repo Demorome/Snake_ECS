@@ -1,20 +1,26 @@
 using System;
 using System.Numerics;
+using System.Threading.Tasks.Dataflow;
 using MoonTools.ECS;
+using MoonWorks.Graphics;
 using MoonWorks.Math;
 using RollAndCash.Components;
 using RollAndCash.Content;
 using RollAndCash.Messages;
 using RollAndCash.Relations;
 using RollAndCash.Utility;
+using Filter = MoonTools.ECS.Filter;
 
 // Inspired from Cassandra Lugo's Bullet system from https://blood.church/posts/2023-09-25-shmup-tutorial/
 public class Projectile : MoonTools.ECS.System
 {
+    TargetingIndicatorSpawner TargetingIndicatorSpawner;
     public Filter ProjectileFilter;
 
     public Projectile(World world) : base(world)
     {
+        TargetingIndicatorSpawner = new TargetingIndicatorSpawner(world);
+
         ProjectileFilter = 
         FilterBuilder
         .Include<SpriteAnimation>()
@@ -158,6 +164,18 @@ public class Projectile : MoonTools.ECS.System
             {
                 Relate(projectile, message.Target, new TargetingEntity());
                 Set(projectile, new UpdateDirectionToTargetPosition(true));
+                if (message.HitscanSpeed > 0.0f)
+                {
+                    var indicator = TargetingIndicatorSpawner.CreateTargetingIndicator(
+                        projectile, 
+                        message.Target,
+                        true,
+                        true
+                    );
+                
+                    Set(indicator, new ColorBlend(Color.Salmon));
+                    Set(indicator, new SpriteAnimation(SpriteAnimations.Pixel));
+                }
             }
         }
     }

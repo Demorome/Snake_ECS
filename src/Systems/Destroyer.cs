@@ -8,13 +8,17 @@ namespace RollAndCash.Systems;
 // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
 public class Destroyer : MoonTools.ECS.System
 {
-    public Filter DestroyFilter;
+    Filter DestroyFilter;
+    Filter DestroyWhenNoTargetingSourceFilter;
 
     public Destroyer(World world) : base(world)
     {
-        DestroyFilter = 
-        FilterBuilder
+        DestroyFilter = FilterBuilder
         .Include<MarkedForDestroy>()
+        .Build();
+
+        DestroyWhenNoTargetingSourceFilter = FilterBuilder
+        .Include<DestroyWhenNoSource>()
         .Build();
     }
 
@@ -28,6 +32,14 @@ public class Destroyer : MoonTools.ECS.System
             */
 
             Destroy(entity);
+        }
+
+        foreach (var entity in DestroyWhenNoTargetingSourceFilter.Entities)
+        {
+            if (Has<DestroyWhenNoSource>(entity) && !HasOutRelation<Source>(entity))
+            {
+                Destroy(entity);
+            }
         }
     }
 }

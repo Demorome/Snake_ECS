@@ -1,5 +1,6 @@
 using System.Numerics;
 using MoonTools.ECS;
+using RollAndCash.Data;
 
 namespace RollAndCash.Relations;
 
@@ -9,6 +10,8 @@ public readonly record struct UpdateDisplayScoreOnDestroy(bool Negative);
 public readonly record struct TimingFootstepAudio();
 public readonly record struct TeleportToAtTimerEnd(Entity TeleportTo);
 public readonly record struct TargetingEntity();
+public readonly record struct Source();
+public readonly record struct Following(bool MatchPosition, bool LookTowards, bool StretchTowards);
 public readonly record struct DontMove();
 public readonly record struct DontDraw();
 public readonly record struct CountUpScore(int Start, int End);
