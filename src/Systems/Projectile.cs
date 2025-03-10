@@ -174,6 +174,8 @@ public class Projectile : MoonTools.ECS.System
                     );
                 
                     Set(indicator, new ColorBlend(Color.Salmon));
+                    // TODO: Seems to do nothing after a while??
+                    //Set(indicator, new ColorFlicker(0, Color.Black));
                     Set(indicator, new SpriteAnimation(SpriteAnimations.Pixel));
                 }
             }

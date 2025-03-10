@@ -30,7 +30,7 @@ public class FollowingSystem : MoonTools.ECS.System
 
             if (followData.LookTowards)
             {
-                var orientation = MathF.Atan2(targetPos.X - followerPos.X, targetPos.Y - followerPos.Y);
+                var orientation = MathF.Atan2(targetPos.Y - followerPos.Y, targetPos.X - followerPos.X);
                 Set(follower, new Angle(orientation));
             }
 

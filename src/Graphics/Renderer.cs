@@ -145,7 +145,7 @@ public class Renderer : MoonTools.ECS.Renderer
 				Vector2 scale = Vector2.One;
 				if (Has<SpriteScale>(entity))
 				{
-					scale *= Get<SpriteScale>(entity).Scale;
+					scale = Get<SpriteScale>(entity).Scale;
 				}
 				if ((OutRelationCount<FlippedHorizontally>(entity) % 2) == 1)
 				{
