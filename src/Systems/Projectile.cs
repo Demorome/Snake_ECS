@@ -14,12 +14,16 @@ using Filter = MoonTools.ECS.Filter;
 // Inspired from Cassandra Lugo's Bullet system from https://blood.church/posts/2023-09-25-shmup-tutorial/
 public class Projectile : MoonTools.ECS.System
 {
+    FlickeringManipulator FlickeringManipulator;
+    TrailingVisualSpawner TrailingVisualSpawner;
     TargetingIndicatorSpawner TargetingIndicatorSpawner;
     public Filter ProjectileFilter;
 
     public Projectile(World world) : base(world)
     {
         TargetingIndicatorSpawner = new TargetingIndicatorSpawner(world);
+        TrailingVisualSpawner = new TrailingVisualSpawner(world);
+        FlickeringManipulator = new FlickeringManipulator(world);
 
         ProjectileFilter = 
         FilterBuilder
@@ -157,6 +161,7 @@ public class Projectile : MoonTools.ECS.System
                 var attackDelayTimer = CreateEntity();
                 Set(attackDelayTimer, new Timer(message.DelayTime));
                 Relate(projectile, attackDelayTimer, new SpeedMult(0.0f));
+                //Relate(projectile, attackDelayTimer, new DelayedAttack()); // TODO: Send ProjectileAttack message
             }
 
             if (message.Target != default)
@@ -165,6 +170,8 @@ public class Projectile : MoonTools.ECS.System
                 Set(projectile, new UpdateDirectionToTargetPosition(true));
                 if (message.HitscanSpeed > 0.0f)
                 {
+                    var trailingVisual = TrailingVisualSpawner.CreateTrailingVisual(projectile);
+
                     var indicator = TargetingIndicatorSpawner.CreateTargetingIndicator(
                         projectile, 
                         message.Target,
@@ -175,13 +182,15 @@ public class Projectile : MoonTools.ECS.System
                     var color = Color.Salmon;
                     color.A -= 100; // transparency
                     Set(indicator, new ColorBlend(color));
-                    // TODO: Make this flicker more noticeable
-                    Set(indicator, new ColorFlicker(0, Color.Transparent));
+                    //Set(indicator, new ColorFlicker(0, Color.Transparent));
                     Set(indicator, new SpriteAnimation(SpriteAnimations.Pixel));
                     if (message.DelayTime > 0.0f)
                     {
+                        var targetingTime = message.DelayTime * 0.75f;
+                        FlickeringManipulator.StartFlickering(indicator, targetingTime, 0.2f);
+
                         var targetingDelayTimer = CreateEntity();
-                        Set(targetingDelayTimer, new Timer(message.DelayTime * 0.75f));
+                        Set(targetingDelayTimer, new Timer(targetingTime));
                         Relate(targetingDelayTimer, indicator, new DeleteWhenTimerEnds());
                         Relate(projectile, targetingDelayTimer, new DontFollowTarget());
                     }

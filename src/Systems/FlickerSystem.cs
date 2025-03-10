@@ -11,9 +11,11 @@ namespace RollAndCash.Systems;
 // Slightly modified to use Relations() instead of a Filter that loops through all sprite-having entities.
 public class FlickerSystem : MoonTools.ECS.System
 {
+    FlickeringManipulator FlickeringManipulator;
 
     public FlickerSystem(World world) : base(world)
     {
+        FlickeringManipulator = new FlickeringManipulator(world);
     }
 
     public override void Update(TimeSpan delta)
@@ -22,14 +24,7 @@ public class FlickerSystem : MoonTools.ECS.System
 
         foreach (var message in ReadMessages<StartFlickering>())
         {
-            if (HasOutRelation<WillFlicker>(message.Target))
-            {
-                continue;
-            }
-
-            var timer = CreateEntity();
-            Set(timer, new Timer(message.TotalTime));
-            Relate(message.Target, timer, new WillFlicker(message.FlickerTime));
+            FlickeringManipulator.StartFlickering(message.Target, message.TotalTime, message.FlickerTime);
         }
 
         foreach (var (entity, flickeringTimerEntity) in Relations<Relations.WillFlicker>())
