@@ -27,7 +27,7 @@ public class TargetingIndicatorSpawner : MoonTools.ECS.Manipulator
         Set(entity, new DestroyWhenNoSource());
         Relate(entity, source, new Source());
 
-        // Indicator follow the source
+        // Indicator follows the source
         Relate(entity, source, new Following(true, false, false));
 
         if (lookTowardsTarget || stretchTowardsTarget)

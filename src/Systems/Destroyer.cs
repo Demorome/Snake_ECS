@@ -36,7 +36,7 @@ public class Destroyer : MoonTools.ECS.System
 
         foreach (var entity in DestroyWhenNoTargetingSourceFilter.Entities)
         {
-            if (Has<DestroyWhenNoSource>(entity) && !HasOutRelation<Source>(entity))
+            if (!HasOutRelation<Source>(entity))
             {
                 Destroy(entity);
             }
