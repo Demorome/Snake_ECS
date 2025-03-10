@@ -17,6 +17,11 @@ public class FollowingSystem : MoonTools.ECS.System
     {
         foreach (var (follower, target) in Relations<Following>())
         {
+            if (HasOutRelation<DontFollowTarget>(follower))
+            {
+                continue;
+            }
+
             var followData = GetRelationData<Following>(follower, target);
 
             var followerPos = Get<Position>(follower);

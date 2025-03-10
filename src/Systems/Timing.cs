@@ -43,6 +43,11 @@ public class Timing : MoonTools.ECS.System
                     Send(soundMessage);
                 }
 
+                foreach (var other in OutRelations<DeleteWhenTimerEnds>(entity))
+                {
+                    Destroy(other);
+                }
+
                 if (timer.Repeats)
                 {
                     Set(entity, timer with {Time = timer.Max});

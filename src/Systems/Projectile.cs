@@ -157,7 +157,7 @@ public class Projectile : MoonTools.ECS.System
                 var timerEntity = CreateEntity();
                 Set(timerEntity, new Timer(message.DelayTime));
                 Relate(projectile, timerEntity, new SpeedMult(0.0f));
-                Relate(projectile, timerEntity, new DontUpdateDirection());
+                Relate(projectile, timerEntity, new DontFollowTarget());
             }
 
             if (message.Target != default)
@@ -179,6 +179,12 @@ public class Projectile : MoonTools.ECS.System
                     // TODO: Make this flicker more noticeable
                     Set(indicator, new ColorFlicker(0, Color.Transparent));
                     Set(indicator, new SpriteAnimation(SpriteAnimations.Pixel));
+                    if (message.DelayTime > 0.0f)
+                    {
+                        var timer = CreateEntity();
+                        Set(timer, new Timer(message.DelayTime));
+                        Relate(timer, indicator, new DeleteWhenTimerEnds());
+                    }
                 }
             }
         }

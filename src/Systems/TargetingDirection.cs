@@ -24,7 +24,7 @@ public class TargetingDirection : MoonTools.ECS.System
     {
         foreach (var entity in TargetDirectionFilter.Entities)
         {
-            if (HasOutRelation<DontUpdateDirection>(entity))
+            if (HasOutRelation<DontFollowTarget>(entity))
             {
                 continue;
             }
