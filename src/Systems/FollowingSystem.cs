@@ -36,7 +36,8 @@ public class FollowingSystem : MoonTools.ECS.System
 
             if (followData.StretchTowards)
             {
-                Set(follower, new SpriteScale(new Vector2(distance, 1f)));
+                var reducedDistance = MathF.Max(0, distance - 20);
+                Set(follower, new SpriteScale(new Vector2(reducedDistance, 1f)));
             }
         }
     }

@@ -173,9 +173,11 @@ public class Projectile : MoonTools.ECS.System
                         true
                     );
                 
-                    Set(indicator, new ColorBlend(Color.Salmon));
-                    // TODO: Seems to do nothing after a while??
-                    //Set(indicator, new ColorFlicker(0, Color.Black));
+                    var color = Color.Salmon;
+                    color.A -= 100; // transparency
+                    Set(indicator, new ColorBlend(color));
+                    // TODO: Make this flicker more noticeable
+                    Set(indicator, new ColorFlicker(0, Color.Transparent));
                     Set(indicator, new SpriteAnimation(SpriteAnimations.Pixel));
                 }
             }
