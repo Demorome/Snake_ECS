@@ -154,10 +154,9 @@ public class Projectile : MoonTools.ECS.System
 
             if (message.DelayTime > 0.0f)
             {
-                var timerEntity = CreateEntity();
-                Set(timerEntity, new Timer(message.DelayTime));
-                Relate(projectile, timerEntity, new SpeedMult(0.0f));
-                Relate(projectile, timerEntity, new DontFollowTarget());
+                var attackDelayTimer = CreateEntity();
+                Set(attackDelayTimer, new Timer(message.DelayTime));
+                Relate(projectile, attackDelayTimer, new SpeedMult(0.0f));
             }
 
             if (message.Target != default)
@@ -181,9 +180,10 @@ public class Projectile : MoonTools.ECS.System
                     Set(indicator, new SpriteAnimation(SpriteAnimations.Pixel));
                     if (message.DelayTime > 0.0f)
                     {
-                        var timer = CreateEntity();
-                        Set(timer, new Timer(message.DelayTime));
-                        Relate(timer, indicator, new DeleteWhenTimerEnds());
+                        var targetingDelayTimer = CreateEntity();
+                        Set(targetingDelayTimer, new Timer(message.DelayTime * 0.75f));
+                        Relate(targetingDelayTimer, indicator, new DeleteWhenTimerEnds());
+                        Relate(projectile, targetingDelayTimer, new DontFollowTarget());
                     }
                 }
             }
