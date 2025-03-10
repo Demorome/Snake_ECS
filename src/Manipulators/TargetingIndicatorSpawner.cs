@@ -28,12 +28,12 @@ public class TargetingIndicatorSpawner : MoonTools.ECS.Manipulator
         Relate(entity, source, new Source());
 
         // Indicator follows the source
-        Relate(entity, source, new Following(true, false, false));
+        Relate(entity, source, new PositionFollowing());
 
         if (lookTowardsTarget || stretchTowardsTarget)
         {
             // Indicator points towards the target
-            Relate(entity, target, new Following(false, lookTowardsTarget, stretchTowardsTarget));
+            Relate(entity, target, new VisuallyFollowing(lookTowardsTarget, stretchTowardsTarget));
         }
         return entity;
     }

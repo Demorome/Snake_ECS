@@ -15,23 +15,28 @@ public class FollowingSystem : MoonTools.ECS.System
 
     public override void Update(TimeSpan delta)
     {
-        foreach (var (follower, target) in Relations<Following>())
+        foreach (var (follower, target) in Relations<PositionFollowing>())
         {
             if (HasOutRelation<DontFollowTarget>(follower))
             {
                 continue;
             }
 
-            var followData = GetRelationData<Following>(follower, target);
+            Set(follower, Get<Position>(target));
+        }
+
+        foreach (var (follower, target) in Relations<VisuallyFollowing>())
+        {
+            if (HasOutRelation<DontFollowTarget>(follower))
+            {
+                continue;
+            }
+
+            var followData = GetRelationData<VisuallyFollowing>(follower, target);
 
             var followerPos = Get<Position>(follower);
             var targetPos = Get<Position>(target);
             var distance = Vector2.Distance(targetPos.AsVector(), followerPos.AsVector());
-
-            if (followData.MatchPosition)
-            {
-                Set(follower, targetPos);
-            }
 
             if (followData.LookTowards)
             {
