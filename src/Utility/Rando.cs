@@ -32,6 +32,11 @@ public static class Rando
         return Value * (max - min) + min;
     }
 
+    public static Vector2 Range(Vector2 min, Vector2 max)
+    {
+        return new Vector2(Range(min.X, max.X), Range(min.Y, max.Y));
+    }
+
     public static void Shuffle<T>(this T[] arr)
     {
         for (int i = arr.Length - 1; i >= 1; i--)

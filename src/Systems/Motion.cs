@@ -316,7 +316,12 @@ public class Motion : MoonTools.ECS.System
             {
                 baseSpeed = Get<Speed>(entity).Value;
             }
+            if (Has<SpeedAcceleration>(entity))
+            {
+                baseSpeed = baseSpeed * Get<SpeedAcceleration>(entity).Value;
+            }
             var baseVel = baseSpeed * Get<Direction>(entity).Value;
+
             pos = DoMovement(entity, pos, baseSpeed, delta);
             Set(entity, pos);
             HandleCollisions(entity);

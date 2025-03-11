@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Numerics;
 using MoonTools.ECS;
 using MoonWorks.Graphics;
+using MoonWorks.Math;
 using RollAndCash.Components;
 using RollAndCash.Content;
 using RollAndCash.Data;
@@ -19,42 +20,59 @@ public class FXSpawner : MoonTools.ECS.Manipulator
     // TODO: Add prefab effect functions
     // TODO: add option for Additive vs Normal blending
     // TODO: "wiggle" value for each property with a min/max value
+    // TODO: Friction?
     // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
     public Entity CreateVFX(
         Vector2 minPos,
         Vector2 maxPos,
         SpriteAnimation sprite,
         float depth,
+        
         float minTimeToLive = -1f,
         float maxTimeToLive = -1f,  // ignored if <= 0
+
         float minSpeed = 1f,
         float maxSpeed = 1f,
-        float? acceleration = null,
+        float? speedAcceleration = null,
+        // TODO: Speed easing method
         Vector2? direction = null,
-        float minAngle = 0.0f,
-        float maxAngle = 0.0f,
-        Vector2? sizeChangeSpeed = null,
-        float minFadeSpeed = 0.0f,
-        float maxFadeSpeed = 0.0f,
-        float minRotationSpeed = 0.0f,
-        float maxRotationSpeed = 0.0f
-        // TODO: Fade mult or some lerp shit
+
+        Vector2? minStartSize = null,
+        Vector2? maxStartSize = null,
+        Vector2? minEndSize = null,
+        Vector2? maxEndSize = null,
+        Easing.Function.Float sizeEasingMethod = Easing.Function.Float.Linear,
+
+        byte minStartAlpha = 255, // 0-255
+        byte maxStartAlpha = 255,
+        byte minEndAlpha = 255,
+        byte maxEndAlpha = 255,
+        Easing.Function.Float alphaEasingMethod = Easing.Function.Float.Linear,
+
+        float minStartAngle = 0.0f,
+        float maxStartAngle = 0.0f,
+        float minEndAngle = 0.0f,
+        float maxEndAngle = 0.0f,
+        Easing.Function.Float angleEasingMethod = Easing.Function.Float.Linear
         )
     {
         var vfx = CreateEntity();
+
         Vector2 position = new Vector2(Rando.Range(minPos.X, maxPos.X), Rando.Range(minPos.Y, maxPos.Y));
         Set(vfx, new Position(position));
         Set(vfx, sprite);
         Set(vfx, new Depth(depth));
+
         var speed = Rando.Range(minSpeed, maxSpeed);
         if (speed != 0.0f)
         {
             Set(vfx, new Speed(speed));
-            if (acceleration != null)
+            if (speedAcceleration != null)
             {
-                Set(vfx, new Acceleration(acceleration.Value));
+                Set(vfx, new SpeedAcceleration(speedAcceleration.Value));
             }
         }
+
         if (direction != null)
         {
             Set(vfx, new Direction(direction.Value));
@@ -64,8 +82,20 @@ public class FXSpawner : MoonTools.ECS.Manipulator
             throw new Exception("Set a direction if you want to have a speed.");
         }
 
-        // could filter on in the result is 0.0f, but whatever
-        Set(vfx, new Angle(Rando.Range(minAngle, maxAngle)));
+        // could filter out if the result is 0.0f, but whatever
+        var angle = Rando.Range(minStartAngle, maxStartAngle);
+        Set(vfx, new Angle(angle));
+
+        var alpha = (byte)Rando.Int(minStartAlpha, maxStartAlpha);
+        Set(vfx, new Alpha(alpha));
+
+        var size = Vector2.One;
+        if (minStartSize != null)
+        {
+            // assume maxStartSize won't be null either
+            size = Rando.Range(minStartSize.Value, maxStartSize.Value);
+            Set(vfx, new SpriteScale(size));
+        }
 
         if (maxTimeToLive > 0.0f)
         {
@@ -74,21 +104,29 @@ public class FXSpawner : MoonTools.ECS.Manipulator
             Set(timer, new Timer(lifeTime));
             Relate(timer, vfx, new DeleteWhenTimerEnds());
 
-            if (sizeChangeSpeed != null)
+            if (minEndSize != null)
             {
-                Relate(vfx, timer, new ChangeSizeOverTime(sizeChangeSpeed.Value));
+                var endSize = Rando.Range(minEndSize.Value, maxEndSize.Value);
+                if (endSize != size)
+                {
+                    Relate(vfx, timer, new ChangeSpriteScaleOverTime(size, endSize, sizeEasingMethod));
+                }
             }
 
-            var fadeSpeed = Rando.Range(maxFadeSpeed, minFadeSpeed);
-            if (fadeSpeed > 0.0f)
             {
-                Relate(vfx, timer, new FadeOverTime(fadeSpeed));
+                var endAlpha = (byte)Rando.Int(minEndAlpha, maxEndAlpha);
+                if (endAlpha != alpha)
+                {
+                    Relate(vfx, timer, new ChangeAlphaOverTime(alpha, endAlpha, alphaEasingMethod));
+                }
             }
 
-            var rotationSpeed = Rando.Range(maxRotationSpeed, minRotationSpeed);
-            if (rotationSpeed > 0.0f)
             {
-                Relate(vfx, timer, new RotateOverTime(rotationSpeed));
+                var endAngle = Rando.Range(minEndAngle, maxEndAngle);
+                if (endAngle != angle)
+                {
+                    Relate(vfx, timer, new ChangeAngleOverTime(angle, endAngle, angleEasingMethod));
+                }
             }
         }
 

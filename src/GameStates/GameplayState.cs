@@ -33,6 +33,7 @@ public class GameplayState : GameState
     FlipAnimationSystem FlipAnimationSystem;
     TargetingDirection TargetingDirection;
     FollowingSystem FollowingSystem;
+    ChangeAppearanceOverTime ChangeAppearanceOverTime;
 
     public GameplayState(RollAndCashGame game, GameState transitionState)
     {
@@ -115,6 +116,7 @@ public class GameplayState : GameState
         FlipAnimationSystem = new FlipAnimationSystem(World);
         TargetingDirection = new TargetingDirection(World);
         FollowingSystem = new FollowingSystem(World);
+        ChangeAppearanceOverTime = new ChangeAppearanceOverTime(World);
 
         Renderer = new Renderer(World, Game.GraphicsDevice, Game.RootTitleStorage, Game.MainWindow.SwapchainFormat);
 
@@ -154,6 +156,7 @@ public class GameplayState : GameState
     public override void Update(TimeSpan dt)
     {
         Timing.Update(dt);
+        ChangeAppearanceOverTime.Update(dt);
         UpdateSpriteAnimationSystem.Update(dt);
         Input.Update(dt);
         PlayerController.Update(dt);

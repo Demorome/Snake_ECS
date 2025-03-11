@@ -176,6 +176,11 @@ public class Renderer : MoonTools.ECS.Renderer
 					}
 				}
 
+				if (Has<Alpha>(entity))
+				{
+					color.A = Get<Alpha>(entity).Value;
+				}
+
 				if (Has<Depth>(entity))
 				{
 					depth = -Get<Depth>(entity).Value;

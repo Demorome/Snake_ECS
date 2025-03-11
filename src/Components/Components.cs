@@ -54,6 +54,7 @@ public readonly record struct Name(int TextID);
 public readonly record struct Score(int Value);
 public readonly record struct DisplayScore(int Value);
 public readonly record struct ColorBlend(Color Color);
+public readonly record struct Alpha(byte Value); // 0-255, overrides the alpha in ColorBlend
 
 public readonly record struct ColorSpeed(float RedSpeed, float GreenSpeed, float BlueSpeed);
 
@@ -64,7 +65,7 @@ public readonly record struct TextDropShadow(int OffsetX, int OffsetY);
 public readonly record struct ForceIntegerMovement();
 public readonly record struct MaxSpeed(float Value);
 public readonly record struct Speed(float Value);
-public readonly record struct Acceleration(float Value);
+public readonly record struct SpeedAcceleration(float Value);
 public readonly record struct AdjustFramerateToSpeed();
 
 public readonly record struct Direction(System.Numerics.Vector2 Value);

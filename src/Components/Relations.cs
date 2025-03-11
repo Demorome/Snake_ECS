@@ -1,5 +1,6 @@
 using System.Numerics;
 using MoonTools.ECS;
+using MoonWorks.Math;
 using RollAndCash.Data;
 
 namespace RollAndCash.Relations;
@@ -30,9 +31,21 @@ public readonly record struct Rotated(float Angle);
 
 public readonly record struct SpeedMult(float Value);
 public readonly record struct DontFollowTarget();
-public readonly record struct ChangeSizeOverTime(Vector2 GrowthRate);
-public readonly record struct FadeOverTime(float FadeSpeed);
-public readonly record struct RotateOverTime(float FadeSpeed);
+public readonly record struct ChangeSpriteScaleOverTime(
+    Vector2 StartSize, 
+    Vector2 EndSize, 
+    Easing.Function.Float EasingMethod = Easing.Function.Float.Linear
+);
+public readonly record struct ChangeAlphaOverTime(
+    byte StartAlpha, 
+    byte EndAlpha, 
+    Easing.Function.Float EasingMethod = Easing.Function.Float.Linear
+);
+public readonly record struct ChangeAngleOverTime(
+    float StartAngle, 
+    float EndAngle, 
+    Easing.Function.Float EasingMethod = Easing.Function.Float.Linear
+);
 
 
 // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
