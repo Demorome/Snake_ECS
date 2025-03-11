@@ -31,8 +31,8 @@ public class FXSpawner : MoonTools.ECS.Manipulator
         float minTimeToLive = -1f,
         float maxTimeToLive = -1f,  // ignored if <= 0
 
-        float minSpeed = 1f,
-        float maxSpeed = 1f,
+        float minSpeed = 0.0f,
+        float maxSpeed = 0.0f,
         float? speedAcceleration = null,
         // TODO: Speed easing method
         Vector2? direction = null,
@@ -133,15 +133,51 @@ public class FXSpawner : MoonTools.ECS.Manipulator
         return vfx;
     }
 
-    public void MakeVFXTrailBehindSource(Entity vfx, Entity source)
+    public void MakeVFXFollowSource(
+        Entity vfx, 
+        Entity source,
+        bool lagBehind = false,
+        float alphaMult = 1.0f
+        )
     {
-        var color = Has<ColorBlend>(source) ? Get<ColorBlend>(source).Color : Color.White;
+        if (alphaMult != 1.0f)
+        {
+            var color = Has<ColorBlend>(source) ? Get<ColorBlend>(source).Color : Color.White;
+            color.A = (byte)(color.A * alphaMult);
+            Set(vfx, new ColorBlend(color));
+        }
+
+        // TODO: Add offset, or use last_position
+        //Relate(source, vfx, new TrailingVisuals());
+        Relate(vfx, source, new PositionFollowing(/*lagBehind*/));
+        Relate(vfx, source, new Source());
+        Set(vfx, new DestroyWhenNoSource());
+    }
+
+    public void MakeVFXPointAtTarget(
+        Entity vfx, 
+        Entity target,
+        bool lookTowardsTarget,
+        bool stretchTowardsTarget,
+        bool destroyIfTargetGone = true
+        )
+    {
+        var color = Has<ColorBlend>(target) ? Get<ColorBlend>(target).Color : Color.White;
         color.A /= 2; // transparency
 
         Set(vfx, new ColorBlend(color));
 
-        Relate(source, vfx, new TrailingVisuals());
-        Relate(vfx, source, new Source());
-        Set(vfx, new DestroyWhenNoSource());
+        Relate(vfx, target, new PositionFollowing()); // TODO: Add offset, or use last_position
+        Relate(vfx, target, new Targeting());
+        if (destroyIfTargetGone)
+        {
+            Set(vfx, new DestroyWhenNoTarget());
+        }
+
+        if (lookTowardsTarget || stretchTowardsTarget)
+        {
+            // Indicator points towards the target
+            Relate(vfx, target, new VisuallyFollowing(lookTowardsTarget, stretchTowardsTarget));
+        }
     }
 }

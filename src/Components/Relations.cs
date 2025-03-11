@@ -10,7 +10,7 @@ public readonly record struct HasScore();
 public readonly record struct UpdateDisplayScoreOnDestroy(bool Negative);
 public readonly record struct TimingFootstepAudio();
 public readonly record struct TeleportToAtTimerEnd(Entity TeleportTo);
-public readonly record struct TargetingEntity();
+public readonly record struct Targeting();
 public readonly record struct DeleteWhenTimerEnds();
 public readonly record struct TrailingVisuals();
 public readonly record struct Source();

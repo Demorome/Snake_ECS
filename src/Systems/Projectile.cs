@@ -15,14 +15,12 @@ using Filter = MoonTools.ECS.Filter;
 public class Projectile : MoonTools.ECS.System
 {
     FlickeringManipulator FlickeringManipulator;
-    FXSpawner TrailingVisualSpawner;
-    TargetingIndicatorSpawner TargetingIndicatorSpawner;
+    FXSpawner FXSpawner;
     public Filter ProjectileFilter;
 
     public Projectile(World world) : base(world)
     {
-        TargetingIndicatorSpawner = new TargetingIndicatorSpawner(world);
-        TrailingVisualSpawner = new FXSpawner(world);
+        FXSpawner = new FXSpawner(world);
         FlickeringManipulator = new FlickeringManipulator(world);
 
         ProjectileFilter = 
@@ -166,18 +164,15 @@ public class Projectile : MoonTools.ECS.System
 
             if (message.Target != default)
             {
-                Relate(projectile, message.Target, new TargetingEntity());
+                Relate(projectile, message.Target, new Targeting());
                 Set(projectile, new UpdateDirectionToTargetPosition(true));
                 if (message.HitscanSpeed > 0.0f)
                 {
-                    Entity trailingVisual = TrailingVisualSpawner.CreateTrailingVisual(projectile);
-
-                    var indicator = TargetingIndicatorSpawner.CreateTargetingIndicator(
-                        projectile, 
-                        message.Target,
-                        true,
-                        true
-                    );
+                    var indicatorPos = Get<Position>(projectile).AsVector();
+                    var indicatorSprite = Get<SpriteAnimation>(projectile);
+                    Entity indicator = FXSpawner.CreateVFX(indicatorPos, indicatorPos, indicatorSprite, -1f);
+                    FXSpawner.MakeVFXFollowSource(indicator, projectile);
+                    FXSpawner.MakeVFXPointAtTarget(indicator, message.Target, true, true);
                 
                     var color = Color.Salmon;
                     color.A -= 100; // transparency

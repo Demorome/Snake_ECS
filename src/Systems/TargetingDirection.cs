@@ -29,9 +29,9 @@ public class TargetingDirection : MoonTools.ECS.System
                 continue;
             }
 
-            if (HasOutRelation<TargetingEntity>(entity))
+            if (HasOutRelation<Targeting>(entity))
             {
-                var targetEntity = OutRelationSingleton<TargetingEntity>(entity);
+                var targetEntity = OutRelationSingleton<Targeting>(entity);
                 var targetPos = Get<Position>(targetEntity).AsVector();
                 Set(entity, new TargetPosition(targetPos));
             }

@@ -9,7 +9,8 @@ namespace RollAndCash.Systems;
 public class Destroyer : MoonTools.ECS.System
 {
     Filter DestroyFilter;
-    Filter DestroyWhenNoTargetingSourceFilter;
+    Filter DestroyWhenNoSourceFilter;
+    Filter DestroyWhenNoTargetFilter;
 
     public Destroyer(World world) : base(world)
     {
@@ -17,8 +18,12 @@ public class Destroyer : MoonTools.ECS.System
         .Include<MarkedForDestroy>()
         .Build();
 
-        DestroyWhenNoTargetingSourceFilter = FilterBuilder
+        DestroyWhenNoSourceFilter = FilterBuilder
         .Include<DestroyWhenNoSource>()
+        .Build();
+
+        DestroyWhenNoTargetFilter = FilterBuilder
+        .Include<DestroyWhenNoTarget>()
         .Build();
     }
 
@@ -34,9 +39,17 @@ public class Destroyer : MoonTools.ECS.System
             Destroy(entity);
         }
 
-        foreach (var entity in DestroyWhenNoTargetingSourceFilter.Entities)
+        foreach (var entity in DestroyWhenNoSourceFilter.Entities)
         {
             if (!HasOutRelation<Source>(entity))
+            {
+                Destroy(entity);
+            }
+        }
+
+        foreach (var entity in DestroyWhenNoTargetFilter.Entities)
+        {
+            if (!HasOutRelation<Targeting>(entity))
             {
                 Destroy(entity);
             }
