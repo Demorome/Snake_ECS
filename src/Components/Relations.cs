@@ -30,6 +30,10 @@ public readonly record struct Rotated(float Angle);
 
 public readonly record struct SpeedMult(float Value);
 public readonly record struct DontFollowTarget();
+public readonly record struct ChangeSizeOverTime(Vector2 GrowthRate);
+public readonly record struct FadeOverTime(float FadeSpeed);
+public readonly record struct RotateOverTime(float FadeSpeed);
+
 
 // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
 public readonly record struct Invincible();

@@ -64,6 +64,7 @@ public readonly record struct TextDropShadow(int OffsetX, int OffsetY);
 public readonly record struct ForceIntegerMovement();
 public readonly record struct MaxSpeed(float Value);
 public readonly record struct Speed(float Value);
+public readonly record struct Acceleration(float Value);
 public readonly record struct AdjustFramerateToSpeed();
 
 public readonly record struct Direction(System.Numerics.Vector2 Value);

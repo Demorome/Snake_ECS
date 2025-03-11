@@ -15,14 +15,14 @@ using Filter = MoonTools.ECS.Filter;
 public class Projectile : MoonTools.ECS.System
 {
     FlickeringManipulator FlickeringManipulator;
-    TrailingVisualSpawner TrailingVisualSpawner;
+    FXSpawner TrailingVisualSpawner;
     TargetingIndicatorSpawner TargetingIndicatorSpawner;
     public Filter ProjectileFilter;
 
     public Projectile(World world) : base(world)
     {
         TargetingIndicatorSpawner = new TargetingIndicatorSpawner(world);
-        TrailingVisualSpawner = new TrailingVisualSpawner(world);
+        TrailingVisualSpawner = new FXSpawner(world);
         FlickeringManipulator = new FlickeringManipulator(world);
 
         ProjectileFilter = 
@@ -170,7 +170,7 @@ public class Projectile : MoonTools.ECS.System
                 Set(projectile, new UpdateDirectionToTargetPosition(true));
                 if (message.HitscanSpeed > 0.0f)
                 {
-                    var trailingVisual = TrailingVisualSpawner.CreateTrailingVisual(projectile);
+                    Entity trailingVisual = TrailingVisualSpawner.CreateTrailingVisual(projectile);
 
                     var indicator = TargetingIndicatorSpawner.CreateTargetingIndicator(
                         projectile, 
