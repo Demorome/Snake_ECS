@@ -58,8 +58,17 @@ public class FXSpawner : MoonTools.ECS.Manipulator
     {
         var vfx = CreateEntity();
 
-        Vector2 position = new Vector2(Rando.Range(minPos.X, maxPos.X), Rando.Range(minPos.Y, maxPos.Y));
+        Vector2 position;
+        if (minPos == maxPos)
+        {
+           position = minPos;
+        }
+        else 
+        {
+            position = new Vector2(Rando.Range(minPos.X, maxPos.X), Rando.Range(minPos.Y, maxPos.Y));
+        }
         Set(vfx, new Position(position));
+
         Set(vfx, sprite);
         Set(vfx, new Depth(depth));
 
