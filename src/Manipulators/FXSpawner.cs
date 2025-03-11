@@ -65,7 +65,7 @@ public class FXSpawner : MoonTools.ECS.Manipulator
         }
         else 
         {
-            position = new Vector2(Rando.Range(minPos.X, maxPos.X), Rando.Range(minPos.Y, maxPos.Y));
+            position = Rando.Range(minPos, maxPos);
         }
         Set(vfx, new Position(position));
 
