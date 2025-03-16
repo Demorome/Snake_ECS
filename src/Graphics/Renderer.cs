@@ -135,12 +135,6 @@ public class Renderer : MoonTools.ECS.Renderer
 					var rotationData = GetRelationData<Rotated>(entity, rotationEnforcingEntity);
 					orientation += rotationData.Angle;
 				}
-				if (orientation != 0.0f)
-				{
-					//var rotationMatrix = Matrix3x2.CreateRotation(orientation);
-					//origin = Vector2.Transform(origin, rotationMatrix);
-					origin = MathUtilities.Rotate(origin, orientation);
-				}
 
 				Vector2 scale = Vector2.One;
 				if (Has<SpriteScale>(entity))
@@ -158,6 +152,13 @@ public class Renderer : MoonTools.ECS.Renderer
 				if (scale != Vector2.One)
 				{
 					origin *= scale;
+				}
+
+				if (orientation != 0.0f)
+				{
+					//var rotationMatrix = Matrix3x2.CreateRotation(orientation);
+					//origin = Vector2.Transform(origin, rotationMatrix);
+					origin = MathUtilities.Rotate(origin, orientation);
 				}
 
 				var offset = -origin - new Vector2(sprite.FrameRect.X, sprite.FrameRect.Y) * scale;
