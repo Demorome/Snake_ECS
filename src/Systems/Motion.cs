@@ -307,6 +307,8 @@ public class Motion : MoonTools.ECS.System
                 continue;
 
             var pos = Get<Position>(entity);
+            Set(entity, new LastPosition(pos.AsVector()));
+            
             float baseSpeed;
             if (Has<HitscanSpeed>(entity))
             {

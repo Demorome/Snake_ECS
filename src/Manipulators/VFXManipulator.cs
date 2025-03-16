@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Dynamic;
 using System.Numerics;
 using MoonTools.ECS;
 using MoonWorks.Graphics;
@@ -11,10 +12,47 @@ using RollAndCash.Messages;
 using RollAndCash.Relations;
 using RollAndCash.Utility;
 
-public class FXSpawner : MoonTools.ECS.Manipulator
+// Used to create VFX entities
+// Also applies preset visual changes like rotating over a period of time (not only for VFX entities).
+public class VFXManipulator : MoonTools.ECS.Manipulator
 {
-    public FXSpawner(World world) : base(world)
+    TimedChangeManipulator TimedChangeManipulator;
+
+    public VFXManipulator(World world) : base(world)
     {
+        TimedChangeManipulator = new TimedChangeManipulator(world);
+    }
+
+    public Entity SpawnProjectileTrail(
+        Entity projectile,
+        Color color,
+        float depth
+        )
+    {
+        var lastPos = Get<LastPosition>(projectile).Value;
+        var projectilePos = Get<Position>(projectile).AsVector();
+        var trailSprite = new SpriteAnimation(SpriteAnimations.ProjectileTrail);
+
+        Entity trail = CreateVFX(lastPos, trailSprite, depth, 2f, 2f);
+        Set(trail, new ColorBlend(color));
+
+        Set(trail, new Angle(MathUtilities.GetHeadingAngle(lastPos, projectilePos)));
+
+        // TODO: Center scale changes based on sprite origin!!!!!
+
+        // Stretch from projectile lastPos -> currentPos
+        var distance = Vector2.Distance(projectilePos, lastPos);
+        var startScale = new Vector2(distance, 1f); // TODO: Account for size of sprites to reduce distance!
+
+        // Shrinks down to form a thin line at the end of the trail.
+        var endScale = new Vector2(startScale.X, 0.0f); // only shrink the width of the trail
+        TimedChangeManipulator.SetTimedScaleChange(trail, trail, 
+            endScale, endScale, // order of args backwards on purpose
+            startScale, startScale, 
+            Easing.Function.Float.Linear
+        );
+
+        return trail;
     }
 
     // TODO: Add prefab effect functions
@@ -22,9 +60,9 @@ public class FXSpawner : MoonTools.ECS.Manipulator
     // TODO: "wiggle" value for each property with a min/max value
     // TODO: Friction?
     // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
+    // I decided to break up the min/max start/end values into their own functions.
     public Entity CreateVFX(
-        Vector2 minPos,
-        Vector2 maxPos,
+        Vector2 position,
         SpriteAnimation sprite,
         float depth,
         
@@ -35,40 +73,12 @@ public class FXSpawner : MoonTools.ECS.Manipulator
         float maxSpeed = 0.0f,
         float? speedAcceleration = null,
         // TODO: Speed easing method
-        Vector2? direction = null,
-
-        Vector2? minStartSize = null,
-        Vector2? maxStartSize = null,
-        Vector2? minEndSize = null,
-        Vector2? maxEndSize = null,
-        Easing.Function.Float sizeEasingMethod = Easing.Function.Float.Linear,
-
-        byte minStartAlpha = 255, // 0-255
-        byte maxStartAlpha = 255,
-        byte minEndAlpha = 255,
-        byte maxEndAlpha = 255,
-        Easing.Function.Float alphaEasingMethod = Easing.Function.Float.Linear,
-
-        float minStartAngle = 0.0f,
-        float maxStartAngle = 0.0f,
-        float minEndAngle = 0.0f,
-        float maxEndAngle = 0.0f,
-        Easing.Function.Float angleEasingMethod = Easing.Function.Float.Linear
+        Vector2? direction = null
         )
     {
         var vfx = CreateEntity();
 
-        Vector2 position;
-        if (minPos == maxPos)
-        {
-           position = minPos;
-        }
-        else 
-        {
-            position = Rando.Range(minPos, maxPos);
-        }
         Set(vfx, new Position(position));
-
         Set(vfx, sprite);
         Set(vfx, new Depth(depth));
 
@@ -91,52 +101,10 @@ public class FXSpawner : MoonTools.ECS.Manipulator
             throw new Exception("Set a direction if you want to have a speed.");
         }
 
-        // could filter out if the result is 0.0f, but whatever
-        var angle = Rando.Range(minStartAngle, maxStartAngle);
-        Set(vfx, new Angle(angle));
-
-        var alpha = (byte)Rando.Int(minStartAlpha, maxStartAlpha);
-        Set(vfx, new Alpha(alpha));
-
-        var size = Vector2.One;
-        if (minStartSize != null)
-        {
-            // assume maxStartSize won't be null either
-            size = Rando.Range(minStartSize.Value, maxStartSize.Value);
-            Set(vfx, new SpriteScale(size));
-        }
-
         if (maxTimeToLive > 0.0f)
         {
-            var timer = CreateEntity();
             var lifeTime = Rando.Range(minTimeToLive, maxTimeToLive);
-            Set(timer, new Timer(lifeTime));
-            Relate(timer, vfx, new DeleteWhenTimerEnds());
-
-            if (minEndSize != null)
-            {
-                var endSize = Rando.Range(minEndSize.Value, maxEndSize.Value);
-                if (endSize != size)
-                {
-                    Relate(vfx, timer, new ChangeSpriteScaleOverTime(size, endSize, sizeEasingMethod));
-                }
-            }
-
-            {
-                var endAlpha = (byte)Rando.Int(minEndAlpha, maxEndAlpha);
-                if (endAlpha != alpha)
-                {
-                    Relate(vfx, timer, new ChangeAlphaOverTime(alpha, endAlpha, alphaEasingMethod));
-                }
-            }
-
-            {
-                var endAngle = Rando.Range(minEndAngle, maxEndAngle);
-                if (endAngle != angle)
-                {
-                    Relate(vfx, timer, new ChangeAngleOverTime(angle, endAngle, angleEasingMethod));
-                }
-            }
+            Set(vfx, new Timer(lifeTime));
         }
 
         return vfx;
@@ -146,7 +114,9 @@ public class FXSpawner : MoonTools.ECS.Manipulator
         Entity vfx, 
         Entity source,
         bool lagBehind = false,
-        float alphaMult = 1.0f
+        float alphaMult = 1.0f,
+        bool copySourceSpriteFrames = false,
+        bool hideIfSourceSpeedIsZero = false
         )
     {
         if (alphaMult != 1.0f)

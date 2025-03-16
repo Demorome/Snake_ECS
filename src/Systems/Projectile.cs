@@ -4,6 +4,7 @@ using System.Threading.Tasks.Dataflow;
 using MoonTools.ECS;
 using MoonWorks.Graphics;
 using MoonWorks.Math;
+using RollAndCash;
 using RollAndCash.Components;
 using RollAndCash.Content;
 using RollAndCash.Messages;
@@ -15,12 +16,12 @@ using Filter = MoonTools.ECS.Filter;
 public class Projectile : MoonTools.ECS.System
 {
     FlickeringManipulator FlickeringManipulator;
-    FXSpawner FXSpawner;
+    VFXManipulator VFXManipulator;
     public Filter ProjectileFilter;
 
     public Projectile(World world) : base(world)
     {
-        FXSpawner = new FXSpawner(world);
+        VFXManipulator = new VFXManipulator(world);
         FlickeringManipulator = new FlickeringManipulator(world);
 
         ProjectileFilter = 
@@ -74,7 +75,7 @@ public class Projectile : MoonTools.ECS.System
         return entity;
     }
 
-    void SpawnFriendlinessPellets_Pattern1()
+    void SpawnFriendlinessPellets_Top_Pattern1()
     {
         var spawn_pos = new Vector2(170, 50);
         var x_offset = 80;
@@ -101,7 +102,7 @@ public class Projectile : MoonTools.ECS.System
         }
     }
 
-    void SpawnFriendlinessPellets_HitscanPattern()
+    void SpawnFriendlinessPellets_Top_HitscanPattern()
     {
         var spawn_pos = new Vector2(170, 50);
         var x_offset = 80;
@@ -128,12 +129,53 @@ public class Projectile : MoonTools.ECS.System
         }
     }
 
+    void SpawnFriendlinessPellets_Left_HitscanPattern()
+    {
+        var spawn_pos = new Vector2(130, 100);
+        var y_offset = 40;
+        const int NumProjectiles = 5;
+        const float hitscanSpeed = 2000f;
+
+        for (int i = 0; i < NumProjectiles; ++i)
+        {    
+            var waitTime = 1.0f;
+
+            Send(new ShootFromArea(
+                spawn_pos, 
+                CollisionLayer.EnemyBullet, 
+                new Vector2(0f, 1f), 
+                hitscanSpeed,
+                0f,
+                -1,
+                waitTime,
+                Some<Player>() ? GetSingletonEntity<Player>() : default
+                )
+            );
+
+            spawn_pos.Y += y_offset;
+        }
+    }
+
     public override void Update(TimeSpan delta)
     {
         if (ProjectileFilter.Empty)
         {
-            //SpawnFriendlinessPellets_Pattern1();
-            SpawnFriendlinessPellets_HitscanPattern();
+            //SpawnFriendlinessPellets_Top_Pattern1();
+            //SpawnFriendlinessPellets_Top_HitscanPattern();
+            //SpawnFriendlinessPellets_Left_HitscanPattern();
+
+            var center_pos = new Vector2(Dimensions.GAME_W / 2 + 50, Dimensions.GAME_H / 2);
+            Send(new ShootFromArea(
+                center_pos, 
+                CollisionLayer.EnemyBullet, 
+                new Vector2(0f, 1f), 
+                1000f,
+                0f,
+                -1,
+                1f,
+                Some<Player>() ? GetSingletonEntity<Player>() : default
+                )
+            );
         }
 
         foreach (var message in ReadMessages<ShootFromEntity>())
@@ -168,28 +210,40 @@ public class Projectile : MoonTools.ECS.System
                 Set(projectile, new UpdateDirectionToTargetPosition(true));
                 if (message.HitscanSpeed > 0.0f)
                 {
-                    var indicatorPos = Get<Position>(projectile).AsVector();
-                    var indicatorSprite = Get<SpriteAnimation>(projectile);
-                    Entity indicator = FXSpawner.CreateVFX(indicatorPos, indicatorPos, indicatorSprite, -1f);
-                    FXSpawner.MakeVFXFollowSource(indicator, projectile);
-                    FXSpawner.MakeVFXPointAtTarget(indicator, message.Target, true, true);
+                    var projectilePos = Get<Position>(projectile).AsVector();
+                    var projectileSprite = Get<SpriteAnimation>(projectile);
+
+                    // Create targeting visual
+                    Entity targetingVisual = VFXManipulator.CreateVFX(projectilePos, projectileSprite, -1f);
+                    VFXManipulator.MakeVFXFollowSource(targetingVisual, projectile);
+                    VFXManipulator.MakeVFXPointAtTarget(targetingVisual, message.Target, true, true);
                 
                     var color = Color.Salmon;
                     color.A -= 100; // transparency
-                    Set(indicator, new ColorBlend(color));
+                    Set(targetingVisual, new ColorBlend(color));
                     //Set(indicator, new ColorFlicker(0, Color.Transparent));
-                    Set(indicator, new SpriteAnimation(SpriteAnimations.Pixel));
+                    Set(targetingVisual, new SpriteAnimation(SpriteAnimations.Pixel));
                     if (message.DelayTime > 0.0f)
                     {
                         var targetingTime = message.DelayTime * 0.75f;
-                        FlickeringManipulator.StartFlickering(indicator, targetingTime, 0.2f);
+                        FlickeringManipulator.StartFlickering(targetingVisual, targetingTime, 0.2f);
 
                         var targetingDelayTimer = CreateEntity();
                         Set(targetingDelayTimer, new Timer(targetingTime));
-                        Relate(targetingDelayTimer, indicator, new DeleteWhenTimerEnds());
+                        Relate(targetingDelayTimer, targetingVisual, new DeleteWhenTimerEnds());
                         Relate(projectile, targetingDelayTimer, new DontFollowTarget());
                     }
                 }
+            }
+        }
+
+        foreach (var projectile in ProjectileFilter.Entities)
+        {
+            if (Has<LastPosition>(projectile) && 
+                Get<LastPosition>(projectile).Value != Get<Position>(projectile).AsVector())
+            {
+                // Spawn trail
+                var trail = VFXManipulator.SpawnProjectileTrail(projectile, Color.White with {A = 200}, -1f);
             }
         }
     }

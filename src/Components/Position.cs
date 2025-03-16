@@ -64,3 +64,5 @@ public readonly record struct Position
     }
 
 }
+
+public readonly record struct LastPosition(Vector2 Value);
