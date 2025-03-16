@@ -93,7 +93,7 @@ public class Motion : MoonTools.ECS.System
     bool CheckCollisions(Entity e, Rectangle positionRect)
     {
         var layer = Get<Layer>(e);
-        bool hit = false;
+        bool stopMovement = false;
 
         foreach (var (other, otherRect) in CollidersSpatialHash.Retrieve(e, positionRect))
         {
@@ -106,12 +106,20 @@ public class Motion : MoonTools.ECS.System
                     )
                 {
                     HitEntities.Add(other);
-                    hit = true;
+                    if (Has<CanMoveThroughDespiteCollision>(e))
+                    {
+                        var canMoveLayer = Get<CanMoveThroughDespiteCollision>(e).Value;
+                        if ((canMoveLayer & otherLayer.Collide) != 0)
+                        {
+                            continue;
+                        }
+                    }
+                    stopMovement = true;
                 }
             }
         }
 
-        return hit;
+        return stopMovement;
     }
 
     Position HighSpeedSweepTest(Entity e, float travelDistance, float dt)

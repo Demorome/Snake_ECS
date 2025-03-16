@@ -54,11 +54,13 @@ public class Projectile : MoonTools.ECS.System
         if (hitscanSpeed > 0)
         {
             Set(entity, new HitscanSpeed(hitscanSpeed));
-            Set(entity, new Speed(0f));
+            Set(entity, new Speed(0f)); // to satisfy filters
+            Set(entity, new CanMoveThroughDespiteCollision(CollisionLayer.Player));
         }
         else
         {
             Set(entity, new Speed(speed));
+            Set(entity, new DestroyOnCollision());
         }
         if (maxDistance > 0)
         {
@@ -66,7 +68,6 @@ public class Projectile : MoonTools.ECS.System
         }
         Set(entity, new DealsDamageOnContact(1));
         Set(entity, new DestroyWhenOutOfBounds());
-        Set(entity, new DestroyOnCollision());
 
         var flipTimer = CreateEntity();
         Set(flipTimer, new Timer(1f, true));
@@ -169,7 +170,7 @@ public class Projectile : MoonTools.ECS.System
                 center_pos, 
                 CollisionLayer.EnemyBullet, 
                 new Vector2(0f, 1f), 
-                1000f,
+                5000f,
                 0f,
                 -1,
                 1f,

@@ -33,7 +33,7 @@ public class VFXManipulator : MoonTools.ECS.Manipulator
         var projectilePos = Get<Position>(projectile).AsVector();
         var trailSprite = new SpriteAnimation(SpriteAnimations.ProjectileTrail);
 
-        Entity trail = CreateVFX(lastPos, trailSprite, depth, 2f, 2f);
+        Entity trail = CreateVFX(lastPos, trailSprite, depth, 0.5f, 0.5f);
         Set(trail, new ColorBlend(color));
 
         Set(trail, new Angle(MathUtilities.GetHeadingAngle(lastPos, projectilePos)));
@@ -49,13 +49,12 @@ public class VFXManipulator : MoonTools.ECS.Manipulator
         TimedChangeManipulator.SetTimedScaleChange(trail, trail, 
             endScale, endScale, // order of args backwards on purpose
             startScale, startScale, 
-            Easing.Function.Float.Linear
+            Easing.Function.Float.OutCubic
         );
 
         return trail;
     }
 
-    // TODO: Add prefab effect functions
     // TODO: add option for Additive vs Normal blending
     // TODO: "wiggle" value for each property with a min/max value
     // TODO: Friction?

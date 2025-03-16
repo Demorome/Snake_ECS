@@ -126,6 +126,8 @@ public enum CollisionLayer
     EnemyBullet = Player | Bullet
 }
 public readonly record struct Layer(CollisionLayer Collide, CollisionLayer Exclude = 0);
+public readonly record struct CanMoveThroughDespiteCollision(CollisionLayer Value);
+
 public readonly record struct BecomeInvincibleOnDamage(float Time);
 public readonly record struct MarkedForDestroy();
 public readonly record struct DestroyOnCollision();
