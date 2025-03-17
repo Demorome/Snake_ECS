@@ -193,7 +193,6 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
                             if (CheckFlagsToRegisterCollision(other, rayLayer))
                             {
                                 var collision_pos = new Position(RayCollision.GetIntersectPos(t_min, t_max, startVec, direction));
-                                HitEntities.Add(other);
 
                             #if ShowDebugRaycastVisuals
                                 Console.WriteLine($"Raycast hit at: {collision_pos}");
