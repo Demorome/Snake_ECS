@@ -44,6 +44,16 @@ public readonly record struct Rectangle(int X, int Y, int Width, int Height)
         );
     }
 
+    public Rectangle GetWorldRect(Position p)
+    {
+        return new Rectangle(p.X + X, p.Y + Y, Width, Height);
+    }
+
+    public Rectangle GetWorldRect(Vector2 p)
+    {
+        return new Rectangle((int)(p.X + X), (int)(p.Y + Y), Width, Height);
+    }
+
     public Vector2 TopLeft()
     {
         return new Vector2(Left, Top);
@@ -51,6 +61,14 @@ public readonly record struct Rectangle(int X, int Y, int Width, int Height)
     public Vector2 BottomRight()
     {
         return new Vector2(Right, Bottom);
+    }
+    public Vector2 BottomLeft()
+    {
+        return new Vector2(Left, Bottom);
+    }
+    public Vector2 TopRight()
+    {
+        return new Vector2(Right, Top);
     }
 }
 

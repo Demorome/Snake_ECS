@@ -48,18 +48,8 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         {
             var position = Get<Position>(entity);
             var rect = Get<Rectangle>(entity);
-            CollidersSpatialHash.Insert(entity, GetWorldRect(position, rect));
+            CollidersSpatialHash.Insert(entity, rect.GetWorldRect(position));
         }
-    }
-
-    public static Rectangle GetWorldRect(Position p, Rectangle r)
-    {
-        return new Rectangle(p.X + r.X, p.Y + r.Y, r.Width, r.Height);
-    }
-
-    public static Rectangle GetWorldRect(Vector2 p, Rectangle r)
-    {
-        return new Rectangle((int)(p.X + r.X), (int)(p.Y + r.Y), r.Width, r.Height);
     }
 
     bool CanMoveThroughDespiteCollision(
@@ -172,6 +162,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
 
     #if ShowDebugRaycastVisuals
         Debug_ShowRay(startPos, angle, maxDistance);
+        Console.WriteLine("Doing raycast...");
     #endif
 
         // Check which grids we collide with from our spatial acceleration structure.
@@ -181,7 +172,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
             for (int col = 0; col < CollidersSpatialHash.ColumnCount; ++col)
             {
                 var cellPos = new Vector2(col * CollidersSpatialHash.CellSize, row * CollidersSpatialHash.CellSize);
-                var cellRect = GetWorldRect(cellPos, spatialHashCellAABB);
+                var cellRect = spatialHashCellAABB.GetWorldRect(cellPos);
 
                 // Only check what's inside the grids we collide with.
                 var (t_min, t_max) = RayCollision.Intersect(startVec, direction, cellRect.TopLeft(), cellRect.BottomRight());
@@ -195,7 +186,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
                         {
                             continue;
                         }
-                        var otherRect = Get<Rectangle>(other);
+                        var otherRect = Get<Rectangle>(other).GetWorldRect(Get<Position>(other));
                         (t_min, t_max) = RayCollision.Intersect(startVec, direction, otherRect.TopLeft(), otherRect.BottomRight());
                         if (t_min <= t_max) // if didn't miss
                         {
@@ -205,6 +196,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
                                 HitEntities.Add(other);
 
                             #if ShowDebugRaycastVisuals
+                                Console.WriteLine($"Raycast hit at: {collision_pos}");
                                 Debug_ShowCollisionPos(collision_pos);
                                 Debug_ShowEntityHasBeenCollided(other);
                             #endif

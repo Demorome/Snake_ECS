@@ -28,7 +28,7 @@ public class DetectionSystem : MoonTools.ECS.System
         foreach (var entity in DetecterFilter.Entities)
         {
             var angle = MathUtilities.AngleFromUnitVector(Get<Direction>(entity).Value);
-            CollisionManipulator.Raycast_vs_AABBs(entity, angle, 1000f, CollisionLayer.Level);
+            CollisionManipulator.Raycast_vs_AABBs(entity, angle, 100f, CollisionLayer.Level);
         }
     }
 }

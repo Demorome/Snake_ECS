@@ -89,7 +89,7 @@ public class Motion : MoonTools.ECS.System
             var x = xEnum.Current;
             var y = yEnum.Current;
             var newPos = new Position(x, y);
-            var rect = CollisionManipulator.GetWorldRect(newPos, r);
+            var rect = r.GetWorldRect(newPos);
 
             var stopMoving = CollisionManipulator.CheckCollisions_AABB_vs_AABBs(e, rect);
             if (stopMoving)
@@ -138,7 +138,7 @@ public class Motion : MoonTools.ECS.System
         foreach (var x in xEnum)
         {
             var newPos = new Position(x, position.Y);
-            var rect = CollisionManipulator.GetWorldRect(newPos, r);
+            var rect = r.GetWorldRect(newPos);
 
             var stopMoving = CollisionManipulator.CheckCollisions_AABB_vs_AABBs(e, rect);
 
@@ -157,7 +157,7 @@ public class Motion : MoonTools.ECS.System
         foreach (var y in yEnum)
         {
             var newPos = new Position(mostRecentValidXPosition, y);
-            var rect = CollisionManipulator.GetWorldRect(newPos, r);
+            var rect = r.GetWorldRect(newPos);
 
             var stopMoving = CollisionManipulator.CheckCollisions_AABB_vs_AABBs(e, rect);
             yHit = stopMoving;
@@ -347,7 +347,7 @@ public class Motion : MoonTools.ECS.System
             {
                 var position = Get<Position>(entity);
                 var rect = Get<Rectangle>(entity);
-                CollisionManipulator.CollidersSpatialHash.Insert(entity, CollisionManipulator.GetWorldRect(position, rect));
+                CollisionManipulator.CollidersSpatialHash.Insert(entity, rect.GetWorldRect(position));
             }
         }
 

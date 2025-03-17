@@ -24,8 +24,7 @@ public class Projectile : MoonTools.ECS.System
         VFXManipulator = new VFXManipulator(world);
         FlickeringManipulator = new FlickeringManipulator(world);
 
-        ProjectileFilter = 
-        FilterBuilder
+        ProjectileFilter = FilterBuilder
         .Include<SpriteAnimation>()
         .Include<Position>()
         .Include<Direction>()
@@ -165,6 +164,7 @@ public class Projectile : MoonTools.ECS.System
             //SpawnFriendlinessPellets_Top_HitscanPattern();
             //SpawnFriendlinessPellets_Left_HitscanPattern();
 
+            /*
             var center_pos = new Vector2(Dimensions.GAME_W / 2 + 50, Dimensions.GAME_H / 2);
             Send(new ShootFromArea(
                 center_pos, 
@@ -176,7 +176,7 @@ public class Projectile : MoonTools.ECS.System
                 1f,
                 Some<Player>() ? GetSingletonEntity<Player>() : default
                 )
-            );
+            );*/
         }
 
         foreach (var message in ReadMessages<ShootFromEntity>())
