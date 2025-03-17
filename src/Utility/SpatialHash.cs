@@ -9,17 +9,17 @@ using RollAndCash.Components;
 /// <typeparam name="T">The type that will be used to uniquely identify shape-transform pairs.</typeparam>
 public class SpatialHash<T> where T : unmanaged, System.IEquatable<T>
 {
-    protected readonly int CellSize;
+    public readonly int CellSize;
 
-    protected readonly List<T>[][] Cells;
+    public readonly List<T>[][] Cells;
     protected readonly Dictionary<T, Rectangle> IDBoxLookup = new Dictionary<T, Rectangle>();
 
     protected readonly int X;
     protected readonly int Y;
     protected readonly int Width;
     protected readonly int Height;
-    protected readonly int RowCount;
-    protected readonly int ColumnCount;
+    public readonly int RowCount;
+    public readonly int ColumnCount;
 
     private Queue<HashSet<T>> hashSetPool = new Queue<HashSet<T>>();
 

@@ -43,6 +43,15 @@ public readonly record struct Rectangle(int X, int Y, int Width, int Height)
             Height + vertical * 2
         );
     }
+
+    public Vector2 TopLeft()
+    {
+        return new Vector2(Left, Top);
+    }
+    public Vector2 BottomRight()
+    {
+        return new Vector2(Right, Bottom);
+    }
 }
 
 public readonly record struct Player(int Index);

@@ -15,18 +15,17 @@ public class Motion : MoonTools.ECS.System
 {
     float HighSpeedMin = 1000f;
 
+    CollisionManipulator CollisionManipulator;
+
     Filter SpeedFilter;
     //Filter InteractFilter;
     Filter CollisionFilter;
     Filter AccelerateToPositionFilter;
-
-    //SpatialHash<Entity> InteractSpatialHash = new SpatialHash<Entity>(0, 0, Dimensions.GAME_W, Dimensions.GAME_H, 32);
-    SpatialHash<Entity> CollidersSpatialHash = new SpatialHash<Entity>(0, 0, Dimensions.GAME_W, Dimensions.GAME_H, 32);
-
-    HashSet<Entity> HitEntities = new HashSet<Entity>();
    
     public Motion(World world) : base(world)
     {
+        CollisionManipulator = new CollisionManipulator(world);
+
         SpeedFilter = 
         FilterBuilder
         .Include<Position>()
@@ -50,27 +49,10 @@ public class Motion : MoonTools.ECS.System
         .Build();
     }
 
-/*
-    void ClearCanBeHeldSpatialHash()
-    {
-        InteractSpatialHash.Clear();
-    }
-*/
-
-    void ClearCollidersSpatialHash()
-    {
-        CollidersSpatialHash.Clear();
-    }
-
-    Rectangle GetWorldRect(Position p, Rectangle r)
-    {
-        return new Rectangle(p.X + r.X, p.Y + r.Y, r.Width, r.Height);
-    }
-
     void HandleCollisions(Entity e)
     {
         // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
-        foreach (var other in HitEntities)
+        foreach (var other in CollisionManipulator.HitEntities)
         {
             bool duplicate = false;
             foreach (var msg in ReadMessages<Collide>())
@@ -89,38 +71,6 @@ public class Motion : MoonTools.ECS.System
         }
     }
 
-    // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
-    bool CheckCollisions(Entity e, Rectangle positionRect)
-    {
-        var layer = Get<Layer>(e);
-        bool stopMovement = false;
-
-        foreach (var (other, otherRect) in CollidersSpatialHash.Retrieve(e, positionRect))
-        {
-            if (positionRect.Intersects(otherRect))
-            {
-                var otherLayer = Get<Layer>(other);
-
-                if ((layer.Collide & otherLayer.Collide) != 0 &&
-                    (layer.Exclude & otherLayer.Collide) == 0
-                    )
-                {
-                    HitEntities.Add(other);
-                    if (Has<CanMoveThroughDespiteCollision>(e))
-                    {
-                        var canMoveLayer = Get<CanMoveThroughDespiteCollision>(e).Value;
-                        if ((canMoveLayer & otherLayer.Collide) != 0)
-                        {
-                            continue;
-                        }
-                    }
-                    stopMovement = true;
-                }
-            }
-        }
-
-        return stopMovement;
-    }
 
     Position HighSpeedSweepTest(Entity e, float travelDistance, float dt)
     {
@@ -140,17 +90,17 @@ public class Motion : MoonTools.ECS.System
         int mostRecentValidXPosition = position.X;
         int mostRecentValidYPosition = position.Y;
 
-        HitEntities.Clear();
+        CollisionManipulator.HitEntities.Clear();
 
         for (int i = 0; i < biggestSize; ++i)
         {
             var x = xEnum.Current;
             var y = yEnum.Current;
             var newPos = new Position(x, y);
-            var rect = GetWorldRect(newPos, r);
+            var rect = CollisionManipulator.GetWorldRect(newPos, r);
 
-            var hit = CheckCollisions(e, rect);
-            if (hit)
+            var stopMoving = CollisionManipulator.CheckCollisions_AABB_vs_AABBs(e, rect);
+            if (stopMoving)
             {
                 movement.X = mostRecentValidXPosition - position.X;
                 position = position.SetX(position.X); // truncates x coord
@@ -189,18 +139,18 @@ public class Motion : MoonTools.ECS.System
         int mostRecentValidXPosition = position.X;
         int mostRecentValidYPosition = position.Y;
 
-        HitEntities.Clear();
+        CollisionManipulator.HitEntities.Clear();
         bool xHit = false;
         bool yHit = false;
 
         foreach (var x in xEnum)
         {
             var newPos = new Position(x, position.Y);
-            var rect = GetWorldRect(newPos, r);
+            var rect = CollisionManipulator.GetWorldRect(newPos, r);
 
-            var hit = CheckCollisions(e, rect);
+            var stopMoving = CollisionManipulator.CheckCollisions_AABB_vs_AABBs(e, rect);
 
-            xHit = hit;
+            xHit = stopMoving;
 
             if (xHit)
             {
@@ -215,10 +165,10 @@ public class Motion : MoonTools.ECS.System
         foreach (var y in yEnum)
         {
             var newPos = new Position(mostRecentValidXPosition, y);
-            var rect = GetWorldRect(newPos, r);
+            var rect = CollisionManipulator.GetWorldRect(newPos, r);
 
-            var hit = CheckCollisions(e, rect);
-            yHit = hit;
+            var stopMoving = CollisionManipulator.CheckCollisions_AABB_vs_AABBs(e, rect);
+            yHit = stopMoving;
 
             if (yHit)
             {
@@ -268,7 +218,7 @@ public class Motion : MoonTools.ECS.System
     public override void Update(TimeSpan delta)
     {
         //ClearCanBeHeldSpatialHash();
-        ClearCollidersSpatialHash();
+        CollisionManipulator.ClearCollidersSpatialHash();
 
         /*
         foreach (var entity in InteractFilter.Entities)
@@ -306,7 +256,7 @@ public class Motion : MoonTools.ECS.System
         {
             var position = Get<Position>(entity);
             var rect = Get<Rectangle>(entity);
-            CollidersSpatialHash.Insert(entity, GetWorldRect(position, rect));
+            CollisionManipulator.CollidersSpatialHash.Insert(entity, CollisionManipulator.GetWorldRect(position, rect));
         }
 
         foreach (var entity in SpeedFilter.Entities)
@@ -411,7 +361,7 @@ public class Motion : MoonTools.ECS.System
             {
                 var position = Get<Position>(entity);
                 var rect = Get<Rectangle>(entity);
-                CollidersSpatialHash.Insert(entity, GetWorldRect(position, rect));
+                CollisionManipulator.CollidersSpatialHash.Insert(entity, CollisionManipulator.GetWorldRect(position, rect));
             }
         }
 
