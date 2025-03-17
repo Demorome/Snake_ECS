@@ -22,7 +22,17 @@ public static class RayCollision
         return new Vector2(ray_box_max(a.X, b.X), ray_box_max(a.Y, b.Y));
     }
 
+    // Assumes t_min <= t_max
+    // To get the actual intersection, use t_min, and multiply it with ray dir, adding ray origin. (credits to Bram Stolk)
+    // If the ray origin is inside the box (t_min < 0), you need to use t_max instead. (credits to Tavian Barnes)
+    static public Vector2 GetIntersectPos(float t_min, float t_max, Vector2 rayOrigin, Vector2 rayDirection)
+    {
+        var val = (t_min < 0) ? t_max : t_min;
+        return (new Vector2(val, val) * rayDirection) + rayOrigin;
+    }
+
     // Credits to Jan Schultke: https://gamedev.stackexchange.com/a/208346
+    // Seems to be a version of the popular Slab method: https://tavianator.com/2011/ray_box.html
     /*
     t_min is the furthest entry point
     t_max is the closest exit point
@@ -38,7 +48,7 @@ public static class RayCollision
     */
     static public (float t_min, float t_max) Intersect(Vector2 origin, Vector2 direction, Vector2 box_min, Vector2 box_max) 
     {
-        Vector2 t0 = (box_min - origin) / direction;
+        Vector2 t0 = (box_min - origin) / direction; // TODO: mult by dir_inv instead, for speed
         Vector2 t1 = (box_max - origin) / direction;
         Vector2 min = ray_box_min(t0, t1); // entry points per plane
         Vector2 max = ray_box_max(t0, t1); // exit points per plane

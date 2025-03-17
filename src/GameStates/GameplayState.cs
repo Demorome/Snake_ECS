@@ -34,6 +34,7 @@ public class GameplayState : GameState
     TargetingDirection TargetingDirection;
     FollowingSystem FollowingSystem;
     ChangeAppearanceOverTime ChangeAppearanceOverTime;
+    DetectionSystem DetectionSystem;
 
     public GameplayState(RollAndCashGame game, GameState transitionState)
     {
@@ -117,6 +118,7 @@ public class GameplayState : GameState
         TargetingDirection = new TargetingDirection(World);
         FollowingSystem = new FollowingSystem(World);
         ChangeAppearanceOverTime = new ChangeAppearanceOverTime(World);
+        DetectionSystem = new DetectionSystem(World);
 
         Renderer = new Renderer(World, Game.GraphicsDevice, Game.RootTitleStorage, Game.MainWindow.SwapchainFormat);
 
@@ -160,6 +162,7 @@ public class GameplayState : GameState
         UpdateSpriteAnimationSystem.Update(dt);
         Input.Update(dt);
         PlayerController.Update(dt);
+        DetectionSystem.Update(dt);
         Projectile.Update(dt);
         TargetingDirection.Update(dt);
         Motion.Update(dt);

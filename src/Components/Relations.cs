@@ -1,5 +1,6 @@
 using System.Numerics;
 using MoonTools.ECS;
+using MoonWorks.Graphics;
 using MoonWorks.Math;
 using RollAndCash.Data;
 
@@ -47,8 +48,11 @@ public readonly record struct ChangeAngleOverTime(
     Easing.Function.Float EasingMethod = Easing.Function.Float.Linear
 );
 
+public readonly record struct ColorBlendOverride(Color Color);
+
 
 // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
 public readonly record struct Invincible();
 public readonly record struct WillFlicker(float TimePerFlicker); // called "Flickering" in the tutorial
+
 

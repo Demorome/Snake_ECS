@@ -19,7 +19,6 @@ public class Motion : MoonTools.ECS.System
 
     Filter SpeedFilter;
     //Filter InteractFilter;
-    Filter CollisionFilter;
     Filter AccelerateToPositionFilter;
    
     public Motion(World world) : base(world)
@@ -33,13 +32,6 @@ public class Motion : MoonTools.ECS.System
         .Build();
 
         //InteractFilter = FilterBuilder.Include<Position>().Include<Rectangle>().Include<CanInteract>().Build();
-
-        CollisionFilter = 
-        FilterBuilder
-        .Include<Position>()
-        .Include<Rectangle>()
-        .Include<Layer>()
-        .Build();
 
         AccelerateToPositionFilter = 
         FilterBuilder
@@ -218,7 +210,8 @@ public class Motion : MoonTools.ECS.System
     public override void Update(TimeSpan delta)
     {
         //ClearCanBeHeldSpatialHash();
-        CollisionManipulator.ClearCollidersSpatialHash();
+        // TODO: make sure this isn't needed, i.e. it's called earlier in another system and no entities are deleted since then.
+        //CollisionManipulator.ResetCollidersSpatialHash();
 
         /*
         foreach (var entity in InteractFilter.Entities)
@@ -251,13 +244,6 @@ public class Motion : MoonTools.ECS.System
 
             }
         }*/
-
-        foreach (var entity in CollisionFilter.Entities)
-        {
-            var position = Get<Position>(entity);
-            var rect = Get<Rectangle>(entity);
-            CollisionManipulator.CollidersSpatialHash.Insert(entity, CollisionManipulator.GetWorldRect(position, rect));
-        }
 
         foreach (var entity in SpeedFilter.Entities)
         {
@@ -365,7 +351,7 @@ public class Motion : MoonTools.ECS.System
             }
         }
 
-        foreach (var entity in CollisionFilter.Entities)
+        foreach (var entity in CollisionManipulator.CollisionFilter.Entities)
         {
             UnrelateAll<TouchingSolid>(entity);
         }

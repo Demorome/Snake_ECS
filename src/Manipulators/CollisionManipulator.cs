@@ -1,3 +1,5 @@
+#define ShowDebugRaycastVisuals
+
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -10,6 +12,7 @@ using RollAndCash.Content;
 using RollAndCash.Messages;
 using RollAndCash.Relations;
 using RollAndCash.Utility;
+using Filter = MoonTools.ECS.Filter;
 
 public class CollisionManipulator : MoonTools.ECS.Manipulator
 {
@@ -19,19 +22,34 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
 
     public static HashSet<Entity> HitEntities = new HashSet<Entity>();
 
+    public Filter CollisionFilter;
+
+    public CollisionManipulator(World world) : base(world)
+    {
+        CollisionFilter = FilterBuilder
+        .Include<Position>()
+        .Include<Rectangle>()
+        .Include<Layer>()
+        .Build();
+
+    }
+
     /*
     void ClearCanBeHeldSpatialHash()
     {
         InteractSpatialHash.Clear();
     }
     */
-    public static void ClearCollidersSpatialHash()
+    public void ResetCollidersSpatialHash()
     {
         CollidersSpatialHash.Clear();
-    }
 
-    public CollisionManipulator(World world) : base(world)
-    {
+        foreach (var entity in CollisionFilter.Entities)
+        {
+            var position = Get<Position>(entity);
+            var rect = Get<Rectangle>(entity);
+            CollidersSpatialHash.Insert(entity, GetWorldRect(position, rect));
+        }
     }
 
     public static Rectangle GetWorldRect(Position p, Rectangle r)
@@ -44,7 +62,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         return new Rectangle((int)(p.X + r.X), (int)(p.Y + r.Y), r.Width, r.Height);
     }
 
-    public bool CanMoveThroughDespiteCollision(
+    bool CanMoveThroughDespiteCollision(
         Layer otherLayer,
         CollisionLayer canMoveLayer = 0
         )
@@ -53,7 +71,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
     }
 
     // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
-    public bool CheckFlagsToRegisterCollision(
+    bool CheckFlagsToRegisterCollision(
         Entity other,
         CollisionLayer collideLayer,
         CollisionLayer excludeLayer = 0
@@ -89,7 +107,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
             {
                 if (CheckFlagsToRegisterCollision(other, collideLayer, excludeLayer))
                 {
-                    stopMovement = CanMoveThroughDespiteCollision(Get<Layer>(other), canMoveLayer);
+                    stopMovement = !CanMoveThroughDespiteCollision(Get<Layer>(other), canMoveLayer);
                 }
             }
         }
@@ -104,7 +122,40 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         return CheckCollisions_AABB_vs_AABBs(e, worldPosRect, layer.Collide, layer.Exclude, canMoveLayer);
     }
 
-    public (bool hit, Position stopPos) RaycastAABB(
+    Entity Debug_ShowRay(Position rayOrigin, float rayAngle, float length)
+    {
+        var entity = CreateEntity();
+        Set(entity, new Timer(-1)); // lasts 1 frame
+        Set(entity, rayOrigin);
+        Set(entity, new SpriteAnimation(SpriteAnimations.Pixel));
+        Set(entity, new ColorBlend(Color.Red with {A = 100}));
+        Set(entity, new Angle(rayAngle));
+
+        // Stretch the pixel to form a line
+        Set(entity, new SpriteScale(new Vector2(length, 1f)));
+        
+        return entity;
+    }
+
+    Entity Debug_ShowCollisionPos(Position pos)
+    {
+        var entity = CreateEntity();
+        Set(entity, new Timer(-1)); // lasts 1 frame
+        Set(entity, pos);
+        Set(entity, new SpriteAnimation(SpriteAnimations.Pixel));
+        Set(entity, new ColorBlend(Color.Aqua with {A = 100}));
+        Set(entity, new SpriteScale(new Vector2(3f, 3f)));
+        return entity;
+    }
+
+    void Debug_ShowEntityHasBeenCollided(Entity collided)
+    {
+        var timer = CreateEntity();
+        Set(timer, new Timer(-1)); // lasts 1 frame
+        Relate(collided, timer, new ColorBlendOverride(Color.Bisque));
+    }
+
+    public (bool hit, Position stopPos) Raycast_vs_AABBs(
         Entity source, 
         float angle, 
         float maxDistance, 
@@ -119,7 +170,11 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         var startVec = startPos.AsVector();
         Rectangle spatialHashCellAABB = new Rectangle(0, 0, CollidersSpatialHash.CellSize, CollidersSpatialHash.CellSize);
 
-        // TODO: Check which grids we collide with from our spatial acceleration structure.
+    #if ShowDebugRaycastVisuals
+        Debug_ShowRay(startPos, angle, maxDistance);
+    #endif
+
+        // Check which grids we collide with from our spatial acceleration structure.
         // Also called a "broadphase".
         for (int row = 0; row < CollidersSpatialHash.RowCount; ++row)
         {
@@ -136,12 +191,23 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
                     var others = CollidersSpatialHash.Cells[row][col];
                     foreach (var other in others)
                     {
-                        (t_min, t_max) = RayCollision.Intersect(startVec, direction, cellRect.TopLeft(), cellRect.BottomRight());
+                        if (source == other)
+                        {
+                            continue;
+                        }
+                        var otherRect = Get<Rectangle>(other);
+                        (t_min, t_max) = RayCollision.Intersect(startVec, direction, otherRect.TopLeft(), otherRect.BottomRight());
                         if (t_min <= t_max) // if didn't miss
                         {
                             if (CheckFlagsToRegisterCollision(other, rayLayer))
                             {
-                                // TODO: show t_min, t_max visuals
+                                var collision_pos = new Position(RayCollision.GetIntersectPos(t_min, t_max, startVec, direction));
+                                HitEntities.Add(other);
+
+                            #if ShowDebugRaycastVisuals
+                                Debug_ShowCollisionPos(collision_pos);
+                                Debug_ShowEntityHasBeenCollided(other);
+                            #endif
                             }
                         }
                     }
@@ -149,7 +215,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
             }
         }
 
-        return (HitEntities.Count != 0, );
+        return (HitEntities.Count != 0, new Position());
     }
 
     // Useful when the possible collision objects all occupy the same size on a grid, such as walls.

@@ -167,6 +167,10 @@ public class Renderer : MoonTools.ECS.Renderer
 				{
 					color = Get<ColorBlend>(entity).Color;
 				}
+				if (HasOutRelation<ColorBlendOverride>(entity))
+				{
+					color = Get<ColorBlendOverride>(entity).Color;
+				}
 
 				if (Has<ColorFlicker>(entity))
 				{
