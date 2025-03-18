@@ -1,5 +1,7 @@
 using System;
 using System.Numerics;
+using System.Xml;
+using RollAndCash.Components;
 
 namespace RollAndCash.Utility;
 
@@ -22,15 +24,6 @@ public static class RayCollision
         return new Vector2(ray_box_max(a.X, b.X), ray_box_max(a.Y, b.Y));
     }
 
-    // Assumes t_min <= t_max
-    // To get the actual intersection, use t_min, and multiply it with ray dir, adding ray origin. (credits to Bram Stolk)
-    // If the ray origin is inside the box (t_min < 0), you need to use t_max instead. (credits to Tavian Barnes)
-    static public Vector2 GetIntersectPos(float t_min, float t_max, Vector2 rayOrigin, Vector2 rayDirection)
-    {
-        var val = (t_min < 0) ? t_max : t_min;
-        return (new Vector2(val, val) * rayDirection) + rayOrigin;
-    }
-
     // Credits to Jan Schultke: https://gamedev.stackexchange.com/a/208346
     // Seems to be a version of the popular Slab method: https://tavianator.com/2011/ray_box.html
     /*
@@ -46,14 +39,159 @@ public static class RayCollision
     If t_min == t_max, the box has no volume, or an edge or corner was hit. 
         Either way, the intersection is a single point, not a line segment.
     */
-    static public (float t_min, float t_max) Intersect(Vector2 origin, Vector2 direction, Vector2 box_min, Vector2 box_max) 
+    /*
+    static public (float t_min, float t_max) Intersect(
+        Vector2 rayOrigin, Vector2 rayDirection, 
+        Vector2 box_min, Vector2 box_max) 
     {
-        Vector2 t0 = (box_min - origin) / direction; // TODO: mult by dir_inv instead, for speed
-        Vector2 t1 = (box_max - origin) / direction;
+        Vector2 t0 = (box_min - rayOrigin) / rayDirection; // TODO: mult by dir_inv instead, for speed
+        Vector2 t1 = (box_max - rayOrigin) / rayDirection;
+
         Vector2 min = ray_box_min(t0, t1); // entry points per plane
         Vector2 max = ray_box_max(t0, t1); // exit points per plane
+
         var t_min = MathF.Max(min.X, min.Y);
         var t_max = MathF.Min(max.X, max.Y);
+        
         return ( t_min, t_max );
+    }*/
+
+    /*
+    // From https://gdbooks.gitbooks.io/3dcollisions/content/Chapter3/raycast_aabb.html
+    static public (float t_min, float t_max) Intersect(
+        Vector2 origin, Vector2 direction, 
+        Vector2 box_min, Vector2 box_max) 
+    {
+        float t1 = (box_min.X - origin.X) / direction.X;
+        float t2 = (box_max.X - origin.X) / direction.X;
+        float t3 = (box_min.Y - origin.Y) / direction.Y;
+        float t4 = (box_max.Y - origin.Y) / direction.Y;
+        
+        float t_min = MathF.Max(MathF.Min(t1, t2), MathF.Min(t3, t4));
+        float t_max = MathF.Min(MathF.Max(t1, t2), MathF.Max(t3, t4));
+
+        // if tmax < 0, ray (line) is intersecting AABB, but whole AABB is behing us
+        return ( t_min, t_max );
+    }*/
+
+    // From the book 'Real-Time Collision Detection' by Christer Ericson
+    static public (bool hit, float t_min, float t_max) Intersect(
+        Vector2 rayOrigin, Vector2 rayDirection, 
+        Rectangle AABB) 
+    {
+        // Where your AABB is defined by left, right, top, bottom
+
+        float min = 0;
+        float max = 1;
+
+        float t0;
+        float t1;
+
+        // Left and right sides.
+        // - If the line is parallel to the y axis.
+        if(rayDirection.X == 0)
+        {
+            if(rayOrigin.X < AABB.Left || rayOrigin.X > AABB.Right)
+            {
+                return (false, float.NaN, float.NaN);;
+            }
+        }
+        // - Make sure t0 holds the smaller value by checking the direction of the line.
+        else
+        {
+            if(rayDirection.X > 0)
+            {
+                t0 = (AABB.Left - rayOrigin.X) / rayDirection.X;
+                t1 = (AABB.Right - rayOrigin.X) / rayDirection.X;
+            }
+            else
+            {
+                t1 = (AABB.Left - rayOrigin.X) / rayDirection.X;
+                t0 = (AABB.Right - rayOrigin.X) / rayDirection.X;
+            }
+
+            if(t0 > min) min = t0;
+            if(t1 < max) max = t1;
+            if(min > max || max < 0) {
+                return (false, float.NaN, float.NaN);
+            }
+        }
+
+        // The top and bottom side.
+        // - If the line is parallel to the x axis.
+        if(rayDirection.Y == 0){
+            if(rayOrigin.Y < AABB.Top || rayOrigin.Y > AABB.Bottom) {
+                return (false, float.NaN, float.NaN);
+            }
+        }
+        // - Make sure t0 holds the smaller value by checking the direction of the line.
+        else{
+            if(rayDirection.Y > 0){
+                t0 = (AABB.Top - rayOrigin.Y) / rayDirection.Y;
+                t1 = (AABB.Bottom - rayOrigin.Y) / rayDirection.Y;
+            }
+            else{
+                t1 = (AABB.Top - rayOrigin.Y) / rayDirection.Y;
+                t0 = (AABB.Bottom - rayOrigin.Y) / rayDirection.Y;
+            }
+
+            if(t0 > min) min = t0;
+            if(t1 < max) max = t1;
+            if(min > max || max < 0) {
+                return (false, float.NaN, float.NaN);
+            }
+        }
+
+        // The point of intersection
+        float ix = rayOrigin.X + rayDirection.X * min;
+        float iy = rayOrigin.Y + rayDirection.Y * min;
+        return (true, ix, iy);
+    }
+
+    // Credits to Jeroen Baert: https://gamedev.stackexchange.com/a/24464
+    /*
+    static public (bool hit, float t_min, float t_max) Intersect(
+        Vector2 rayOrigin, Vector2 rayDirection, 
+        Vector2 box_min, Vector2 box_max) 
+    {
+        Vector2 T_1 = new Vector2(); // vectors to hold the T-values for every direction
+        Vector2 T_2 = new Vector2();
+        
+        float t_near = -float.MaxValue;
+        float t_far = float.MaxValue;
+
+        for (int i = 0; i < 2; i++){ //we test slabs in every direction
+            if (rayDirection[i] == 0){ // ray parallel to planes in this direction
+                if ((rayOrigin[i] < box_min[i]) || (rayOrigin[i] > box_max[i])) {
+                    return ( false, t_near, t_far ); // parallel AND outside box : no intersection possible
+                }
+            } else { // ray not parallel to planes in this direction
+                T_1[i] = (box_min[i] - rayOrigin[i]) / rayDirection[i];
+                T_2[i] = (box_max[i] - rayOrigin[i]) / rayDirection[i];
+
+                if(T_1[i] > T_2[i]){ // we want T_1 to hold values for intersection with near plane
+                    (T_1, T_2) = (T_2, T_1); // swap
+                }
+                if (T_1[i] > t_near){
+                    t_near = T_1[i];
+                }
+                if (T_2[i] < t_far){
+                    t_far = T_2[i];
+                }
+                if( (t_near > t_far) || (t_far < 0) ){
+                    return ( false, t_near, t_far );
+                }
+            }
+        }
+        return ( true, t_near, t_far ); // if we made it here, there was an intersection - YAY
+    }*/
+
+    // Assumes t_min <= t_max
+    // To get the actual intersection, use t_min, and multiply it with ray dir, adding ray origin. (credits to Bram Stolk)
+    // If the ray origin is inside the box (t_min < 0), you need to use t_max instead. (credits to Tavian Barnes)
+    static public Vector2 GetIntersectPos(float t_min, float t_max, Vector2 rayOrigin, Vector2 rayDirection)
+    {
+        var val = (t_min < 0) ? t_max : t_min;
+        return (new Vector2(val, val) * rayDirection) + rayOrigin;
     }
 }

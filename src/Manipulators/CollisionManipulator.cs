@@ -155,8 +155,14 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
     {
         HitEntities.Clear();
 
-        var direction = new Vector2(MathF.Cos(angle), MathF.Sin(angle));
+        var direction = new Position(MathF.Cos(angle), MathF.Sin(angle)).AsVector() * maxDistance;
         Position startPos = Get<Position>(source);
+
+        // TEST!!!
+        //Position endPos = new Position(startPos.AsVector() + direction);
+        //direction = endPos.AsVector() - startPos.AsVector(); // same result, we're good
+        // TEST!!!
+
         var startVec = startPos.AsVector();
         Rectangle spatialHashCellAABB = new Rectangle(0, 0, CollidersSpatialHash.CellSize, CollidersSpatialHash.CellSize);
 
@@ -175,8 +181,8 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
                 var cellRect = spatialHashCellAABB.GetWorldRect(cellPos);
 
                 // Only check what's inside the grids we collide with.
-                var (t_min, t_max) = RayCollision.Intersect(startVec, direction, cellRect.TopLeft(), cellRect.BottomRight());
-                if (t_min <= t_max) // if didn't miss
+                var (hit, t_min, t_max) = RayCollision.Intersect(startVec, direction, cellRect/*cellRect.TopLeft(), cellRect.BottomRight()*/);
+                if (hit)
                 {
                     // Do raycast checks with every AABB entity in this cell.
                     var others = CollidersSpatialHash.Cells[row][col];
@@ -187,8 +193,8 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
                             continue;
                         }
                         var otherRect = Get<Rectangle>(other).GetWorldRect(Get<Position>(other));
-                        (t_min, t_max) = RayCollision.Intersect(startVec, direction, otherRect.TopLeft(), otherRect.BottomRight());
-                        if (t_min <= t_max) // if didn't miss
+                        (hit, t_min, t_max) = RayCollision.Intersect(startVec, direction, otherRect/*otherRect.TopLeft(), otherRect.BottomRight()*/);
+                        if (hit)
                         {
                             if (CheckFlagsToRegisterCollision(other, rayLayer))
                             {
