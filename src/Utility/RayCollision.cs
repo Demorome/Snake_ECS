@@ -30,6 +30,7 @@ public static class RayCollision
 
     // Credits to Jan Schultke: https://gamedev.stackexchange.com/a/208346
     // Seems to be a version of the popular Slab method: https://tavianator.com/2011/ray_box.html
+    // Seems to only work give results as though our ray was of infinite length, so it's useless for us.
     /*
     t_min is the furthest entry point
     t_max is the closest exit point
@@ -44,20 +45,30 @@ public static class RayCollision
         Either way, the intersection is a single point, not a line segment.
     */
     /*
-    static public (float t_min, float t_max) Intersect(
-        Vector2 rayOrigin, Vector2 rayDirection, 
-        Vector2 box_min, Vector2 box_max) 
+    static public (bool hit, Vector2 hitPos) Intersect(
+        Vector2 rayOrigin, Vector2 rayDirection,
+        Rectangle AABB)
     {
-        Vector2 t0 = (box_min - rayOrigin) / rayDirection; // TODO: mult by dir_inv instead, for speed
-        Vector2 t1 = (box_max - rayOrigin) / rayDirection;
+        Vector2 t0 = (AABB.TopLeft() - rayOrigin) / rayDirection; // TODO: mult by dir_inv instead, for speed
+        Vector2 t1 = (AABB.BottomRight() - rayOrigin) / rayDirection;
 
         Vector2 min = ray_box_min(t0, t1); // entry points per plane
         Vector2 max = ray_box_max(t0, t1); // exit points per plane
 
         var t_min = MathF.Max(min.X, min.Y);
         var t_max = MathF.Min(max.X, max.Y);
-        
-        return ( t_min, t_max );
+
+        bool hit = t_min <= t_max;
+        if (hit)
+        {
+            float ix = rayOrigin.X + rayDirection.X * t_min;
+            float iy = rayOrigin.Y + rayDirection.Y * t_min;
+            return (true, new Vector2(ix, iy));
+        }
+        else
+        {
+            return (false, new Vector2(float.NaN, float.NaN));
+        }
     }*/
 
     /*
@@ -78,13 +89,11 @@ public static class RayCollision
         return ( t_min, t_max );
     }*/
 
-    // From the book 'Real-Time Collision Detection' by Christer Ericson
+    // From the book 'Real-Time Collision Detection' by Christer Ericson, slightly tweaked.
     static public (bool hit, Vector2 hitPos) Intersect(
-        Vector2 rayOrigin, Vector2 rayDirection,
+        Vector2 rayOrigin, Vector2 rayDirection, Vector2 invRayDir,
         Rectangle AABB)
     {
-        // Where your AABB is defined by left, right, top, bottom
-
         float min = 0;
         float max = 1;
 
@@ -105,17 +114,17 @@ public static class RayCollision
         {
             if (rayDirection.X > 0)
             {
-                t0 = (AABB.Left - rayOrigin.X) / rayDirection.X;
-                t1 = (AABB.Right - rayOrigin.X) / rayDirection.X;
+                t0 = (AABB.Left - rayOrigin.X) * invRayDir.X;
+                t1 = (AABB.Right - rayOrigin.X) * invRayDir.X;
             }
             else
             {
-                t1 = (AABB.Left - rayOrigin.X) / rayDirection.X;
-                t0 = (AABB.Right - rayOrigin.X) / rayDirection.X;
+                t1 = (AABB.Left - rayOrigin.X) * invRayDir.X;
+                t0 = (AABB.Right - rayOrigin.X) * invRayDir.X;
             }
 
-            if (t0 > min) min = t0;
-            if (t1 < max) max = t1;
+            min = MathF.Max(min, t0); //if (t0 > min) min = t0;
+            max = MathF.Min(max, t1); // if (t1 < max) max = t1;
             if (min > max || max < 0)
             {
                 return (false, new Vector2(float.NaN, float.NaN));
@@ -136,17 +145,17 @@ public static class RayCollision
         {
             if (rayDirection.Y > 0)
             {
-                t0 = (AABB.Top - rayOrigin.Y) / rayDirection.Y;
-                t1 = (AABB.Bottom - rayOrigin.Y) / rayDirection.Y;
+                t0 = (AABB.Top - rayOrigin.Y) * invRayDir.Y;
+                t1 = (AABB.Bottom - rayOrigin.Y) * invRayDir.Y;
             }
             else
             {
-                t1 = (AABB.Top - rayOrigin.Y) / rayDirection.Y;
-                t0 = (AABB.Bottom - rayOrigin.Y) / rayDirection.Y;
+                t1 = (AABB.Top - rayOrigin.Y) * invRayDir.Y;
+                t0 = (AABB.Bottom - rayOrigin.Y) * invRayDir.Y;
             }
 
-            if (t0 > min) min = t0;
-            if (t1 < max) max = t1;
+            min = MathF.Max(min, t0); //if (t0 > min) min = t0;
+            max = MathF.Min(max, t1); // if (t1 < max) max = t1;
             if (min > max || max < 0)
             {
                 return (false, new Vector2(float.NaN, float.NaN));
