@@ -135,6 +135,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         Set(entity, new SpriteAnimation(SpriteAnimations.Pixel));
         Set(entity, new ColorBlend(Color.Aqua with {A = 100}));
         Set(entity, new SpriteScale(new Vector2(3f, 3f)));
+        Set(entity, new Depth(-100f)); // draw above most things
         return entity;
     }
 
@@ -145,10 +146,21 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         Relate(collided, timer, new ColorBlendOverride(Color.Bisque));
     }
 
+    void Debug_ShowHashCellCollision(Rectangle worldRect)
+    {
+        var entity = CreateEntity();
+        Set(entity, new Timer(-1)); // lasts 1 frame
+        Set(entity, new Position(worldRect.Left, worldRect.Top));
+        Set(entity, new SpriteAnimation(SpriteAnimations.Pixel));
+        Set(entity, new ColorBlend(Color.LightGreen with { A = 100 }));
+        Set(entity, new SpriteScale(new Vector2(worldRect.Width, worldRect.Height)));
+        Set(entity, new Depth(100f)); // draw behind most things
+    }
+
     public (bool hit, Position stopPos) Raycast_vs_AABBs(
-        Entity source, 
-        float angle, 
-        float maxDistance, 
+        Entity source,
+        float angle,
+        float maxDistance,
         CollisionLayer rayLayer,
         CollisionLayer canMoveLayer = 0 // TODO: Handle this in some special way
         )
@@ -164,12 +176,12 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         // TEST!!!
 
         var startVec = startPos.AsVector();
-        Rectangle spatialHashCellAABB = new Rectangle(0, 0, CollidersSpatialHash.CellSize, CollidersSpatialHash.CellSize);
+        var spatialHashCellAABB = new Rectangle(0, 0, CollidersSpatialHash.CellSize, CollidersSpatialHash.CellSize);
 
-    #if ShowDebugRaycastVisuals
+#if ShowDebugRaycastVisuals
         Debug_ShowRay(startPos, angle, maxDistance);
-        Console.WriteLine("Doing raycast...");
-    #endif
+        Console.WriteLine($"Doing raycast. Start pos: {startPos}");
+#endif
 
         // Check which grids we collide with from our spatial acceleration structure.
         // Also called a "broadphase".
@@ -184,6 +196,10 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
                 var (hit, t_min, t_max) = RayCollision.Intersect(startVec, direction, cellRect/*cellRect.TopLeft(), cellRect.BottomRight()*/);
                 if (hit)
                 {
+#if ShowDebugRaycastVisuals
+                    Debug_ShowHashCellCollision(cellRect);
+#endif
+
                     // Do raycast checks with every AABB entity in this cell.
                     var others = CollidersSpatialHash.Cells[row][col];
                     foreach (var other in others)
@@ -200,11 +216,11 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
                             {
                                 var collision_pos = new Position(RayCollision.GetIntersectPos(t_min, t_max, startVec, direction));
 
-                            #if ShowDebugRaycastVisuals
+#if ShowDebugRaycastVisuals
                                 Console.WriteLine($"Raycast hit at: {collision_pos}");
                                 Debug_ShowCollisionPos(collision_pos);
                                 Debug_ShowEntityHasBeenCollided(other);
-                            #endif
+#endif
                             }
                         }
                     }

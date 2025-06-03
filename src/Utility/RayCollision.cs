@@ -93,7 +93,7 @@ public static class RayCollision
         {
             if(rayOrigin.X < AABB.Left || rayOrigin.X > AABB.Right)
             {
-                return (false, float.NaN, float.NaN);;
+                return (false, float.NaN, float.NaN);
             }
         }
         // - Make sure t0 holds the smaller value by checking the direction of the line.

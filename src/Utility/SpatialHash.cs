@@ -29,8 +29,8 @@ public class SpatialHash<T> where T : unmanaged, System.IEquatable<T>
         Y = y;
         Width = width;
         Height = height;
-        RowCount = width / cellSize;
-        ColumnCount = height / cellSize;
+        RowCount = height / cellSize;
+        ColumnCount = width / cellSize;
         CellSize = cellSize;
 
         Cells = new List<T>[RowCount][];

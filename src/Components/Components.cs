@@ -85,7 +85,7 @@ public readonly record struct Alpha(byte Value); // 0-255, overrides the alpha i
 
 public readonly record struct ColorSpeed(float RedSpeed, float GreenSpeed, float BlueSpeed);
 
-public readonly record struct Depth(float Value);
+public readonly record struct Depth(float Value); // Deeper depth = higher value.
 public readonly record struct DrawAsRectangle();
 
 public readonly record struct TextDropShadow(int OffsetX, int OffsetY);
