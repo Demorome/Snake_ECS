@@ -133,7 +133,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         Set(entity, new Timer(-1)); // lasts 1 frame
         Set(entity, pos);
         Set(entity, new SpriteAnimation(SpriteAnimations.Pixel));
-        Set(entity, new ColorBlend(Color.Aqua with {A = 100}));
+        Set(entity, new ColorBlend(Color.Red));
         Set(entity, new SpriteScale(new Vector2(3f, 3f)));
         Set(entity, new Depth(-100f)); // draw above most things
         return entity;
@@ -167,7 +167,9 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
     {
         HitEntities.Clear();
 
-        var direction = new Position(MathF.Cos(angle), MathF.Sin(angle)).AsVector() * maxDistance;
+        var normalizedDir = new Position(MathF.Cos(angle), MathF.Sin(angle)).AsVector();
+        var direction = normalizedDir * maxDistance;
+        
         Position startPos = Get<Position>(source);
 
         // TEST!!!
@@ -193,8 +195,8 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
                 var cellRect = spatialHashCellAABB.GetWorldRect(cellPos);
 
                 // Only check what's inside the grids we collide with.
-                var (hit, t_min, t_max) = RayCollision.Intersect(startVec, direction, cellRect/*cellRect.TopLeft(), cellRect.BottomRight()*/);
-                if (hit)
+                var (hitGrid, _) = RayCollision.Intersect(startVec, direction, cellRect/*cellRect.TopLeft(), cellRect.BottomRight()*/);
+                if (hitGrid)
                 {
 #if ShowDebugRaycastVisuals
                     Debug_ShowHashCellCollision(cellRect);
@@ -209,17 +211,21 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
                             continue;
                         }
                         var otherRect = Get<Rectangle>(other).GetWorldRect(Get<Position>(other));
-                        (hit, t_min, t_max) = RayCollision.Intersect(startVec, direction, otherRect/*otherRect.TopLeft(), otherRect.BottomRight()*/);
+                        var (hit, hitPos) = RayCollision.Intersect(startVec, direction, otherRect/*otherRect.TopLeft(), otherRect.BottomRight()*/);
                         if (hit)
                         {
                             if (CheckFlagsToRegisterCollision(other, rayLayer))
                             {
-                                var collision_pos = new Position(RayCollision.GetIntersectPos(t_min, t_max, startVec, direction));
-
 #if ShowDebugRaycastVisuals
-                                Console.WriteLine($"Raycast hit at: {collision_pos}");
-                                Debug_ShowCollisionPos(collision_pos);
+                                Console.WriteLine($"Raycast hit at: {hitPos}");
+                                Debug_ShowCollisionPos(new Position(hitPos));
                                 Debug_ShowEntityHasBeenCollided(other);
+#endif
+                            }
+                            else
+                            {
+#if ShowDebugRaycastVisuals
+                                Console.WriteLine($"Raycast hit, but collision flags don't match.");
 #endif
                             }
                         }

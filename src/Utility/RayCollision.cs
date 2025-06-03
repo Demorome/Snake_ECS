@@ -8,19 +8,23 @@ namespace RollAndCash.Utility;
 public static class RayCollision
 {
 
-    static float ray_box_min(float x, float y) {
+    static float ray_box_min(float x, float y)
+    {
         return (float.IsNaN(x) || float.IsNaN(y)) ? float.NegativeInfinity : float.Min(x, y);
     }
 
-    static float ray_box_max(float x, float y) {
+    static float ray_box_max(float x, float y)
+    {
         return (float.IsNaN(x) || float.IsNaN(y)) ? float.PositiveInfinity : float.Max(x, y);
     }
 
-    static Vector2 ray_box_min(Vector2 a, Vector2 b) {
+    static Vector2 ray_box_min(Vector2 a, Vector2 b)
+    {
         return new Vector2(ray_box_min(a.X, b.X), ray_box_min(a.Y, b.Y));
     }
 
-    static Vector2 ray_box_max(Vector2 a, Vector2 b) {
+    static Vector2 ray_box_max(Vector2 a, Vector2 b)
+    {
         return new Vector2(ray_box_max(a.X, b.X), ray_box_max(a.Y, b.Y));
     }
 
@@ -75,9 +79,9 @@ public static class RayCollision
     }*/
 
     // From the book 'Real-Time Collision Detection' by Christer Ericson
-    static public (bool hit, float t_min, float t_max) Intersect(
-        Vector2 rayOrigin, Vector2 rayDirection, 
-        Rectangle AABB) 
+    static public (bool hit, Vector2 hitPos) Intersect(
+        Vector2 rayOrigin, Vector2 rayDirection,
+        Rectangle AABB)
     {
         // Where your AABB is defined by left, right, top, bottom
 
@@ -89,17 +93,17 @@ public static class RayCollision
 
         // Left and right sides.
         // - If the line is parallel to the y axis.
-        if(rayDirection.X == 0)
+        if (rayDirection.X == 0)
         {
-            if(rayOrigin.X < AABB.Left || rayOrigin.X > AABB.Right)
+            if (rayOrigin.X < AABB.Left || rayOrigin.X > AABB.Right)
             {
-                return (false, float.NaN, float.NaN);
+                return (false, new Vector2(float.NaN, float.NaN));
             }
         }
         // - Make sure t0 holds the smaller value by checking the direction of the line.
         else
         {
-            if(rayDirection.X > 0)
+            if (rayDirection.X > 0)
             {
                 t0 = (AABB.Left - rayOrigin.X) / rayDirection.X;
                 t1 = (AABB.Right - rayOrigin.X) / rayDirection.X;
@@ -110,42 +114,49 @@ public static class RayCollision
                 t0 = (AABB.Right - rayOrigin.X) / rayDirection.X;
             }
 
-            if(t0 > min) min = t0;
-            if(t1 < max) max = t1;
-            if(min > max || max < 0) {
-                return (false, float.NaN, float.NaN);
+            if (t0 > min) min = t0;
+            if (t1 < max) max = t1;
+            if (min > max || max < 0)
+            {
+                return (false, new Vector2(float.NaN, float.NaN));
             }
         }
 
         // The top and bottom side.
         // - If the line is parallel to the x axis.
-        if(rayDirection.Y == 0){
-            if(rayOrigin.Y < AABB.Top || rayOrigin.Y > AABB.Bottom) {
-                return (false, float.NaN, float.NaN);
+        if (rayDirection.Y == 0)
+        {
+            if (rayOrigin.Y < AABB.Top || rayOrigin.Y > AABB.Bottom)
+            {
+                return (false, new Vector2(float.NaN, float.NaN));
             }
         }
         // - Make sure t0 holds the smaller value by checking the direction of the line.
-        else{
-            if(rayDirection.Y > 0){
+        else
+        {
+            if (rayDirection.Y > 0)
+            {
                 t0 = (AABB.Top - rayOrigin.Y) / rayDirection.Y;
                 t1 = (AABB.Bottom - rayOrigin.Y) / rayDirection.Y;
             }
-            else{
+            else
+            {
                 t1 = (AABB.Top - rayOrigin.Y) / rayDirection.Y;
                 t0 = (AABB.Bottom - rayOrigin.Y) / rayDirection.Y;
             }
 
-            if(t0 > min) min = t0;
-            if(t1 < max) max = t1;
-            if(min > max || max < 0) {
-                return (false, float.NaN, float.NaN);
+            if (t0 > min) min = t0;
+            if (t1 < max) max = t1;
+            if (min > max || max < 0)
+            {
+                return (false, new Vector2(float.NaN, float.NaN));
             }
         }
 
         // The point of intersection
         float ix = rayOrigin.X + rayDirection.X * min;
         float iy = rayOrigin.Y + rayDirection.Y * min;
-        return (true, ix, iy);
+        return (true, new Vector2(ix, iy));
     }
 
     // Credits to Jeroen Baert: https://gamedev.stackexchange.com/a/24464
@@ -189,9 +200,14 @@ public static class RayCollision
     // Assumes t_min <= t_max
     // To get the actual intersection, use t_min, and multiply it with ray dir, adding ray origin. (credits to Bram Stolk)
     // If the ray origin is inside the box (t_min < 0), you need to use t_max instead. (credits to Tavian Barnes)
-    static public Vector2 GetIntersectPos(float t_min, float t_max, Vector2 rayOrigin, Vector2 rayDirection)
+    // See discussion at https://tavianator.com/2011/ray_box.html
+    /*
+    static public Vector2 GetIntersectPos(float t_min, float t_max, Vector2 rayOrigin, Vector2 normalizedRayDir)
     {
         var val = (t_min < 0) ? t_max : t_min;
-        return (new Vector2(val, val) * rayDirection) + rayOrigin;
-    }
+        return new Vector2(val, val) * normalizedRayDir;
+
+        //var rotationMatrix = Matrix3x2.CreateRotation(orientation);
+        //origin = Vector2.Transform(origin, rotationMatrix);
+    }*/
 }
