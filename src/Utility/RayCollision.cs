@@ -89,6 +89,8 @@ public static class RayCollision
         return ( t_min, t_max );
     }*/
 
+    // TODO: Implement https://noonat.github.io/intersect/ 's "AABB vs Segment" and compare performance.
+
     // From the book 'Real-Time Collision Detection' by Christer Ericson, slightly tweaked.
     static public (bool hit, Vector2 hitPos) Intersect(
         Vector2 rayOrigin, Vector2 rayDirection, Vector2 invRayDir,
