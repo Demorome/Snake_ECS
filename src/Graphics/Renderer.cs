@@ -85,6 +85,32 @@ public class Renderer : MoonTools.ECS.Renderer
 		ArtSpriteBatch = new SpriteBatch(GraphicsDevice, titleStorage, swapchainFormat, TextureFormat.D16Unorm);
 	}
 
+	private Color GetColorBlend(Entity e)
+	{
+		var color = Color.White;
+		if (HasOutRelation<ColorBlendOverride>(e))
+		{
+			// Assumes there would be at most 1 ColorBlendOverride at a time.
+			var overridingE = OutRelationSingleton<ColorBlendOverride>(e);
+			color = GetRelationData<ColorBlendOverride>(e, overridingE).Color;
+		}
+		else if (Has<ColorBlend>(e))
+		{
+			color = Get<ColorBlend>(e).Color;
+		}
+
+		if (Has<ColorFlicker>(e))
+		{
+			var colorFlicker = Get<ColorFlicker>(e);
+			if (colorFlicker.ElapsedFrames % 2 == 0)
+			{
+				color = colorFlicker.Color;
+			}
+		}
+
+		return color;
+	}
+
 	public void Render(Window window)
 	{
 		var commandBuffer = GraphicsDevice.AcquireCommandBuffer();
@@ -100,7 +126,7 @@ public class Renderer : MoonTools.ECS.Renderer
 				var position = Get<Position>(entity);
 				var rectangle = Get<Rectangle>(entity);
 				var orientation = Has<Angle>(entity) ? Get<Angle>(entity).Value : 0.0f;
-				var color = Has<ColorBlend>(entity) ? Get<ColorBlend>(entity).Color : Color.White;
+				var color = GetColorBlend(entity); 
 				var depth = -2f;
 				if (Has<Depth>(entity))
 				{
@@ -109,11 +135,11 @@ public class Renderer : MoonTools.ECS.Renderer
 
 				var sprite = SpriteAnimations.Pixel.Frames[0];
 				ArtSpriteBatch.Add(
-					new Vector3(position.X + rectangle.X, position.Y + rectangle.Y, depth), 
-					orientation, 
-					new Vector2(rectangle.Width, rectangle.Height), 
-					color, 
-					sprite.UV.LeftTop, 
+					new Vector3(position.X + rectangle.X, position.Y + rectangle.Y, depth),
+					orientation,
+					new Vector2(rectangle.Width, rectangle.Height),
+					color,
+					sprite.UV.LeftTop,
 					sprite.UV.Dimensions);
 			}
 
@@ -128,7 +154,7 @@ public class Renderer : MoonTools.ECS.Renderer
 				var origin = animation.Origin;
 				var depth = -1f;
 				var orientation = Has<Angle>(entity) ? Get<Angle>(entity).Value : 0.0f;
-				var color = Color.White;
+				var color = GetColorBlend(entity);
 
 				foreach (var rotationEnforcingEntity in OutRelations<Rotated>(entity))
 				{
@@ -149,10 +175,7 @@ public class Renderer : MoonTools.ECS.Renderer
 				{
 					scale.Y *= -1;
 				}
-				if (scale != Vector2.One)
-				{
-					origin *= scale;
-				}
+				origin *= scale;
 
 				if (orientation != 0.0f)
 				{
@@ -162,24 +185,6 @@ public class Renderer : MoonTools.ECS.Renderer
 				}
 
 				var offset = -origin - new Vector2(sprite.FrameRect.X, sprite.FrameRect.Y) * scale;
-
-				if (Has<ColorBlend>(entity))
-				{
-					color = Get<ColorBlend>(entity).Color;
-				}
-				if (HasOutRelation<ColorBlendOverride>(entity))
-				{
-					color = Get<ColorBlendOverride>(entity).Color;
-				}
-
-				if (Has<ColorFlicker>(entity))
-				{
-					var colorFlicker = Get<ColorFlicker>(entity);
-					if (colorFlicker.ElapsedFrames % 2 == 0)
-					{
-						color = colorFlicker.Color;
-					}
-				}
 
 				if (Has<Alpha>(entity))
 				{
@@ -192,11 +197,11 @@ public class Renderer : MoonTools.ECS.Renderer
 				}
 
 				ArtSpriteBatch.Add(
-					new Vector3(position.X + offset.X, position.Y + offset.Y, depth), 
-					orientation, 
-					new Vector2(sprite.SliceRect.W, sprite.SliceRect.H) * scale, 
-					color, 
-					sprite.UV.LeftTop, 
+					new Vector3(position.X + offset.X, position.Y + offset.Y, depth),
+					orientation,
+					new Vector2(sprite.SliceRect.W, sprite.SliceRect.H) * scale,
+					color,
+					sprite.UV.LeftTop,
 					sprite.UV.Dimensions
 				);
 			}

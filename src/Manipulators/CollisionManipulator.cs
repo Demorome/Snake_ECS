@@ -17,7 +17,7 @@ using Filter = MoonTools.ECS.Filter;
 public class CollisionManipulator : MoonTools.ECS.Manipulator
 {
     //SpatialHash<Entity> InteractSpatialHash = new SpatialHash<Entity>(0, 0, Dimensions.GAME_W, Dimensions.GAME_H, 32);
-    public static SpatialHash<Entity> CollidersSpatialHash = 
+    public static SpatialHash<Entity> CollidersSpatialHash =
         new SpatialHash<Entity>(0, 0, Dimensions.GAME_W, Dimensions.GAME_H, 32);
 
     public static HashSet<Entity> HitEntities = new HashSet<Entity>();
@@ -83,7 +83,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
     // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
     public bool CheckCollisions_AABB_vs_AABBs(
         Entity source, // so we can exclude it 
-        Rectangle worldPosRect, 
+        Rectangle worldPosRect,
         CollisionLayer collideLayer,
         CollisionLayer excludeLayer = 0,
         CollisionLayer canMoveLayer = 0
@@ -118,12 +118,12 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         Set(entity, new Timer(-1)); // lasts 1 frame
         Set(entity, rayOrigin);
         Set(entity, new SpriteAnimation(SpriteAnimations.Pixel));
-        Set(entity, new ColorBlend(Color.Red with {A = 100}));
+        Set(entity, new ColorBlend(Color.Red with { A = 100 }));
         Set(entity, new Angle(rayAngle));
 
         // Stretch the pixel to form a line
         Set(entity, new SpriteScale(new Vector2(length, 1f)));
-        
+
         return entity;
     }
 
@@ -131,10 +131,15 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
     {
         var entity = CreateEntity();
         Set(entity, new Timer(-1)); // lasts 1 frame
-        Set(entity, pos);
         Set(entity, new SpriteAnimation(SpriteAnimations.Pixel));
-        Set(entity, new ColorBlend(Color.Red));
-        Set(entity, new SpriteScale(new Vector2(3f, 3f)));
+        {
+            // Center position according to scale.
+            var scale = new Vector2(5f, 5f);
+            Set(entity, new SpriteScale(scale));
+            // Don't have to account for height/width of sprite, since both are 1.
+            Set(entity, new Position(pos.X - MathF.Floor(scale.X * 0.5f), pos.Y - MathF.Floor(scale.Y * 0.5f)));
+        }
+        Set(entity, new ColorBlend(Color.LimeGreen));
         Set(entity, new Depth(-100f)); // draw above most things
         return entity;
     }
@@ -169,7 +174,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
 
         var direction = new Position(MathF.Cos(angle), MathF.Sin(angle)).AsVector() * maxDistance;
         var invDir = new Vector2(1, 1) / direction;
-        
+
         Position startPos = Get<Position>(source);
 
         // TEST!!!
