@@ -172,7 +172,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
     {
         HitEntities.Clear();
 
-        var direction = new Position(MathF.Cos(angle), MathF.Sin(angle)).AsVector() * maxDistance;
+        var direction = MathUtilities.SafeNormalize(new Vector2(MathF.Cos(angle), MathF.Sin(angle))) * maxDistance;
         var invDir = new Vector2(1, 1) / direction;
 
         Position startPos = Get<Position>(source);
@@ -200,7 +200,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
                 var cellRect = spatialHashCellAABB.GetWorldRect(cellPos);
 
                 // Only check what's inside the grids we collide with.
-                var (hitGrid, _) = RayCollision.Intersect(startVec, direction, invDir, cellRect/*cellRect.TopLeft(), cellRect.BottomRight()*/);
+                var (hitGrid, _) = RayCollision.Intersects_AABB(startVec, direction, invDir, cellRect/*cellRect.TopLeft(), cellRect.BottomRight()*/);
                 if (hitGrid)
                 {
 #if ShowDebugRaycastVisuals
@@ -216,7 +216,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
                             continue;
                         }
                         var otherRect = Get<Rectangle>(other).GetWorldRect(Get<Position>(other));
-                        var (hit, hitPos) = RayCollision.Intersect(startVec, direction, invDir, otherRect/*otherRect.TopLeft(), otherRect.BottomRight()*/);
+                        var (hit, hitPos) = RayCollision.Intersects_AABB(startVec, direction, invDir, otherRect/*otherRect.TopLeft(), otherRect.BottomRight()*/);
                         if (hit)
                         {
                             if (CheckFlagsToRegisterCollision(other, rayLayer))

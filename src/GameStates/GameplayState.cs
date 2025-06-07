@@ -35,6 +35,7 @@ public class GameplayState : GameState
     FollowingSystem FollowingSystem;
     ChangeAppearanceOverTime ChangeAppearanceOverTime;
     DetectionSystem DetectionSystem;
+    EnemySystem EnemySystem;
 
     public GameplayState(RollAndCashGame game, GameState transitionState)
     {
@@ -119,6 +120,7 @@ public class GameplayState : GameState
         FollowingSystem = new FollowingSystem(World);
         ChangeAppearanceOverTime = new ChangeAppearanceOverTime(World);
         DetectionSystem = new DetectionSystem(World);
+        EnemySystem = new(World);
 
         Renderer = new Renderer(World, Game.GraphicsDevice, Game.RootTitleStorage, Game.MainWindow.SwapchainFormat);
 
@@ -162,6 +164,7 @@ public class GameplayState : GameState
         UpdateSpriteAnimationSystem.Update(dt);
         Input.Update(dt);
         PlayerController.Update(dt);
+        EnemySystem.Update(dt);
         DetectionSystem.Update(dt);
         Projectile.Update(dt);
         TargetingDirection.Update(dt);

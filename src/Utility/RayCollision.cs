@@ -92,7 +92,7 @@ public static class RayCollision
     // TODO: Implement https://noonat.github.io/intersect/ 's "AABB vs Segment" and compare performance.
 
     // From the book 'Real-Time Collision Detection' by Christer Ericson, slightly tweaked.
-    static public (bool hit, Vector2 hitPos) Intersect(
+    static public (bool hit, Vector2 hitPos) Intersects_AABB(
         Vector2 rayOrigin, Vector2 rayDirection, Vector2 invRayDir,
         Rectangle AABB)
     {
@@ -125,7 +125,7 @@ public static class RayCollision
                 t0 = (AABB.Right - rayOrigin.X) * invRayDir.X;
             }
 
-            min = MathF.Max(min, t0); //if (t0 > min) min = t0;
+            min = MathF.Max(min, t0); // if (t0 > min) min = t0;
             max = MathF.Min(max, t1); // if (t1 < max) max = t1;
             if (min > max || max < 0)
             {
@@ -156,7 +156,7 @@ public static class RayCollision
                 t0 = (AABB.Bottom - rayOrigin.Y) * invRayDir.Y;
             }
 
-            min = MathF.Max(min, t0); //if (t0 > min) min = t0;
+            min = MathF.Max(min, t0); // if (t0 > min) min = t0;
             max = MathF.Min(max, t1); // if (t1 < max) max = t1;
             if (min > max || max < 0)
             {

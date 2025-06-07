@@ -27,8 +27,17 @@ public class DetectionSystem : MoonTools.ECS.System
 
         foreach (var entity in DetecterFilter.Entities)
         {
+            //var detectionArgs = Get<CanDetect>(entity);
+
             var angle = MathUtilities.AngleFromUnitVector(Get<Direction>(entity).Value);
+            //var angle = (MathF.PI / 4);
+            //var angle = float.DegreesToRadians(45f);
+
+            // TODO: use AngleRadius to determine range of raycasts to shoot.
+            //for ()
+            //{
             CollisionManipulator.Raycast_vs_AABBs(entity, angle, 100f, CollisionLayer.Level);
+            //}
         }
     }
 }
