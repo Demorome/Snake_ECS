@@ -51,7 +51,7 @@ public class Input : MoonTools.ECS.System
 		PlayerOneGamepad.Down = Inputs.GetGamepad(0).LeftYUp;
 		PlayerOneGamepad.Left = Inputs.GetGamepad(0).LeftXLeft;
 		PlayerOneGamepad.Right = Inputs.GetGamepad(0).LeftXRight;
-		PlayerOneGamepad.Interact = Inputs.GetGamepad(0).A;
+		PlayerOneGamepad.Interact = Inputs.GetGamepad(0).South;
 
 		PlayerTwoKeyboard.Up = Inputs.Keyboard.Button(KeyCode.Up);
 		PlayerTwoKeyboard.Down = Inputs.Keyboard.Button(KeyCode.Down);
@@ -63,7 +63,7 @@ public class Input : MoonTools.ECS.System
 		PlayerTwoGamepad.Down = Inputs.GetGamepad(1).LeftYUp;
 		PlayerTwoGamepad.Left = Inputs.GetGamepad(1).LeftXLeft;
 		PlayerTwoGamepad.Right = Inputs.GetGamepad(1).LeftXRight;
-		PlayerTwoGamepad.Interact = Inputs.GetGamepad(1).A;
+		PlayerTwoGamepad.Interact = Inputs.GetGamepad(1).South;
 	}
 
 	public override void Update(TimeSpan timeSpan)

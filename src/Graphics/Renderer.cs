@@ -246,7 +246,7 @@ public class Renderer : MoonTools.ECS.Renderer
 						str,
 						text.Size,
 						Matrix4x4.CreateTranslation(dropShadowPosition.X, dropShadowPosition.Y, depth - 1),
-						new Color(0, 0, 0, color.A),
+						new Color((byte)0, (byte)0, (byte)0, color.A),
 						text.HorizontalAlignment,
 						text.VerticalAlignment
 					);
