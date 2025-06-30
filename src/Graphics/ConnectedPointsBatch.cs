@@ -51,7 +51,7 @@ public class ConnectedPointsBatch
 			DepthStencilState = DepthStencilState.Disable,
 			MultisampleState = MultisampleState.None,
 			PrimitiveType = PrimitiveType.LineStrip,
-			RasterizerState = RasterizerState.CW_CullNone, // Not sure if it's actually CCW. Either way, unused for non-triangle primitives.
+			RasterizerState = RasterizerState.CW_CullNone, // FIXME: Not sure if it's actually CCW.
 			VertexInputState = VertexInputState.CreateSingleBinding<PositionVertex>(),
 			VertexShader = vertShader,
 			FragmentShader = fragShader,
@@ -142,10 +142,11 @@ public class ConnectedPointsBatch
 		}
 	}
 
-	public void Render(RenderPass renderPass)
+	public void Render(RenderPass renderPass, ViewProjectionMatrices viewProjectionMatrices)
 	{
 		renderPass.BindGraphicsPipeline(GraphicsPipeline);
 		renderPass.BindVertexBuffers(new BufferBinding(PointVertexBuffer, 0));
+		renderPass.CommandBuffer.PushVertexUniformData(viewProjectionMatrices.View * viewProjectionMatrices.Projection);
 
 		int firstVertex = 0;
 
@@ -153,7 +154,7 @@ public class ConnectedPointsBatch
 		{
 			var batchInfo = PointBatchInfos[i];
 
-			// TODO: Set frag shader uniform color
+			renderPass.CommandBuffer.PushFragmentUniformData(batchInfo.Color.ToVector4());
 			renderPass.DrawPrimitives((uint)batchInfo.NumVertices, 1, (uint)firstVertex, 0);
 
 			firstVertex += batchInfo.NumVertices;
@@ -161,15 +162,15 @@ public class ConnectedPointsBatch
 	}
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 16)]
+[StructLayout(LayoutKind.Explicit, Size = 12)]
 struct PositionVertex : IVertexType
 {
 	[FieldOffset(0)]
-	public Vector4 Position;
+	public Vector3 Position;
 
 	public static VertexElementFormat[] Formats { get; } =
 	[
-		VertexElementFormat.Float4
+		VertexElementFormat.Float3
 	];
 
 	public static uint[] Offsets { get; } =

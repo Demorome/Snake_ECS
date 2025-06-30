@@ -270,7 +270,8 @@ public class Renderer : MoonTools.ECS.Renderer
 				if (HasOutRelation<DontDraw>(entity))
 					continue;
 
-				var color = Color.BurlyWood;
+				var selfPosition = Get<Position>(entity);
+				var color = Color.BurlyWood; // FIXME: use detection color (alert state?)
 				color.A = 100;
 				var depth = 0; // FIXME: ensure this draws below most entities, but above the ground
 
@@ -278,6 +279,10 @@ public class Renderer : MoonTools.ECS.Renderer
 				{
 					continue;
 				}
+
+				ConnectedPointsBatch.AddPoint(
+					new Vector3(selfPosition.X, selfPosition.Y, depth)
+				);
 
 				foreach (var other in OutRelations<DetectionVisualPoint>(entity))
 				{
@@ -288,7 +293,6 @@ public class Renderer : MoonTools.ECS.Renderer
 					);
 				}
 
-				var selfPosition = Get<Position>(entity);
 				ConnectedPointsBatch.AddPoint(
 					new Vector3(selfPosition.X, selfPosition.Y, depth)
 				);
@@ -315,7 +319,7 @@ public class Renderer : MoonTools.ECS.Renderer
 
 			if (ConnectedPointsBatch.InstanceCount > 0)
 			{
-				ConnectedPointsBatch.Render(renderPass);
+				ConnectedPointsBatch.Render(renderPass, viewProjectionMatrices);
 			}
 
 			renderPass.BindGraphicsPipeline(TextPipeline);

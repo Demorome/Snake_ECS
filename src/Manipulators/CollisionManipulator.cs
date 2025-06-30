@@ -1,5 +1,3 @@
-#define ShowDebugRaycastVisuals
-
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -13,6 +11,8 @@ using RollAndCash.Messages;
 using RollAndCash.Relations;
 using RollAndCash.Utility;
 using Filter = MoonTools.ECS.Filter;
+
+//#define ShowDebugRaycastVisuals
 
 public class CollisionManipulator : MoonTools.ECS.Manipulator
 {

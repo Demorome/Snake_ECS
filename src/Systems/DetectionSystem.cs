@@ -35,7 +35,7 @@ public class DetectionSystem : MoonTools.ECS.System
         {
             var detectionArgs = Get<CanDetect>(entity);
             var angle = MathUtilities.AngleFromUnitVector(Get<Direction>(entity).Value);
-            var angleStep = float.DegreesToRadians(1f);
+            var angleStep = float.DegreesToRadians(5f);
             var maxAngle = angle + detectionArgs.ConeRadius;
 
             // TODO: Delay this removal with a timer?
@@ -59,8 +59,8 @@ public class DetectionSystem : MoonTools.ECS.System
                 }
                 else
                 {
-                    var direction = MathUtilities.SafeNormalize(new Vector2(MathF.Cos(angle), MathF.Sin(angle))) * detectionArgs.MaxDistance;
-                    stopPos = Get<Position>(entity).AsVector() * direction;
+                    var movement = MathUtilities.SafeNormalize(new Vector2(MathF.Cos(nthAngle), MathF.Sin(nthAngle))) * detectionArgs.MaxDistance;
+                    stopPos = Get<Position>(entity).AsVector() + movement;
 
                     foreach (var (other, hitPos) in CollisionManipulator.RaycastHits)
                     {
