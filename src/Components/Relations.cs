@@ -50,6 +50,9 @@ public readonly record struct ChangeAngleOverTime(
 
 public readonly record struct ColorBlendOverride(Color Color);
 
+public readonly record struct Detected();
+public readonly record struct DetectionVisualPoint();
+
 
 // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
 public readonly record struct Invincible();

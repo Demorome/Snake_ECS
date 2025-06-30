@@ -19,6 +19,7 @@ public class Renderer : MoonTools.ECS.Renderer
 	GraphicsDevice GraphicsDevice;
 	GraphicsPipeline TextPipeline;
 	TextBatch TextBatch;
+	ConnectedPointsBatch ConnectedPointsBatch;
 
 	SpriteBatch ArtSpriteBatch;
 
@@ -32,6 +33,7 @@ public class Renderer : MoonTools.ECS.Renderer
 	MoonTools.ECS.Filter RectangleFilter;
 	MoonTools.ECS.Filter TextFilter;
 	MoonTools.ECS.Filter SpriteAnimationFilter;
+	MoonTools.ECS.Filter DetectionConeFilter;
 
 	public Renderer(World world, GraphicsDevice graphicsDevice, TitleStorage titleStorage, TextureFormat swapchainFormat) : base(world)
 	{
@@ -40,6 +42,7 @@ public class Renderer : MoonTools.ECS.Renderer
 		RectangleFilter = FilterBuilder.Include<Rectangle>().Include<Position>().Include<DrawAsRectangle>().Build();
 		TextFilter = FilterBuilder.Include<Text>().Include<Position>().Build();
 		SpriteAnimationFilter = FilterBuilder.Include<SpriteAnimation>().Include<Position>().Build();
+		DetectionConeFilter = FilterBuilder.Include<CanDetect>().Include<Position>().Include<DrawDetectionCone>().Build();
 
 		RenderTexture = Texture.Create2D(GraphicsDevice, "Render Texture", Dimensions.GAME_W, Dimensions.GAME_H, swapchainFormat, TextureUsageFlags.ColorTarget | TextureUsageFlags.Sampler);
 		DepthTexture = Texture.Create2D(GraphicsDevice, "Depth Texture", Dimensions.GAME_W, Dimensions.GAME_H, TextureFormat.D16Unorm, TextureUsageFlags.DepthStencilTarget);
@@ -83,6 +86,8 @@ public class Renderer : MoonTools.ECS.Renderer
 		PointSampler = Sampler.Create(GraphicsDevice, SamplerCreateInfo.PointClamp);
 
 		ArtSpriteBatch = new SpriteBatch(GraphicsDevice, titleStorage, swapchainFormat, TextureFormat.D16Unorm);
+
+		ConnectedPointsBatch = new ConnectedPointsBatch(GraphicsDevice, titleStorage, swapchainFormat, TextureFormat.D16Unorm);
 	}
 
 	private Color GetColorBlend(Entity e)
@@ -259,9 +264,43 @@ public class Renderer : MoonTools.ECS.Renderer
 
 			}
 
-			ArtSpriteBatch.Upload(commandBuffer);
-			TextBatch.UploadBufferData(commandBuffer);
+			ConnectedPointsBatch.Start();
+			foreach (var entity in DetectionConeFilter.Entities)
+			{
+				if (HasOutRelation<DontDraw>(entity))
+					continue;
 
+				var color = Color.BurlyWood;
+				color.A = 100;
+				var depth = 0; // FIXME: ensure this draws below most entities, but above the ground
+
+				if (!HasOutRelation<DetectionVisualPoint>(entity))
+				{
+					continue;
+				}
+
+				foreach (var other in OutRelations<DetectionVisualPoint>(entity))
+				{
+					var position = Get<Position>(other);
+
+					ConnectedPointsBatch.AddPoint(
+						new Vector3(position.X, position.Y, depth)
+					);
+				}
+
+				var selfPosition = Get<Position>(entity);
+				ConnectedPointsBatch.AddPoint(
+					new Vector3(selfPosition.X, selfPosition.Y, depth)
+				);
+
+				ConnectedPointsBatch.RecordPointBatch(color);
+			}
+
+			ArtSpriteBatch.Upload(commandBuffer); // Copy and Compute passes happen here!
+			TextBatch.UploadBufferData(commandBuffer);
+			ConnectedPointsBatch.Upload(commandBuffer);
+
+#region RENDER PASS START
 			var renderPass = commandBuffer.BeginRenderPass(
 				new DepthStencilTargetInfo(DepthTexture, 1, 0),
 				new ColorTargetInfo(RenderTexture, Color.Black)
@@ -274,14 +313,21 @@ public class Renderer : MoonTools.ECS.Renderer
 				ArtSpriteBatch.Render(renderPass, SpriteAtlasTexture, PointSampler, viewProjectionMatrices);
 			}
 
+			if (ConnectedPointsBatch.InstanceCount > 0)
+			{
+				ConnectedPointsBatch.Render(renderPass);
+			}
+
 			renderPass.BindGraphicsPipeline(TextPipeline);
 			TextBatch.Render(renderPass, GetCameraMatrix() * GetProjectionMatrix());
 
 			commandBuffer.EndRenderPass(renderPass);
+#endregion
 
 			commandBuffer.Blit(RenderTexture, swapchainTexture, MoonWorks.Graphics.Filter.Nearest);
 		}
 
+		// You must always submit the command buffer.
 		GraphicsDevice.Submit(commandBuffer);
 	}
 

@@ -21,6 +21,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         new SpatialHash<Entity>(0, 0, Dimensions.GAME_W, Dimensions.GAME_H, 32);
 
     public static HashSet<Entity> HitEntities = new HashSet<Entity>();
+    public static Dictionary<Entity, Vector2> RaycastHits = new();
 
     public Filter CollisionFilter;
 
@@ -61,10 +62,10 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
     }
 
     // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
-    bool CheckFlagsToRegisterCollision(
+    bool CheckCollisionFlags(
         Entity other,
         CollisionLayer collideLayer,
-        CollisionLayer excludeLayer = 0
+        CollisionLayer excludeLayer = CollisionLayer.None
         )
     {
         var otherLayer = Get<Layer>(other);
@@ -73,7 +74,6 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
             (excludeLayer & otherLayer.Collide) == 0
             )
         {
-            HitEntities.Add(other);
             return true;
         }
         return false;
@@ -95,8 +95,9 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         {
             if (worldPosRect.Intersects(otherRect))
             {
-                if (CheckFlagsToRegisterCollision(other, collideLayer, excludeLayer))
+                if (CheckCollisionFlags(other, collideLayer, excludeLayer))
                 {
+                    HitEntities.Add(other);
                     stopMovement = !CanMoveThroughDespiteCollision(Get<Layer>(other), canMoveLayer);
                 }
             }
@@ -162,15 +163,15 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         Set(entity, new Depth(100f)); // draw behind most things
     }
 
-    public (bool hit, Position stopPos) Raycast_vs_AABBs(
+    public (bool hit, Entity? stoppedAtEntity) Raycast_vs_AABBs(
         Entity source,
         float angle,
         float maxDistance,
         CollisionLayer rayLayer,
-        CollisionLayer canMoveLayer = 0 // TODO: Handle this in some special way
+        CollisionLayer canMoveLayer = CollisionLayer.None
         )
     {
-        HitEntities.Clear();
+        RaycastHits.Clear();
 
         var direction = MathUtilities.SafeNormalize(new Vector2(MathF.Cos(angle), MathF.Sin(angle))) * maxDistance;
         var invDir = new Vector2(1, 1) / direction;
@@ -219,13 +220,32 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
                         var (hit, hitPos) = RayCollision.Intersects_AABB(startVec, direction, invDir, otherRect/*otherRect.TopLeft(), otherRect.BottomRight()*/);
                         if (hit)
                         {
-                            if (CheckFlagsToRegisterCollision(other, rayLayer))
+                            if (CheckCollisionFlags(other, rayLayer))
                             {
 #if ShowDebugRaycastVisuals
                                 Console.WriteLine($"Raycast hit at: {hitPos}");
                                 Debug_ShowCollisionPos(new Position(hitPos));
                                 Debug_ShowEntityHasBeenCollided(other);
 #endif
+
+                                if (RaycastHits.ContainsKey(other))
+                                {
+                                    // Only store closest collision to ray.
+                                    if (Vector2.DistanceSquared(startVec, hitPos) < Vector2.DistanceSquared(startVec, RaycastHits[other]))
+                                    {
+                                        RaycastHits[other] = hitPos;
+                                    }
+                                }
+                                else
+                                {
+                                    RaycastHits.Add(other, hitPos);
+                                }
+
+                                if ((canMoveLayer & Get<Layer>(other).Collide) == 0)
+                                {
+                                    // Can't move through this collision; ray stops.
+                                    return (true, other);
+                                }
                             }
                             else
                             {
@@ -239,7 +259,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
             }
         }
 
-        return (HitEntities.Count != 0, new Position());
+        return (RaycastHits.Count != 0, null);
     }
 
     // Useful when the possible collision objects all occupy the same size on a grid, such as walls.

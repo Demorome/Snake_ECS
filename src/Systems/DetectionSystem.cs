@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 using MoonTools.ECS;
 using RollAndCash.Components;
 using RollAndCash.Relations;
@@ -16,7 +17,7 @@ public class DetectionSystem : MoonTools.ECS.System
         CollisionManipulator = new CollisionManipulator(world);
 
         DetecterFilter = FilterBuilder
-        //.Include<CanDetect>()
+        .Include<CanDetect>()
         .Include<Direction>()
         .Build();
     }
@@ -25,19 +26,55 @@ public class DetectionSystem : MoonTools.ECS.System
     {
         CollisionManipulator.ResetCollidersSpatialHash();
 
+        foreach (var (_, other) in Relations<DetectionVisualPoint>())
+        {
+            Destroy(other);
+        }  
+
         foreach (var entity in DetecterFilter.Entities)
         {
-            //var detectionArgs = Get<CanDetect>(entity);
-
+            var detectionArgs = Get<CanDetect>(entity);
             var angle = MathUtilities.AngleFromUnitVector(Get<Direction>(entity).Value);
-            //var angle = (MathF.PI / 4);
-            //var angle = float.DegreesToRadians(45f);
+            var angleStep = float.DegreesToRadians(1f);
+            var maxAngle = angle + detectionArgs.ConeRadius;
 
-            // TODO: use AngleRadius to determine range of raycasts to shoot.
-            //for ()
-            //{
-            CollisionManipulator.Raycast_vs_AABBs(entity, angle, 100f, CollisionLayer.Level);
-            //}
+            // TODO: Delay this removal with a timer?
+            foreach (var other in OutRelations<Detected>(entity))
+            {
+                Unrelate<Detected>(other, entity);
+            }
+
+            for (float nthAngle = angle - detectionArgs.ConeRadius; nthAngle < maxAngle; nthAngle += angleStep)
+            {
+                var (hit, stoppedAtEntity) = CollisionManipulator.Raycast_vs_AABBs(entity, nthAngle, detectionArgs.MaxDistance,
+                    CollisionLayer.Player | CollisionLayer.Level,
+                    CollisionLayer.Player
+                );
+
+                Vector2 stopPos;
+
+                if (stoppedAtEntity.HasValue)
+                {
+                    stopPos = CollisionManipulator.RaycastHits[stoppedAtEntity.Value];
+                }
+                else
+                {
+                    var direction = MathUtilities.SafeNormalize(new Vector2(MathF.Cos(angle), MathF.Sin(angle))) * detectionArgs.MaxDistance;
+                    stopPos = Get<Position>(entity).AsVector() * direction;
+
+                    foreach (var (other, hitPos) in CollisionManipulator.RaycastHits)
+                    {
+                        if (Has<CanBeDetected>(other))
+                        {
+                            Relate(other, entity, new Detected());
+                        }
+                    }
+                }
+
+                var pointEntity = CreateEntity();
+                Relate(entity, pointEntity, new DetectionVisualPoint());
+                Set(pointEntity, new Position(stopPos));
+            }
         }
     }
 }

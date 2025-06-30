@@ -119,6 +119,8 @@ public readonly record struct AccelerateToPosition(Position Target, float Accele
 public readonly record struct DestroyAtGameEnd();
 public readonly record struct DealsDamageOnContact(int Damage);
 public readonly record struct CanDetect(float ConeRadius, float MaxDistance);
+public readonly record struct DrawDetectionCone();
+public readonly record struct CanBeDetected();
 
 public readonly record struct DestroyWhenOutOfBounds();
 
