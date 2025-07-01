@@ -153,8 +153,9 @@ public enum CollisionLayer
     Pickup = 32,
     PlayerActor = Player | Actor | Level | Pickup,
     EnemyActor = Enemy | Actor,
-    PlayerBullet = Enemy | Bullet,
-    EnemyBullet = Player | Bullet
+    PlayerBullet = Enemy | Bullet | Level,
+    EnemyBullet = Player | Bullet | Level,
+    DetectionCone = Player | Level
 }
 public readonly record struct Layer(CollisionLayer Collide, CollisionLayer Exclude = 0);
 public readonly record struct CanMoveThroughDespiteCollision(CollisionLayer Value);
@@ -163,4 +164,5 @@ public readonly record struct BecomeInvincibleOnDamage(float Time);
 public readonly record struct MarkedForDestroy();
 public readonly record struct DestroyOnCollision();
 public readonly record struct HasHealth(int Health);
-public readonly record struct MaxDistance(float Value);
+// FIXME: Implement behavior
+public readonly record struct MaxMovementDistance(float Value);
