@@ -22,18 +22,19 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
 
     public Entity CreateProjectile(
         Vector2 position, 
-        CollisionLayer layer, 
+        Layer layer, 
         Vector2 direction, 
         float hitscanSpeed,
         float speed, // ignored if hitscanSpeed > 0
-        float maxDistance
+        float maxDistance,
+        bool destroyOnCollision = true
         )
     {
         var entity = CreateEntity();
         Set(entity, new SpriteAnimation(SpriteAnimations.Projectile));
         Set(entity, new Position(position));
         Set(entity, new Rectangle(-2, -3, 4, 6));
-        Set(entity, new Layer(layer, CollisionLayer.Bullet));
+        Set(entity, layer);
         direction = MathUtilities.SafeNormalize(direction);
         Set(entity, new Direction(direction));
 
@@ -41,20 +42,24 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
         {
             Set(entity, new HitscanSpeed(hitscanSpeed));
             Set(entity, new Speed(0f)); // to satisfy filters
+            // FIXME: Remove this hack
             Set(entity, new CanMoveThroughDespiteCollision(CollisionLayer.Player));
         }
         else
         {
             Set(entity, new Speed(speed));
-            Set(entity, new DestroyOnCollision());
         }
         if (maxDistance > 0)
         {
-            Set(entity, new MaxDistance(maxDistance));
+            Set(entity, new MaxMovementDistance(maxDistance));
         }
 
         Set(entity, new DealsDamageOnContact(1));
         Set(entity, new DestroyWhenOutOfBounds());
+        if (destroyOnCollision)
+        {
+            Set(entity, new DestroyOnCollision());
+        }
 
         return entity;
     }
@@ -64,7 +69,7 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
     // For Undertale-style attacks that are fired from the void.
     public Entity ShootFromArea(
         Vector2 position,
-        CollisionLayer layer,
+        Layer layer,
         Vector2 direction,
         float hitscanSpeed,
         float speed, // ignored if HitscanSpeed > 0
@@ -136,7 +141,7 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
     {
         var proj = ShootFromArea(
             position,
-            CollisionLayer.EnemyBullet,
+            new Layer(CollisionLayer.EnemyBullet, CollisionLayer.Bullet),
             direction,
             hitscanSpeed,
             speed,

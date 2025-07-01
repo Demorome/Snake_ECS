@@ -165,17 +165,15 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
 
     public (bool hit, Entity? stoppedAtEntity) Raycast_vs_AABBs(
         Entity source,
-        float angle,
+        Vector2 direction,
         float maxDistance,
-        CollisionLayer rayLayer,
+        Layer rayLayer,
         CollisionLayer canMoveLayer = CollisionLayer.None
-        )
+    )
     {
         RaycastHits.Clear();
 
-        var direction = MathUtilities.SafeNormalize(new Vector2(MathF.Cos(angle), MathF.Sin(angle))) * maxDistance;
         var invDir = new Vector2(1, 1) / direction;
-
         Position startPos = Get<Position>(source);
 
         // TEST!!!
@@ -220,7 +218,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
                         var (hit, hitPos) = RayCollision.Intersects_AABB(startVec, direction, invDir, otherRect/*otherRect.TopLeft(), otherRect.BottomRight()*/);
                         if (hit)
                         {
-                            if (CheckCollisionFlags(other, rayLayer))
+                            if (CheckCollisionFlags(other, rayLayer.Collide, rayLayer.Exclude))
                             {
 #if ShowDebugRaycastVisuals
                                 Console.WriteLine($"Raycast hit at: {hitPos}");
@@ -260,6 +258,18 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         }
 
         return (RaycastHits.Count != 0, null);
+    }
+
+    public (bool hit, Entity? stoppedAtEntity) Raycast_vs_AABBs(
+        Entity source,
+        float angle,
+        float maxDistance,
+        Layer rayLayer,
+        CollisionLayer canMoveLayer = CollisionLayer.None
+        )
+    {
+        var direction = MathUtilities.SafeNormalize(new Vector2(MathF.Cos(angle), MathF.Sin(angle))) * maxDistance;
+        return Raycast_vs_AABBs(source, direction, maxDistance, rayLayer, canMoveLayer);
     }
 
     // Useful when the possible collision objects all occupy the same size on a grid, such as walls.

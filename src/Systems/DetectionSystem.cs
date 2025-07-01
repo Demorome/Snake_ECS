@@ -47,7 +47,7 @@ public class DetectionSystem : MoonTools.ECS.System
             for (float nthAngle = angle - detectionArgs.ConeRadius; nthAngle < maxAngle; nthAngle += angleStep)
             {
                 var (hit, stoppedAtEntity) = CollisionManipulator.Raycast_vs_AABBs(entity, nthAngle, detectionArgs.MaxDistance,
-                    CollisionLayer.Player | CollisionLayer.Level,
+                    new Layer(CollisionLayer.DetectionCone, CollisionLayer.None), // don't need to exclude, since detection cones aren't stored as colliders.
                     CollisionLayer.Player
                 );
 

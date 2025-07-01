@@ -41,7 +41,7 @@ public class Motion : MoonTools.ECS.System
         .Build();
     }
 
-    void HandleCollisions(Entity e)
+    void HandleRegularCollisions(Entity e)
     {
         // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
         foreach (var other in CollisionManipulator.HitEntities)
@@ -63,6 +63,27 @@ public class Motion : MoonTools.ECS.System
         }
     }
 
+    void HandleHitscanCollisions(Entity e)
+    {
+        // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
+        foreach (var (other, _) in CollisionManipulator.RaycastHits)
+        {
+            bool duplicate = false;
+            foreach (var msg in ReadMessages<Collide>())
+            {
+                if (msg.A == other && msg.B == e)
+                {
+                    duplicate = true;
+                    break;
+                }
+            }
+
+            if (!duplicate)
+            {
+                Send(new Collide(e, other));
+            }
+        }
+    }
 
     Position HighSpeedSweepTest(Entity e, float travelDistance, float dt)
     {
@@ -175,7 +196,7 @@ public class Motion : MoonTools.ECS.System
         return position + movement;
     }
 
-    Position DoMovement(Entity entity, Position entityPos, float baseSpeed, TimeSpan delta)
+    Position DoRegularMovement(Entity entity, Position entityPos, float baseSpeed, float secondsDelta)
     {
         var speed = baseSpeed;
         foreach (var otherEntity in OutRelations<SpeedMult>(entity))
@@ -189,22 +210,50 @@ public class Motion : MoonTools.ECS.System
         {
             if (speed >= HighSpeedMin)
             {
-                return HighSpeedSweepTest(entity, speed, (float)delta.TotalSeconds);
+                return HighSpeedSweepTest(entity, speed, secondsDelta);
             }
             else
             {
-                return SweepTest(entity, vel, (float)delta.TotalSeconds);
+                return SweepTest(entity, vel, secondsDelta);
             }
         }
         else
         {
-            var scaledVelocity = vel * (float)delta.TotalSeconds;
+            var scaledVelocity = vel * secondsDelta;
             if (Has<ForceIntegerMovement>(entity))
             {
                 scaledVelocity = new Vector2((int)scaledVelocity.X, (int)scaledVelocity.Y);
             }
             return entityPos + scaledVelocity;
         }
+    }
+
+    // FIXME: Currently ignores the entity's AABB; just shoots a thin ray.
+    Position DoHitscanMovement(Entity e, float secondsDelta)
+    {
+        float hitscanSpeed = Get<HitscanSpeed>(e).Value;
+        var direction = Get<Direction>(e).Value;
+        //float maxDistance = Has<MaxMovementDistance>(e) ? Get<MaxMovementDistance>(e).Value : hitscanSpeed;
+        float scaledVelocity = hitscanSpeed * secondsDelta;
+
+        var rayLayer = Get<Layer>(e);
+        var canMoveThroughLayer = Has<CanMoveThroughDespiteCollision>(e) ? Get<CanMoveThroughDespiteCollision>(e).Value : CollisionLayer.None;
+
+        var (hit, stoppedAtEntity) = CollisionManipulator.Raycast_vs_AABBs(e, direction, scaledVelocity, rayLayer, canMoveThroughLayer);
+
+        Vector2 endPos;
+        if (stoppedAtEntity.HasValue)
+        {
+            endPos = CollisionManipulator.RaycastHits[stoppedAtEntity.Value];
+        }
+        else {
+            endPos = Get<Position>(e).AsVector() + (direction * scaledVelocity);
+        }
+
+        // FIXME: Check if we've travelled the MaxDistance.
+        // If so, stop any future movement.
+
+        return new Position(endPos);
     }
 
     public override void Update(TimeSpan delta)
@@ -252,41 +301,43 @@ public class Motion : MoonTools.ECS.System
 
             var pos = Get<Position>(entity);
             Set(entity, new LastPosition(pos.AsVector()));
-            
-            float baseSpeed;
+
             if (Has<HitscanSpeed>(entity))
             {
-                baseSpeed = Get<HitscanSpeed>(entity).Value;
+                pos = DoHitscanMovement(entity, (float)delta.TotalSeconds);
+                Set(entity, pos);
+                HandleHitscanCollisions(entity);
             }
-            else 
+            else
             {
-                baseSpeed = Get<Speed>(entity).Value;
-            }
-            if (Has<SpeedAcceleration>(entity))
-            {
-                baseSpeed = baseSpeed * Get<SpeedAcceleration>(entity).Value;
-            }
-            var baseVel = baseSpeed * Get<Direction>(entity).Value;
+                float baseSpeed = Get<Speed>(entity).Value;
+                if (Has<SpeedAcceleration>(entity))
+                {
+                    baseSpeed *= Get<SpeedAcceleration>(entity).Value;
+                }
+                var baseVel = baseSpeed * Get<Direction>(entity).Value;
 
-            pos = DoMovement(entity, pos, baseSpeed, delta);
-            Set(entity, pos);
-            HandleCollisions(entity);
+                // FIXME: Ensure it won't crash when going outside the screen position.
+                pos = DoRegularMovement(entity, pos, baseSpeed, (float)delta.TotalSeconds);
+                Set(entity, pos);
+                HandleRegularCollisions(entity);
 
-            if (Has<FallSpeed>(entity))
-            {
-                var fallspeed = Get<FallSpeed>(entity).Speed;
-                baseVel += Vector2.UnitY * fallspeed;
+                if (Has<FallSpeed>(entity))
+                {
+                    var fallspeed = Get<FallSpeed>(entity).Speed;
+                    baseVel += Vector2.UnitY * fallspeed;
+                }
+
+                if (Has<MotionDamp>(entity))
+                {
+                    var dampSpeed = Vector2.Distance(Vector2.Zero, baseVel) - Get<MotionDamp>(entity).Damping;
+                    dampSpeed = MathF.Max(dampSpeed, 0);
+                    baseVel = dampSpeed * MathUtilities.SafeNormalize(baseVel);
+                }
+
+                Set(entity, new Speed(baseVel.Length()));
+                Set(entity, new Direction(MathUtilities.SafeNormalize(baseVel)));
             }
-
-            if (Has<MotionDamp>(entity))
-            {
-                var dampSpeed = Vector2.Distance(Vector2.Zero, baseVel) - Get<MotionDamp>(entity).Damping;
-                dampSpeed = MathF.Max(dampSpeed, 0);
-                baseVel = dampSpeed * MathUtilities.SafeNormalize(baseVel);
-            }
-
-            Set(entity, new Speed(baseVel.Length()));
-            Set(entity, new Direction(MathUtilities.SafeNormalize(baseVel)));
 
             if (Has<DestroyAtScreenBottom>(entity) && pos.Y > Dimensions.GAME_H - 32)
             {
@@ -313,7 +364,7 @@ public class Motion : MoonTools.ECS.System
                     ));
                 }*/
 
-                Destroy(entity);
+                Set(entity, new MarkedForDestroy());
                 continue;
             }
 
@@ -327,7 +378,7 @@ public class Motion : MoonTools.ECS.System
                         Destroy(heldEntity);
                     }*/
 
-                    Destroy(entity);
+                    Set(entity, new MarkedForDestroy());
                     continue;
                 }
             }
@@ -343,7 +394,7 @@ public class Motion : MoonTools.ECS.System
                 InteractSpatialHash.Insert(entity, GetWorldRect(position, rect));
             }*/
 
-            if (Has<Layer>(entity))
+            if (Has<Layer>(entity) && Has<Rectangle>(entity))
             {
                 var position = Get<Position>(entity);
                 var rect = Get<Rectangle>(entity);
