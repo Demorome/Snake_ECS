@@ -28,24 +28,6 @@ public readonly record struct SetAnimationMessage(
 public readonly record struct PlaySongMessage();
 public readonly record struct PlayTitleMusic();
 public readonly record struct EndGame();
-
-// Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
-public readonly record struct ShootFromEntity(
-	Entity Source, 
-	CollisionLayer Layer, 
-	Vector2 Direction, 
-	float Speed
-);
-public readonly record struct ShootFromArea(
-	Vector2 Position, 
-	CollisionLayer Layer, 
-	Vector2 Direction,
-	float HitscanSpeed,
-	float Speed, // ignored if HitscanSpeed > 0
-	float MaxDistance,
-	float DelayTime = 0f,
-	Entity Target = default
-);
 public readonly record struct DealDamage(Entity Target, int Damage);
 public readonly record struct Collide(Entity A, Entity B);
 public readonly record struct StartFlickering(Entity Target, float TotalTime, float FlickerTime);

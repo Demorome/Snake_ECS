@@ -12,7 +12,6 @@ public readonly record struct UpdateDisplayScoreOnDestroy(bool Negative);
 public readonly record struct TimingFootstepAudio();
 public readonly record struct TeleportToAtTimerEnd(Entity TeleportTo);
 public readonly record struct Targeting();
-public readonly record struct DeleteWhenTimerEnds();
 public readonly record struct TrailingVisuals();
 public readonly record struct Source();
 public readonly record struct PositionFollowing();
@@ -52,6 +51,7 @@ public readonly record struct ColorBlendOverride(Color Color);
 
 public readonly record struct Detected();
 public readonly record struct DetectionVisualPoint();
+public readonly record struct ChargingUpAttackTimer();
 
 
 // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
