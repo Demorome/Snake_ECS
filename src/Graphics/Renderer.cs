@@ -19,7 +19,7 @@ public class Renderer : MoonTools.ECS.Renderer
 	GraphicsDevice GraphicsDevice;
 	GraphicsPipeline TextPipeline;
 	TextBatch TextBatch;
-	ConnectedPointsBatch ConnectedPointsBatch;
+	TriangleBatch TriangleBatch;
 
 	SpriteBatch ArtSpriteBatch;
 
@@ -87,7 +87,7 @@ public class Renderer : MoonTools.ECS.Renderer
 
 		ArtSpriteBatch = new SpriteBatch(GraphicsDevice, titleStorage, swapchainFormat, TextureFormat.D16Unorm);
 
-		ConnectedPointsBatch = new ConnectedPointsBatch(GraphicsDevice, titleStorage, swapchainFormat, TextureFormat.D16Unorm);
+		TriangleBatch = new TriangleBatch(GraphicsDevice, titleStorage, swapchainFormat, TextureFormat.D16Unorm);
 	}
 
 	private Color GetColorBlend(Entity e)
@@ -264,45 +264,50 @@ public class Renderer : MoonTools.ECS.Renderer
 
 			}
 
-			ConnectedPointsBatch.Start();
+			TriangleBatch.Start();
 			foreach (var entity in DetectionConeFilter.Entities)
 			{
 				if (HasOutRelation<DontDraw>(entity))
 					continue;
 
 				var selfPosition = Get<Position>(entity);
-				var color = Color.BurlyWood; // FIXME: use detection color (alert state?)
+				var color = HasInRelation<Detected>(entity) ? Color.Red : Color.Green; // FIXME: use detection color (alert state?)
 				color.A = 100;
-				var depth = 0; // FIXME: ensure this draws below most entities, but above the ground
+				var depth = -10; // FIXME: ensure this draws below most entities, but above the ground
 
-				if (!HasOutRelation<DetectionVisualPoint>(entity))
+				var selfPosVec = new Vector3(selfPosition.X, selfPosition.Y, depth);
+				var colorVec = color.ToVector4();
+
+				var numPoints = OutRelationCount<DetectionVisualPoint>(entity);
+				if (numPoints < 2)
 				{
 					continue;
 				}
 
-				ConnectedPointsBatch.AddPoint(
-					new Vector3(selfPosition.X, selfPosition.Y, depth)
-				);
-
-				foreach (var other in OutRelations<DetectionVisualPoint>(entity))
+				var points = OutRelations<DetectionVisualPoint>(entity);
+				points.MoveNext(); // points to OOB at the start
+				var prevOther = points.Current;
+				while (points.MoveNext())
 				{
+					var other = points.Current;
 					var position = Get<Position>(other);
+					var prevPos = Get<Position>(prevOther);
 
-					ConnectedPointsBatch.AddPoint(
-						new Vector3(position.X, position.Y, depth)
+					// FIXME: Order of positions matters for winding order.
+					TriangleBatch.AddTriangle(
+						colorVec,
+						new Vector3(position.X, position.Y, depth),
+						new Vector3(prevPos.X, prevPos.Y, depth),
+						selfPosVec
 					);
+
+					prevOther = other;
 				}
-
-				ConnectedPointsBatch.AddPoint(
-					new Vector3(selfPosition.X, selfPosition.Y, depth)
-				);
-
-				ConnectedPointsBatch.RecordPointBatch(color);
 			}
 
 			ArtSpriteBatch.Upload(commandBuffer); // Copy and Compute passes happen here!
 			TextBatch.UploadBufferData(commandBuffer);
-			ConnectedPointsBatch.Upload(commandBuffer);
+			TriangleBatch.Upload(commandBuffer);
 
 #region RENDER PASS START
 			var renderPass = commandBuffer.BeginRenderPass(
@@ -317,9 +322,9 @@ public class Renderer : MoonTools.ECS.Renderer
 				ArtSpriteBatch.Render(renderPass, SpriteAtlasTexture, PointSampler, viewProjectionMatrices);
 			}
 
-			if (ConnectedPointsBatch.InstanceCount > 0)
+			if (TriangleBatch.InstanceCount > 0)
 			{
-				ConnectedPointsBatch.Render(renderPass, viewProjectionMatrices);
+				TriangleBatch.Render(renderPass, viewProjectionMatrices);
 			}
 
 			renderPass.BindGraphicsPipeline(TextPipeline);

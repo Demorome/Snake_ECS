@@ -50,6 +50,7 @@ public class PlayerController : MoonTools.ECS.System
 		Set(player, new InputState());
 		Set(player, new HasHealth(5));
 		Set(player, new BecomeInvincibleOnDamage(1f));
+		Set(player, new CanBeDetected());
 		/*
 		Set(player, new DirectionalSprites(
 			index == 0 ? Content.SpriteAnimations.Char_Walk_Up.ID : Content.SpriteAnimations.Char2_Walk_Up.ID,

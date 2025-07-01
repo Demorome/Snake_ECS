@@ -1,5 +1,6 @@
 using MoonWorks.Graphics;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks.Dataflow;
@@ -7,9 +8,9 @@ using Buffer = MoonWorks.Graphics.Buffer;
 
 namespace RollAndCash;
 
-public class ConnectedPointsBatch
+public class TriangleBatch
 {
-	const int MAX_POINT_COUNT = 8192;
+	const int MAX_TRI_COUNT = 8192;
 
 	GraphicsDevice GraphicsDevice;
 	GraphicsPipeline GraphicsPipeline;
@@ -18,22 +19,17 @@ public class ConnectedPointsBatch
 	public uint InstanceCount => (uint) InstanceIndex;
 
 	TransferBuffer InstanceTransferBuffer;
-	Buffer PointVertexBuffer;
-	
-	List<PointBatchInfo> PointBatchInfos = new();
-	int BatchIndex;
-	public uint BatchCount => (uint)BatchIndex;
-	int LastBatchAmount;
+	Buffer TriangleVertexBuffer;
 
-	public ConnectedPointsBatch(GraphicsDevice graphicsDevice, MoonWorks.Storage.TitleStorage titleStorage, TextureFormat renderTextureFormat, TextureFormat? depthTextureFormat = null)
+	public TriangleBatch(GraphicsDevice graphicsDevice, MoonWorks.Storage.TitleStorage titleStorage, TextureFormat renderTextureFormat, TextureFormat? depthTextureFormat = null)
 	{
 		GraphicsDevice = graphicsDevice;
 
 		var shaderContentPath = "Content/Shaders";
 
-		var vertShader = ShaderCross.Create(GraphicsDevice, titleStorage, $"{shaderContentPath}/ConnectedPointsBatch.vert.hlsl.spv", "main",
+		var vertShader = ShaderCross.Create(GraphicsDevice, titleStorage, $"{shaderContentPath}/TriangleBatch.vert.hlsl.spv", "main",
 			ShaderCross.ShaderFormat.SPIRV, ShaderStage.Vertex);
-		var fragShader = ShaderCross.Create(GraphicsDevice, titleStorage, $"{shaderContentPath}/ConnectedPointsBatch.frag.hlsl.spv", "main",
+		var fragShader = ShaderCross.Create(GraphicsDevice, titleStorage, $"{shaderContentPath}/TriangleBatch.frag.hlsl.spv", "main",
 			ShaderCross.ShaderFormat.SPIRV, ShaderStage.Fragment);
 
 		var createInfo = new GraphicsPipelineCreateInfo
@@ -50,12 +46,12 @@ public class ConnectedPointsBatch
 			},
 			DepthStencilState = DepthStencilState.Disable,
 			MultisampleState = MultisampleState.None,
-			PrimitiveType = PrimitiveType.LineStrip,
-			RasterizerState = RasterizerState.CW_CullNone, // FIXME: Not sure if it's actually CCW.
-			VertexInputState = VertexInputState.CreateSingleBinding<PositionVertex>(),
+			PrimitiveType = PrimitiveType.TriangleList,
+			RasterizerState = RasterizerState.CCW_CullNone, // FIXME: Not sure if it's actually CCW.
+			VertexInputState = VertexInputState.CreateSingleBinding<PositionColorVertex>(),
 			VertexShader = vertShader,
 			FragmentShader = fragShader,
-			Name = "ConnectedPointsBatch Pipeline"
+			Name = "TriangleBatch Pipeline"
 		};
 
 		if (depthTextureFormat.HasValue)
@@ -79,52 +75,53 @@ public class ConnectedPointsBatch
 		fragShader.Dispose();
 		vertShader.Dispose();
 
-		InstanceTransferBuffer = TransferBuffer.Create<PointInstanceData>(
+		InstanceTransferBuffer = TransferBuffer.Create<TriangleVertexInstanceData>(
 			GraphicsDevice,
-			"ConnectedPointsBatch InstanceTransferBuffer",
+			"TriangleBatch InstanceTransferBuffer",
 			TransferBufferUsage.Upload,
-			MAX_POINT_COUNT
+			MAX_TRI_COUNT * 3
 		);
 
 		InstanceIndex = 0;
-		BatchIndex = 0;
-		LastBatchAmount = 0;
 
-		PointVertexBuffer = Buffer.Create<PositionVertex>(
+		TriangleVertexBuffer = Buffer.Create<PositionColorVertex>(
 			GraphicsDevice,
 			"Point Vertex",
 			BufferUsageFlags.Vertex,
-			MAX_POINT_COUNT
+			MAX_TRI_COUNT * 3
 		);
 	}
 
-	// Call this before adding connected points
+	// Call this before adding connected triangles
 	public void Start()
 	{
 		InstanceIndex = 0;
-		BatchIndex = 0;
-		LastBatchAmount = 0;
 		InstanceTransferBuffer.Map(true);
-		PointBatchInfos.Clear();
 	}
 
-	// Add connected points to the batch
-	public void AddPoint(
-		Vector3 position
+	public void AddTriangle(
+		Vector4 color,
+		Vector3 position1,
+		Vector3 position2,
+		Vector3 position3
 	)
 	{
-		var instanceDatas = InstanceTransferBuffer.MappedSpan<PointInstanceData>();
-		instanceDatas[InstanceIndex].Translation = position;
+		var instanceDatas = InstanceTransferBuffer.MappedSpan<TriangleVertexInstanceData>();
+		instanceDatas[InstanceIndex].Translation = position1;
+		instanceDatas[InstanceIndex].Color = color;
+		InstanceIndex += 1;
+
+		instanceDatas = InstanceTransferBuffer.MappedSpan<TriangleVertexInstanceData>();
+		instanceDatas[InstanceIndex].Translation = position2;
+		instanceDatas[InstanceIndex].Color = color;
+		InstanceIndex += 1;
+		
+		instanceDatas = InstanceTransferBuffer.MappedSpan<TriangleVertexInstanceData>();
+		instanceDatas[InstanceIndex].Translation = position3;
+		instanceDatas[InstanceIndex].Color = color;
 		InstanceIndex += 1;
 	}
-
-	public void RecordPointBatch(Color color)
-	{
-		PointBatchInfos.Add(new PointBatchInfo(color, InstanceIndex - LastBatchAmount));
-		++BatchIndex;
-		LastBatchAmount = InstanceIndex;
-	}
-
+	
 	// Call this outside of any pass
 	public void Upload(CommandBuffer commandBuffer)
 	{
@@ -135,7 +132,7 @@ public class ConnectedPointsBatch
 			var copyPass = commandBuffer.BeginCopyPass();
 			copyPass.UploadToBuffer(
 				new TransferBufferLocation(InstanceTransferBuffer),
-				new BufferRegion(PointVertexBuffer, 0, (uint)(Marshal.SizeOf<PointInstanceData>() * InstanceCount)), 
+				new BufferRegion(TriangleVertexBuffer, 0, (uint)(Marshal.SizeOf<TriangleVertexInstanceData>() * InstanceCount)),
 				true
 			);
 			commandBuffer.EndCopyPass(copyPass);
@@ -145,45 +142,39 @@ public class ConnectedPointsBatch
 	public void Render(RenderPass renderPass, ViewProjectionMatrices viewProjectionMatrices)
 	{
 		renderPass.BindGraphicsPipeline(GraphicsPipeline);
-		renderPass.BindVertexBuffers(new BufferBinding(PointVertexBuffer, 0));
+		renderPass.BindVertexBuffers(new BufferBinding(TriangleVertexBuffer, 0));
 		renderPass.CommandBuffer.PushVertexUniformData(viewProjectionMatrices.View * viewProjectionMatrices.Projection);
 
-		int firstVertex = 0;
-
-		for (int i = 0; i < BatchCount; ++i)
-		{
-			var batchInfo = PointBatchInfos[i];
-
-			renderPass.CommandBuffer.PushFragmentUniformData(batchInfo.Color.ToVector4());
-			renderPass.DrawPrimitives((uint)batchInfo.NumVertices, 1, (uint)firstVertex, 0);
-
-			firstVertex += batchInfo.NumVertices;
-		}
+		renderPass.DrawPrimitives(InstanceCount, 1, 0, 0);
 	}
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 12)]
-struct PositionVertex : IVertexType
+[StructLayout(LayoutKind.Explicit, Size = 28)]
+struct PositionColorVertex : IVertexType
 {
 	[FieldOffset(0)]
 	public Vector3 Position;
+	[FieldOffset(12)]
+	public Vector4 Color;
 
 	public static VertexElementFormat[] Formats { get; } =
 	[
-		VertexElementFormat.Float3
+		VertexElementFormat.Float3,
+		VertexElementFormat.Float4
 	];
 
 	public static uint[] Offsets { get; } =
 	[
-		0
+		0,
+		12
 	];
 }
 
-[StructLayout(LayoutKind.Explicit, Size = 12)]
-public record struct PointInstanceData
+[StructLayout(LayoutKind.Explicit, Size = 28)]
+public record struct TriangleVertexInstanceData
 {
 	[FieldOffset(0)]
 	public Vector3 Translation;
+	[FieldOffset(12)]
+	public Vector4 Color;
 }
-
-public readonly record struct PointBatchInfo(Color Color, int NumVertices);

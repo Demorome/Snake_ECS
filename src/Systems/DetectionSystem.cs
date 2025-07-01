@@ -39,7 +39,7 @@ public class DetectionSystem : MoonTools.ECS.System
             var maxAngle = angle + detectionArgs.ConeRadius;
 
             // TODO: Delay this removal with a timer?
-            foreach (var other in OutRelations<Detected>(entity))
+            foreach (var other in InRelations<Detected>(entity))
             {
                 Unrelate<Detected>(other, entity);
             }
