@@ -17,6 +17,8 @@ public class PlayerController : MoonTools.ECS.System
 	MoonTools.ECS.Filter PlayerFilter;
 	float MaxSpeedBase = 200f;
 
+	ProjectileManipulator ProjectileManipulator;
+
 	public PlayerController(World world) : base(world)
 	{
 		PlayerFilter =
@@ -27,6 +29,8 @@ public class PlayerController : MoonTools.ECS.System
 		.Include<Direction>()
 		.Include<HasHealth>()
 		.Build();
+
+		ProjectileManipulator = new(world);
 	}
 
 	public Entity SpawnPlayer(int index)
@@ -38,7 +42,7 @@ public class PlayerController : MoonTools.ECS.System
 		//Set(player, new DrawAsRectangle());
 		Set(player, new SpriteAnimation(Content.SpriteAnimations.Heart));
 		Set(player, new Rectangle(-12, -12, 24, 24));
-		Set(player, new Layer(CollisionLayer.PlayerActor));
+		Set(player, new Layer(CollisionLayer.PlayerActor_ExistsOn, CollisionLayer.PlayerBullet_CollidesWith));
 		Set(player, new CanMoveThroughDespiteCollision(CollisionLayer.Bullet));
 		//Set(player, index == 0 ? Color.Green : Color.Blue);
 		Set(player, new ColorBlend(Color.Red));
@@ -48,6 +52,7 @@ public class PlayerController : MoonTools.ECS.System
 		Set(player, new Direction(Vector2.Zero));
 		//Set(player, new AdjustFramerateToSpeed());
 		Set(player, new InputState());
+		Set(player, new CursorPosition());
 		Set(player, new HasHealth(5));
 		Set(player, new BecomeInvincibleOnDamage(1f));
 		Set(player, new CanBeDetected());
@@ -100,7 +105,19 @@ public class PlayerController : MoonTools.ECS.System
 
 			if (inputState.Interact.IsPressed)
 			{
-				//Set(entity, new TryHold());
+				// Shoot where player is aiming
+				var pos = Get<Position>(entity).AsVector();
+				var cursorPos = Get<CursorPosition>(entity).Value;
+
+				ProjectileManipulator.CreateProjectile(
+					pos,
+					new Layer(CollisionLayer.PlayerBullet_ExistsOn, CollisionLayer.PlayerBullet_CollidesWith),
+					CollisionLayer.Enemy,
+					cursorPos - pos,
+					2000f,
+					0f,
+					2000f
+				);
 			}
 			#endregion
 

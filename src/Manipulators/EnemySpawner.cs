@@ -23,7 +23,7 @@ public class EnemySpawner : MoonTools.ECS.Manipulator
         var sprite = SpriteAnimations.NPC_Frog;
         Set(entity, new SpriteAnimation(sprite));
 		Set(entity, new Rectangle(-sprite.OriginX, -sprite.OriginY, 32, 32)); // Could use sprite.Frames[0].FrameRect.W
-		Set(entity, new Layer(CollisionLayer.EnemyActor));
+		Set(entity, new Layer(CollisionLayer.EnemyActor_ExistsOn, CollisionLayer.EnemyActor_CollidesWith));
 		//Set(entity, new CanMoveThroughDespiteCollision(CollisionLayer.Player));
         Set(entity, new Depth(6)); // draw just below player (depth 5)
         Set(entity, new DealsDamageOnContact(1));

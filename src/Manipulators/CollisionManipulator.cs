@@ -1,3 +1,5 @@
+#define ShowDebugRaycastVisuals
+
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -11,8 +13,6 @@ using RollAndCash.Messages;
 using RollAndCash.Relations;
 using RollAndCash.Utility;
 using Filter = MoonTools.ECS.Filter;
-
-//#define ShowDebugRaycastVisuals
 
 public class CollisionManipulator : MoonTools.ECS.Manipulator
 {
@@ -53,29 +53,34 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         }
     }
 
-    bool CanMoveThroughDespiteCollision(
+    public bool CanMoveThroughDespiteCollision(
         Layer otherLayer,
         CollisionLayer canMoveLayer = 0
         )
     {
-        return (canMoveLayer & otherLayer.Collide) != 0;
+        return (canMoveLayer & otherLayer.ExistsOn) != 0;
     }
 
     // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
     bool CheckCollisionFlags(
         Entity other,
-        CollisionLayer collideLayer,
-        CollisionLayer excludeLayer = CollisionLayer.None
+        CollisionLayer existsOnLayer,
+        CollisionLayer collidesWithLayer
         )
     {
         var otherLayer = Get<Layer>(other);
 
-        if ((collideLayer & otherLayer.Collide) != 0 &&
-            (excludeLayer & otherLayer.Collide) == 0
-            )
+        if ((collidesWithLayer & otherLayer.ExistsOn) != 0)
         {
             return true;
         }
+#if DEBUG
+        else if ((existsOnLayer & otherLayer.CollideWith) != 0)
+        {
+            Console.WriteLine("WARN: Entity B collides with A, but A doesn't with B.");
+            return true;
+        }
+#endif
         return false;
     }
 
@@ -84,8 +89,8 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
     public bool CheckCollisions_AABB_vs_AABBs(
         Entity source, // so we can exclude it 
         Rectangle worldPosRect,
-        CollisionLayer collideLayer,
-        CollisionLayer excludeLayer = 0,
+        CollisionLayer existsOnLayer,
+        CollisionLayer collideWithLayer,
         CollisionLayer canMoveLayer = 0
         )
     {
@@ -95,7 +100,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         {
             if (worldPosRect.Intersects(otherRect))
             {
-                if (CheckCollisionFlags(other, collideLayer, excludeLayer))
+                if (CheckCollisionFlags(other, existsOnLayer, collideWithLayer))
                 {
                     HitEntities.Add(other);
                     stopMovement = !CanMoveThroughDespiteCollision(Get<Layer>(other), canMoveLayer);
@@ -110,7 +115,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
     {
         var layer = Get<Layer>(e);
         var canMoveLayer = Has<CanMoveThroughDespiteCollision>(e) ? Get<CanMoveThroughDespiteCollision>(e).Value : 0;
-        return CheckCollisions_AABB_vs_AABBs(e, worldPosRect, layer.Collide, layer.Exclude, canMoveLayer);
+        return CheckCollisions_AABB_vs_AABBs(e, worldPosRect, layer.ExistsOn, layer.CollideWith, canMoveLayer);
     }
 
     Entity Debug_ShowRay(Position rayOrigin, float rayAngle, float length)
@@ -176,17 +181,12 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         var invDir = new Vector2(1, 1) / direction;
         Position startPos = Get<Position>(source);
 
-        // TEST!!!
-        //Position endPos = new Position(startPos.AsVector() + direction);
-        //direction = endPos.AsVector() - startPos.AsVector(); // same result, we're good
-        // TEST!!!
-
         var startVec = startPos.AsVector();
         var spatialHashCellAABB = new Rectangle(0, 0, CollidersSpatialHash.CellSize, CollidersSpatialHash.CellSize);
 
 #if ShowDebugRaycastVisuals
-        Debug_ShowRay(startPos, angle, maxDistance);
-        Console.WriteLine($"Doing raycast. Start pos: {startPos}");
+        Debug_ShowRay(startPos, MathUtilities.AngleFromUnitVector(direction), maxDistance);
+        //Console.WriteLine($"Doing raycast. Start pos: {startPos}");
 #endif
 
         // Check which grids we collide with from our spatial acceleration structure.
@@ -218,10 +218,10 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
                         var (hit, hitPos) = RayCollision.Intersects_AABB(startVec, direction, invDir, otherRect/*otherRect.TopLeft(), otherRect.BottomRight()*/);
                         if (hit)
                         {
-                            if (CheckCollisionFlags(other, rayLayer.Collide, rayLayer.Exclude))
+                            if (CheckCollisionFlags(other, rayLayer.ExistsOn, rayLayer.CollideWith))
                             {
 #if ShowDebugRaycastVisuals
-                                Console.WriteLine($"Raycast hit at: {hitPos}");
+                                //Console.WriteLine($"Raycast hit at: {hitPos}");
                                 Debug_ShowCollisionPos(new Position(hitPos));
                                 Debug_ShowEntityHasBeenCollided(other);
 #endif
@@ -239,7 +239,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
                                     RaycastHits.Add(other, hitPos);
                                 }
 
-                                if ((canMoveLayer & Get<Layer>(other).Collide) == 0)
+                                if (!CanMoveThroughDespiteCollision(Get<Layer>(other), canMoveLayer))
                                 {
                                     // Can't move through this collision; ray stops.
                                     return (true, other);
@@ -248,7 +248,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
                             else
                             {
 #if ShowDebugRaycastVisuals
-                                Console.WriteLine($"Raycast hit, but collision flags don't match.");
+                                //Console.WriteLine($"Raycast hit, but collision flags don't match.");
 #endif
                             }
                         }

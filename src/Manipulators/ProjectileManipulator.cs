@@ -22,7 +22,8 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
 
     public Entity CreateProjectile(
         Vector2 position, 
-        Layer layer, 
+        Layer layer,
+        CollisionLayer canMoveThroughLayer,
         Vector2 direction, 
         float hitscanSpeed,
         float speed, // ignored if hitscanSpeed > 0
@@ -34,7 +35,13 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
         Set(entity, new SpriteAnimation(SpriteAnimations.Projectile));
         Set(entity, new Position(position));
         Set(entity, new Rectangle(-2, -3, 4, 6));
+
         Set(entity, layer);
+        if (canMoveThroughLayer != CollisionLayer.None)
+        {
+            Set(entity, new CanMoveThroughDespiteCollision(canMoveThroughLayer));
+        }
+
         direction = MathUtilities.SafeNormalize(direction);
         Set(entity, new Direction(direction));
 
@@ -42,8 +49,6 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
         {
             Set(entity, new HitscanSpeed(hitscanSpeed));
             Set(entity, new Speed(0f)); // to satisfy filters
-            // FIXME: Remove this hack
-            Set(entity, new CanMoveThroughDespiteCollision(CollisionLayer.Player));
         }
         else
         {
@@ -56,9 +61,10 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
 
         Set(entity, new DealsDamageOnContact(1));
         Set(entity, new DestroyWhenOutOfBounds());
+
         if (destroyOnCollision)
         {
-            Set(entity, new DestroyOnCollision());
+            Set(entity, new DestroyOnImpact());
         }
 
         return entity;
@@ -70,6 +76,7 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
     public Entity ShootFromArea(
         Vector2 position,
         Layer layer,
+        CollisionLayer canMoveThroughLayer,
         Vector2 direction,
         float hitscanSpeed,
         float speed, // ignored if HitscanSpeed > 0
@@ -81,6 +88,7 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
         var projectile = CreateProjectile(
             position,
             layer,
+            canMoveThroughLayer,
             delayTime <= 0.0f ? direction : Vector2.Zero,
             hitscanSpeed,
             speed,
@@ -130,7 +138,8 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
 
     Entity ShootFriendlinessPellet(
         Vector2 position,
-        CollisionLayer layer,
+        Layer layer,
+        CollisionLayer canMoveThroughLayer,
         Vector2 direction,
         float hitscanSpeed,
         float speed, // ignored if HitscanSpeed > 0
@@ -141,7 +150,8 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
     {
         var proj = ShootFromArea(
             position,
-            new Layer(CollisionLayer.EnemyBullet, CollisionLayer.Bullet),
+            layer,
+            canMoveThroughLayer,
             direction,
             hitscanSpeed,
             speed,
@@ -171,7 +181,8 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
 
             var pellet = ShootFriendlinessPellet(
                 spawn_pos,
-                CollisionLayer.EnemyBullet,
+                new Layer(CollisionLayer.EnemyBullet_ExistsOn, CollisionLayer.EnemyBullet_CollidesWith),
+                CollisionLayer.None,
                 new Vector2(0f, 1f),
                 0f,
                 Speed,
@@ -197,7 +208,8 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
 
             var pellet = ShootFriendlinessPellet(
                 spawn_pos,
-                CollisionLayer.EnemyBullet,
+                new Layer(CollisionLayer.EnemyBullet_ExistsOn, CollisionLayer.EnemyBullet_CollidesWith),
+                CollisionLayer.None,
                 new Vector2(0f, 1f),
                 hitscanSpeed,
                 0f,
@@ -223,7 +235,8 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
 
             var pellet = ShootFriendlinessPellet(
                 spawn_pos,
-                CollisionLayer.EnemyBullet,
+                new Layer(CollisionLayer.EnemyBullet_ExistsOn, CollisionLayer.EnemyBullet_CollidesWith),
+                CollisionLayer.None,
                 new Vector2(0f, 1f),
                 hitscanSpeed,
                 0f,

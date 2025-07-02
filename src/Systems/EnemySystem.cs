@@ -47,7 +47,8 @@ public class EnemySystem : MoonTools.ECS.System
                     // Do the attack
                     var projectile = ProjectileManipulator.CreateProjectile(
                         position.AsVector(),
-                        new Layer(CollisionLayer.EnemyBullet, CollisionLayer.Bullet),
+                        new Layer(CollisionLayer.EnemyBullet_ExistsOn, CollisionLayer.EnemyBullet_CollidesWith),
+                        CollisionLayer.Player,
                         MathUtilities.SafeNormalize(targetPos - position),
                         2000f,
                         0f,

@@ -48,22 +48,22 @@ public class GameplayState : GameState
         var topBorder = World.CreateEntity();
         World.Set(topBorder, new Position(0, 0));
         World.Set(topBorder, new Rectangle(0, 0, Dimensions.GAME_W, 10));
-        World.Set(topBorder, new Layer(CollisionLayer.Level));
+        World.Set(topBorder, new Layer(CollisionLayer.LevelCollider_ExistsOn, CollisionLayer.StaticLevelCollider_CollidesWith));
 
         var leftBorder = World.CreateEntity();
         World.Set(leftBorder, new Position(0, 0));
         World.Set(leftBorder, new Rectangle(0, 0, 10, Dimensions.GAME_H));
-        World.Set(leftBorder, new Layer(CollisionLayer.Level));
+        World.Set(leftBorder, new Layer(CollisionLayer.LevelCollider_ExistsOn, CollisionLayer.StaticLevelCollider_CollidesWith));
 
         var rightBorder = World.CreateEntity();
         World.Set(rightBorder, new Position(Dimensions.GAME_W, 0));
         World.Set(rightBorder, new Rectangle(0, 0, 10, Dimensions.GAME_H));
-        World.Set(rightBorder, new Layer(CollisionLayer.Level));
+        World.Set(rightBorder, new Layer(CollisionLayer.LevelCollider_ExistsOn, CollisionLayer.StaticLevelCollider_CollidesWith));
 
         var bottomBorder = World.CreateEntity();
         World.Set(bottomBorder, new Position(0, Dimensions.GAME_H));
         World.Set(bottomBorder, new Rectangle(0, 0, Dimensions.GAME_W, 10));
-        World.Set(bottomBorder, new Layer(CollisionLayer.Level));
+        World.Set(bottomBorder, new Layer(CollisionLayer.LevelCollider_ExistsOn, CollisionLayer.StaticLevelCollider_CollidesWith));
     }
 
     void CreateBattleAreaBorder()
@@ -75,25 +75,25 @@ public class GameplayState : GameState
         var topBorder = World.CreateEntity();
         World.Set(topBorder, new Position(x_offset + thickness, y_offset));
         World.Set(topBorder, new Rectangle(0, 0, Dimensions.BATTLE_AREA_W - thickness, thickness));
-        World.Set(topBorder, new Layer(CollisionLayer.Level));
+        World.Set(topBorder, new Layer(CollisionLayer.LevelCollider_ExistsOn, CollisionLayer.StaticLevelCollider_CollidesWith));
         World.Set(topBorder, new DrawAsRectangle());
 
         var bottomBorder = World.CreateEntity();
         World.Set(bottomBorder, new Position(x_offset + thickness, y_offset + Dimensions.BATTLE_AREA_H));
         World.Set(bottomBorder, new Rectangle(0, 0, Dimensions.BATTLE_AREA_W - thickness, thickness));
-        World.Set(bottomBorder, new Layer(CollisionLayer.Level));
+        World.Set(bottomBorder, new Layer(CollisionLayer.LevelCollider_ExistsOn, CollisionLayer.StaticLevelCollider_CollidesWith));
         World.Set(bottomBorder, new DrawAsRectangle());
 
         var leftBorder = World.CreateEntity();
         World.Set(leftBorder, new Position(x_offset, y_offset));
         World.Set(leftBorder, new Rectangle(0, 0, thickness, Dimensions.BATTLE_AREA_H + thickness));
-        World.Set(leftBorder, new Layer(CollisionLayer.Level));
+        World.Set(leftBorder, new Layer(CollisionLayer.LevelCollider_ExistsOn, CollisionLayer.StaticLevelCollider_CollidesWith));
         World.Set(leftBorder, new DrawAsRectangle());
 
         var rightBorder = World.CreateEntity();
         World.Set(rightBorder, new Position(x_offset + Dimensions.BATTLE_AREA_W, y_offset));
         World.Set(rightBorder, new Rectangle(0, 0, thickness, Dimensions.BATTLE_AREA_H + thickness));
-        World.Set(rightBorder, new Layer(CollisionLayer.Level));
+        World.Set(rightBorder, new Layer(CollisionLayer.LevelCollider_ExistsOn, CollisionLayer.StaticLevelCollider_CollidesWith));
         World.Set(rightBorder, new DrawAsRectangle());
     }
 

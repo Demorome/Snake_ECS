@@ -294,6 +294,7 @@ public class Motion : MoonTools.ECS.System
             }
         }*/
 
+        // FIXME: Make moving level setpieces push moveable entities back, rather than preventing the setpiece from moving.
         foreach (var entity in SpeedFilter.Entities)
         {
             if (HasOutRelation<DontMove>(entity))

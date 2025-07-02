@@ -25,13 +25,27 @@ public class Collision : MoonTools.ECS.System
             Send(new DealDamage(B, Get<DealsDamageOnContact>(A).Damage));
         }
 
-        if (Has<DestroyOnCollision>(A))
+        bool impacted = true; // if it stopped when colliding
+        if (Has<CanMoveThroughDespiteCollision>(A))
         {
-            Set(A, new MarkedForDestroy());
+            var canMoveThroughLayer = Get<CanMoveThroughDespiteCollision>(A).Value;
+            var otherLayer = Get<Layer>(B).ExistsOn;
+            if ((canMoveThroughLayer & otherLayer) != 0)
+            {
+                impacted = false;
+            }
         }
-        if (Has<DestroyOnCollision>(B))
+
+        if (impacted)
         {
-            Set(B, new MarkedForDestroy());
+            if (Has<DestroyOnImpact>(A))
+            {
+                Set(A, new MarkedForDestroy());
+            }
+            if (Has<DestroyOnImpact>(B))
+            {
+                Set(B, new MarkedForDestroy());
+            }
         }
     }
 

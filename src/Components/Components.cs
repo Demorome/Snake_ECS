@@ -151,18 +151,34 @@ public enum CollisionLayer
     Enemy = 8,
     Bullet = 16,
     Pickup = 32,
-    PlayerActor = Player | Actor | Level | Pickup,
-    EnemyActor = Enemy | Actor,
-    PlayerBullet = Enemy | Bullet | Level,
-    EnemyBullet = Player | Bullet | Level,
-    DetectionCone = Player | Level
+
+    LevelCollider_ExistsOn = Level,
+    StaticLevelCollider_CollidesWith = None, // a static level setpiece doesn't need to do collision, since it won't move.
+
+    PlayerActor_ExistsOn = Player | Actor,
+    PlayerActor_CollidesWith = Actor | Bullet | Pickup,
+
+    EnemyActor_ExistsOn = Enemy | Actor,
+    EnemyActor_CollidesWith = Actor,
+
+    PlayerBullet_ExistsOn = Bullet,
+    PlayerBullet_CollidesWith = Enemy | Level,
+
+    EnemyBullet_ExistsOn = Bullet,
+    EnemyBullet_CollidesWith = Player | Level,
+
+    DetectionCone_ExistsOn = None,
+    DetectionCone_CollidesWith = Player | Level
 }
-public readonly record struct Layer(CollisionLayer Collide, CollisionLayer Exclude = 0);
+public readonly record struct Layer(CollisionLayer ExistsOn, CollisionLayer CollideWith);
 public readonly record struct CanMoveThroughDespiteCollision(CollisionLayer Value);
 
 public readonly record struct BecomeInvincibleOnDamage(float Time);
 public readonly record struct MarkedForDestroy();
-public readonly record struct DestroyOnCollision();
+public readonly record struct DestroyOnImpact();
 public readonly record struct HasHealth(int Health);
+
 // FIXME: Implement behavior
 public readonly record struct MaxMovementDistance(float Value);
+
+public readonly record struct CursorPosition(Vector2 Value);

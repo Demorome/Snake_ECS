@@ -3,6 +3,7 @@ using MoonWorks;
 using MoonWorks.Input;
 using RollAndCash.Components;
 using System;
+using System.Numerics;
 
 namespace RollAndCash.Systems;
 
@@ -77,6 +78,9 @@ public class Input : MoonTools.ECS.System
 			InputState inputState = InputState(controlSet, altControlSet);
 
 			Set(playerEntity, inputState);
+
+			// FIXME: Determine cursor position if using controller.
+			Set(playerEntity, new CursorPosition(new Vector2(Inputs.Mouse.X, Inputs.Mouse.Y)));
 		}
 	}
 
