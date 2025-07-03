@@ -271,9 +271,13 @@ public class Renderer : MoonTools.ECS.Renderer
 					continue;
 
 				var selfPosition = Get<Position>(entity);
-				var color = HasInRelation<Detected>(entity) ? Color.Red : Color.Green; // FIXME: use detection color (alert state?)
+
+				 // FIXME: use detection color (alert state?)
+				var color = (HasInRelation<Detected>(entity) || Has<ChargingUpAttack>(entity)) ? Color.Red : Color.Green;
 				color.A = 100;
-				var depth = -10; // FIXME: ensure this draws below most entities, but above the ground
+
+				// FIXME: ensure this draws below most entities, but above the ground
+				var depth = -10; 
 
 				var selfPosVec = new Vector3(selfPosition.X, selfPosition.Y, depth);
 				var colorVec = color.ToVector4();

@@ -29,7 +29,7 @@ public class EnemySystem : MoonTools.ECS.System
     {
         if (EnemyFilter.Empty)
         {
-            var newEnemy = EnemySpawner.SpawnFrog();
+            //var newEnemy = EnemySpawner.SpawnFrog();
         }
 
         foreach (var entity in EnemyFilter.Entities)
@@ -39,21 +39,24 @@ public class EnemySystem : MoonTools.ECS.System
                 if (!HasOutRelation<ChargingUpAttackTimer>(entity))
                 {
                     Remove<ChargingUpAttack>(entity);
-                    var target = OutRelationSingleton<Targeting>(entity);
-                    var position = Get<Position>(entity);
-                    var targetPos = Get<Position>(target);
+                    if (HasOutRelation<Targeting>(entity))
+                    {
+                        var target = OutRelationSingleton<Targeting>(entity);
+                        var position = Get<Position>(entity);
+                        var targetPos = Get<Position>(target);
 
-                    // TODO: Don't use target position, but rather an outdated position of theirs.
-                    // Do the attack
-                    var projectile = ProjectileManipulator.CreateProjectile(
-                        position.AsVector(),
-                        new Layer(CollisionLayer.EnemyBullet_ExistsOn, CollisionLayer.EnemyBullet_CollidesWith),
-                        CollisionLayer.Player,
-                        MathUtilities.SafeNormalize(targetPos - position),
-                        2000f,
-                        0f,
-                        2000f
-                    );
+                        // TODO: Don't use target position, but rather an outdated position of theirs.
+                        // Do the attack
+                        var projectile = ProjectileManipulator.CreateProjectile(
+                            position.AsVector(),
+                            new Layer(CollisionLayer.EnemyBullet_ExistsOn, CollisionLayer.EnemyBullet_CollidesWith),
+                            CollisionLayer.Player,
+                            MathUtilities.SafeNormalize(targetPos - position),
+                            2000f,
+                            0f,
+                            2000f
+                        );
+                    }
                 }
             }
 

@@ -34,7 +34,6 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
         var entity = CreateEntity();
         Set(entity, new SpriteAnimation(SpriteAnimations.Projectile));
         Set(entity, new Position(position));
-        Set(entity, new Rectangle(-2, -3, 4, 6));
 
         Set(entity, layer);
         if (canMoveThroughLayer != CollisionLayer.None)
@@ -53,6 +52,8 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
         else
         {
             Set(entity, new Speed(speed));
+            // Note: Won't need a hitbox if it's hitscan.
+            Set(entity, new Rectangle(-2, -3, 4, 6));
         }
         if (maxDistance > 0)
         {

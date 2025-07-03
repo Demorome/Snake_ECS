@@ -56,6 +56,10 @@ public class PlayerController : MoonTools.ECS.System
 		Set(player, new HasHealth(5));
 		Set(player, new BecomeInvincibleOnDamage(1f));
 		Set(player, new CanBeDetected());
+
+		// For debugging raycasts
+		//Set(player, new CanDetect(float.DegreesToRadians(45f), 30f));
+
 		/*
 		Set(player, new DirectionalSprites(
 			index == 0 ? Content.SpriteAnimations.Char_Walk_Up.ID : Content.SpriteAnimations.Char2_Walk_Up.ID,
@@ -114,7 +118,7 @@ public class PlayerController : MoonTools.ECS.System
 					new Layer(CollisionLayer.PlayerBullet_ExistsOn, CollisionLayer.PlayerBullet_CollidesWith),
 					CollisionLayer.Enemy,
 					cursorPos - pos,
-					2000f,
+					10000f,
 					0f,
 					2000f
 				);

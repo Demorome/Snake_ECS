@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Numerics;
 using MoonTools.ECS;
 using MoonWorks.Graphics;
@@ -75,11 +76,12 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
             return true;
         }
 #if DEBUG
+        /*
         else if ((existsOnLayer & otherLayer.CollideWith) != 0)
         {
             Console.WriteLine("WARN: Entity B collides with A, but A doesn't with B.");
             return true;
-        }
+        }*/
 #endif
         return false;
     }
@@ -154,7 +156,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
     {
         var timer = CreateEntity();
         Set(timer, new Timer(-1)); // lasts 1 frame
-        Relate(collided, timer, new ColorBlendOverride(Color.Bisque));
+        Relate(collided, timer, new ColorBlendOverride(Color.Brown));
     }
 
     void Debug_ShowHashCellCollision(Rectangle worldRect)
@@ -178,7 +180,8 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
     {
         RaycastHits.Clear();
 
-        var invDir = new Vector2(1, 1) / direction;
+        var rayVec = direction * maxDistance;
+        var invRayVec = new Vector2(1, 1) / rayVec;
         Position startPos = Get<Position>(source);
 
         var startVec = startPos.AsVector();
@@ -188,6 +191,8 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         Debug_ShowRay(startPos, MathUtilities.AngleFromUnitVector(direction), maxDistance);
         //Console.WriteLine($"Doing raycast. Start pos: {startPos}");
 #endif
+
+        Entity? maybeImpactedEntity = null; // to track if ray got stopped on something
 
         // Check which grids we collide with from our spatial acceleration structure.
         // Also called a "broadphase".
@@ -199,7 +204,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
                 var cellRect = spatialHashCellAABB.GetWorldRect(cellPos);
 
                 // Only check what's inside the grids we collide with.
-                var (hitGrid, _) = RayCollision.Intersects_AABB(startVec, direction, invDir, cellRect/*cellRect.TopLeft(), cellRect.BottomRight()*/);
+                var (hitGrid, _) = RayCollision.Intersects_AABB(startVec, rayVec, invRayVec, cellRect/*cellRect.TopLeft(), cellRect.BottomRight()*/);
                 if (hitGrid)
                 {
 #if ShowDebugRaycastVisuals
@@ -215,49 +220,84 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
                             continue;
                         }
                         var otherRect = Get<Rectangle>(other).GetWorldRect(Get<Position>(other));
-                        var (hit, hitPos) = RayCollision.Intersects_AABB(startVec, direction, invDir, otherRect/*otherRect.TopLeft(), otherRect.BottomRight()*/);
-                        if (hit)
+                        var (hit, hitPos) = RayCollision.Intersects_AABB(startVec, rayVec, invRayVec, otherRect/*otherRect.TopLeft(), otherRect.BottomRight()*/);
+                        if (!hit)
                         {
-                            if (CheckCollisionFlags(other, rayLayer.ExistsOn, rayLayer.CollideWith))
+                            continue;
+                        }
+
+                        if (!CheckCollisionFlags(other, rayLayer.ExistsOn, rayLayer.CollideWith))
+                        {
+                            continue;
+                        }
+                        
+                        if (RaycastHits.ContainsKey(other))
+                        {
+                            // Only store closest collision to ray.
+                            if (Vector2.DistanceSquared(startVec, hitPos) < Vector2.DistanceSquared(startVec, RaycastHits[other]))
                             {
-#if ShowDebugRaycastVisuals
-                                //Console.WriteLine($"Raycast hit at: {hitPos}");
-                                Debug_ShowCollisionPos(new Position(hitPos));
-                                Debug_ShowEntityHasBeenCollided(other);
-#endif
+                                RaycastHits[other] = hitPos;
+                            }
+                        }
+                        else
+                        {
 
-                                if (RaycastHits.ContainsKey(other))
+                            // Can't move through this collision; ray stops.
+                            // However, it's possible that there is a closer entity that we should stop on instead.
+                            // Thus, we keep the loop going and track the impacted entity.
+                            if (maybeImpactedEntity.HasValue)
+                            {
+                                // Check if this collision is closer than the previous ray-stopping entity impact.
+                                // Otherwise, the ray will never reach it.
+                                if (Vector2.DistanceSquared(startVec, hitPos) >= Vector2.DistanceSquared(startVec, RaycastHits[maybeImpactedEntity.Value]))
                                 {
-                                    // Only store closest collision to ray.
-                                    if (Vector2.DistanceSquared(startVec, hitPos) < Vector2.DistanceSquared(startVec, RaycastHits[other]))
-                                    {
-                                        RaycastHits[other] = hitPos;
-                                    }
-                                }
-                                else
-                                {
-                                    RaycastHits.Add(other, hitPos);
-                                }
-
-                                if (!CanMoveThroughDespiteCollision(Get<Layer>(other), canMoveLayer))
-                                {
-                                    // Can't move through this collision; ray stops.
-                                    return (true, other);
+                                    continue;
                                 }
                             }
-                            else
+
+                            // Is this a closer ray-stopping impact?
+                            if (!CanMoveThroughDespiteCollision(Get<Layer>(other), canMoveLayer))
                             {
-#if ShowDebugRaycastVisuals
-                                //Console.WriteLine($"Raycast hit, but collision flags don't match.");
-#endif
+                                maybeImpactedEntity = other;
                             }
+
+                            RaycastHits.Add(other, hitPos);
                         }
                     }
                 }
             }
         }
 
-        return (RaycastHits.Count != 0, null);
+        if (maybeImpactedEntity.HasValue)
+        {
+            var nearestCollision = RaycastHits[maybeImpactedEntity.Value];
+
+            // Discard all impacts from RaycastHits that are behind the impact point.
+            // FIXME: Ensure it's safe and portable to remove from a Dictionary mid-loop
+            foreach (var (other, hitPos) in RaycastHits)
+            {
+                if (other == maybeImpactedEntity.Value)
+                {
+                    continue;
+                }
+
+                if (Vector2.DistanceSquared(startVec, hitPos) >= Vector2.DistanceSquared(startVec, nearestCollision))
+                {
+                    RaycastHits.Remove(other);
+                }
+            }
+        }
+
+#if ShowDebugRaycastVisuals
+        foreach (var (other, hitPos) in RaycastHits)
+        {
+            //Console.WriteLine($"Raycast hit at: {hitPos}");
+            Debug_ShowCollisionPos(new Position(hitPos));
+            Debug_ShowEntityHasBeenCollided(other);
+        }
+#endif
+
+        return (RaycastHits.Count != 0, maybeImpactedEntity);
     }
 
     public (bool hit, Entity? stoppedAtEntity) Raycast_vs_AABBs(
@@ -268,7 +308,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         CollisionLayer canMoveLayer = CollisionLayer.None
         )
     {
-        var direction = MathUtilities.SafeNormalize(new Vector2(MathF.Cos(angle), MathF.Sin(angle))) * maxDistance;
+        var direction = MathUtilities.SafeNormalize(new Vector2(MathF.Cos(angle), MathF.Sin(angle)));
         return Raycast_vs_AABBs(source, direction, maxDistance, rayLayer, canMoveLayer);
     }
 

@@ -13,7 +13,7 @@ namespace RollAndCash.Systems;
 
 public class Motion : MoonTools.ECS.System
 {
-    float HighSpeedMin = 1000f;
+    const float HighSpeedMin = 1000f;
 
     CollisionManipulator CollisionManipulator;
 
@@ -250,6 +250,12 @@ public class Motion : MoonTools.ECS.System
             endPos = Get<Position>(e).AsVector() + (direction * scaledVelocity);
         }
 
+        /*
+        if (hit)
+        {
+            Console.WriteLine("Hitscan movement: Hit(s) detected!");
+        }*/
+
         // FIXME: Check if we've travelled the MaxDistance.
         // If so, stop any future movement.
 
@@ -259,8 +265,8 @@ public class Motion : MoonTools.ECS.System
     public override void Update(TimeSpan delta)
     {
         //ClearCanBeHeldSpatialHash();
-        // TODO: make sure this isn't needed, i.e. it's called earlier in another system and no entities are deleted since then.
-        //CollisionManipulator.ResetCollidersSpatialHash();
+        // FIXME: make sure this isn't needed, i.e. it's called earlier in another system and no entities are deleted since then.
+        CollisionManipulator.ResetCollidersSpatialHash();
 
         /*
         foreach (var entity in InteractFilter.Entities)
