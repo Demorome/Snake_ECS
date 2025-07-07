@@ -21,10 +21,10 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
     }
 
     public Entity CreateProjectile(
-        Vector2 position, 
+        Position position,
         Layer layer,
         CollisionLayer canMoveThroughLayer,
-        Vector2 direction, 
+        Vector2 direction,
         float hitscanSpeed,
         float speed, // ignored if hitscanSpeed > 0
         float maxDistance,
@@ -33,7 +33,7 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
     {
         var entity = CreateEntity();
         Set(entity, new SpriteAnimation(SpriteAnimations.Projectile));
-        Set(entity, new Position(position));
+        Set(entity, position);
 
         Set(entity, layer);
         if (canMoveThroughLayer != CollisionLayer.None)
@@ -77,7 +77,7 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
     // Refactored using manipulator pattern instead of message pattern.
     // For Undertale-style attacks that are fired from the void.
     public Entity ShootFromArea(
-        Vector2 position,
+        Position position,
         Layer layer,
         CollisionLayer canMoveThroughLayer,
         Vector2 direction,
@@ -112,11 +112,14 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
             Set(projectile, new UpdateDirectionToTargetPosition(true));
             if (hitscanSpeed > 0.0f)
             {
-                var projectilePos = Get<Position>(projectile).AsVector();
-                var projectileSprite = Get<SpriteAnimation>(projectile);
+                var projectilePos = Get<Position>(projectile);
 
                 // Create targeting visual
-                Entity targetingVisual = VFXManipulator.CreateVFX(projectilePos, projectileSprite, -1f);
+                Entity targetingVisual = VFXManipulator.CreateVFX(
+                    projectilePos,
+                    new SpriteAnimation(SpriteAnimations.Pixel),
+                    -1f
+                );
                 VFXManipulator.MakeVFXFollowSource(targetingVisual, projectile);
                 VFXManipulator.MakeVFXPointAtTarget(targetingVisual, target.Value, true, true);
 
@@ -124,7 +127,6 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
                 color.A -= 100; // transparency
                 Set(targetingVisual, new ColorBlend(color));
                 //Set(indicator, new ColorFlicker(0, Color.Transparent));
-                Set(targetingVisual, new SpriteAnimation(SpriteAnimations.Pixel));
                 if (delayTime > 0.0f)
                 {
                     var targetingTime = delayTime * 0.75f;
@@ -139,8 +141,10 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
         return projectile;
     }
 
+    #region Prefabs
+
     Entity ShootFriendlinessPellet(
-        Vector2 position,
+        Position position,
         Layer layer,
         CollisionLayer canMoveThroughLayer,
         Vector2 direction,
@@ -179,11 +183,11 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
         const int NumProjectiles = 5;
 
         for (int i = 0; i < NumProjectiles; ++i)
-        {    
+        {
             var waitTime = 1.0f;
 
             var pellet = ShootFriendlinessPellet(
-                spawn_pos,
+                new Position(spawn_pos),
                 new Layer(CollisionLayer.EnemyBullet_ExistsOn, CollisionLayer.EnemyBullet_CollidesWith),
                 CollisionLayer.None,
                 new Vector2(0f, 1f),
@@ -210,7 +214,7 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
             var waitTime = 1.0f;
 
             var pellet = ShootFriendlinessPellet(
-                spawn_pos,
+                new Position(spawn_pos),
                 new Layer(CollisionLayer.EnemyBullet_ExistsOn, CollisionLayer.EnemyBullet_CollidesWith),
                 CollisionLayer.None,
                 new Vector2(0f, 1f),
@@ -233,11 +237,11 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
         const float hitscanSpeed = 2000f;
 
         for (int i = 0; i < NumProjectiles; ++i)
-        {    
+        {
             var waitTime = 1.0f;
 
             var pellet = ShootFriendlinessPellet(
-                spawn_pos,
+                new Position(spawn_pos),
                 new Layer(CollisionLayer.EnemyBullet_ExistsOn, CollisionLayer.EnemyBullet_CollidesWith),
                 CollisionLayer.None,
                 new Vector2(0f, 1f),
@@ -251,4 +255,6 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
             spawn_pos.Y += y_offset;
         }
     }
+    
+    #endregion Prefabs
 }

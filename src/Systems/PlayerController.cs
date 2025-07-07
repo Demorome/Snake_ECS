@@ -110,14 +110,14 @@ public class PlayerController : MoonTools.ECS.System
 			if (inputState.Interact.IsPressed)
 			{
 				// Shoot where player is aiming
-				var pos = Get<Position>(entity).AsVector();
+				var pos = Get<Position>(entity);
 				var cursorPos = Get<CursorPosition>(entity).Value;
 
 				ProjectileManipulator.CreateProjectile(
 					pos,
 					new Layer(CollisionLayer.PlayerBullet_ExistsOn, CollisionLayer.PlayerBullet_CollidesWith),
 					CollisionLayer.Enemy,
-					cursorPos - pos,
+					cursorPos - pos.AsVector(),
 					10000f,
 					0f,
 					2000f

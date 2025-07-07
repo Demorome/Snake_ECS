@@ -12,6 +12,7 @@ public class EnemySystem : MoonTools.ECS.System
     MoonTools.ECS.Filter EnemyFilter;
     EnemySpawner EnemySpawner;
     ProjectileManipulator ProjectileManipulator;
+    VFXManipulator VFXManipulator;
 
     bool InitDone = false;
 
@@ -25,6 +26,7 @@ public class EnemySystem : MoonTools.ECS.System
 
         EnemySpawner = new(world);
         ProjectileManipulator = new(world);
+        VFXManipulator = new(world);
     }
 
     public override void Update(TimeSpan delta)
@@ -48,16 +50,16 @@ public class EnemySystem : MoonTools.ECS.System
                         var position = Get<Position>(entity);
                         var targetPos = Get<Position>(target);
 
-                        // TODO: Don't use target position, but rather an outdated position of theirs.
+                        // TODO: Don't use target position, but rather an outdated position of theirs(?)
                         // Do the attack
                         var projectile = ProjectileManipulator.CreateProjectile(
-                            position.AsVector(),
+                            position,
                             new Layer(CollisionLayer.EnemyBullet_ExistsOn, CollisionLayer.EnemyBullet_CollidesWith),
                             CollisionLayer.Player,
                             MathUtilities.SafeNormalize(targetPos - position),
-                            2000f,
+                            10000f,
                             0f,
-                            2000f
+                            10000f
                         );
                     }
                 }
@@ -67,20 +69,15 @@ public class EnemySystem : MoonTools.ECS.System
             {
                 if (!Has<ChargingUpAttack>(entity))
                 {
+                    var other = InRelationSingleton<Detected>(entity);
+
                     // Start attack timer
-                    var targetingTimer = CreateEntity();
-                    Set(targetingTimer, new Timer(1f));
-                    Relate(entity, targetingTimer, new ChargingUpAttackTimer());
+                    var targetingVisual = VFXManipulator.CreateTargetingVisual(entity, other);
+                    Set(targetingVisual, new Timer(1f));
+                    Relate(entity, targetingVisual, new ChargingUpAttackTimer());
 
                     Set(entity, new ChargingUpAttack());
-                    var other = InRelationSingleton<Detected>(entity);
-                    Relate(entity, other, new Targeting());
-
-                    /*
-                    var targetingTime = delayTime * 0.75f;
-                    FlickeringManipulator.StartFlickering(targetingVisual, targetingTime, 0.2f);
-                    Set(targetingVisual, new Timer(targetingTime));
-                    Relate(projectile, targetingVisual, new DontFollowTarget());*/
+                    Relate(entity, other, new Targeting()); // FIXME: Remove Targeting at some point?
                 }
             }
         }

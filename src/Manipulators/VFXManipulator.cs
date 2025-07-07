@@ -29,26 +29,26 @@ public class VFXManipulator : MoonTools.ECS.Manipulator
         float depth
         )
     {
-        var lastPos = Get<LastPosition>(projectile).Value;
+        var lastPos = new Position(Get<LastPosition>(projectile).Value);
         var projectilePos = Get<Position>(projectile).AsVector();
         var trailSprite = new SpriteAnimation(SpriteAnimations.ProjectileTrail);
 
         Entity trail = CreateVFX(lastPos, trailSprite, depth, 0.5f, 0.5f);
         Set(trail, new ColorBlend(color));
 
-        Set(trail, new Angle(MathUtilities.GetHeadingAngle(lastPos, projectilePos)));
+        Set(trail, new Angle(MathUtilities.GetHeadingAngle(lastPos.AsVector(), projectilePos)));
 
         // TODO: Center scale changes based on sprite origin!!!!!
 
         // Stretch from projectile lastPos -> currentPos
-        var distance = Vector2.Distance(projectilePos, lastPos);
+        var distance = Vector2.Distance(projectilePos, lastPos.AsVector());
         var startScale = new Vector2(distance, 1f); // TODO: Account for size of sprites to reduce distance!
 
         // Shrinks down to form a thin line at the end of the trail.
         var endScale = new Vector2(startScale.X, 0.0f); // only shrink the width of the trail
-        TimedChangeManipulator.SetTimedScaleChange(trail, trail, 
+        TimedChangeManipulator.SetTimedScaleChange(trail, trail,
             endScale, endScale, // order of args backwards on purpose
-            startScale, startScale, 
+            startScale, startScale,
             Easing.Function.Float.OutCubic
         );
 
@@ -63,10 +63,10 @@ public class VFXManipulator : MoonTools.ECS.Manipulator
     // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
     // I decided to break up the min/max start/end values into their own functions.
     public Entity CreateVFX(
-        Vector2 position,
+        Position position,
         SpriteAnimation sprite,
         float depth,
-        
+
         float minTimeToLive = -1f,
         float maxTimeToLive = -1f,  // ignored if <= 0
 
@@ -79,7 +79,7 @@ public class VFXManipulator : MoonTools.ECS.Manipulator
     {
         var vfx = CreateEntity();
 
-        Set(vfx, new Position(position));
+        Set(vfx, position);
         Set(vfx, sprite);
         Set(vfx, new Depth(depth));
 
@@ -112,7 +112,7 @@ public class VFXManipulator : MoonTools.ECS.Manipulator
     }
 
     public void MakeVFXFollowSource(
-        Entity vfx, 
+        Entity vfx,
         Entity source,
         bool lagBehind = false,
         float alphaMult = 1.0f,
@@ -135,7 +135,7 @@ public class VFXManipulator : MoonTools.ECS.Manipulator
     }
 
     public void MakeVFXPointAtTarget(
-        Entity vfx, 
+        Entity vfx,
         Entity target,
         bool lookTowardsTarget,
         bool stretchTowardsTarget,
@@ -160,4 +160,23 @@ public class VFXManipulator : MoonTools.ECS.Manipulator
             Relate(vfx, target, new VisuallyFollowing(lookTowardsTarget, stretchTowardsTarget));
         }
     }
+
+    #region Prefabs
+    public Entity CreateTargetingVisual(Entity source, Entity target)
+    {
+        var sprite = new SpriteAnimation(SpriteAnimations.Pixel);
+
+        Entity targetingVisual = CreateVFX(
+            Get<Position>(source),
+            sprite,
+            -1f
+        );
+
+        MakeVFXFollowSource(targetingVisual, source);
+        MakeVFXPointAtTarget(targetingVisual, target, true, true);
+
+        return targetingVisual;
+    }
+    
+    #endregion Prefabs
 }
