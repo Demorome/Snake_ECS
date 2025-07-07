@@ -168,7 +168,7 @@ public class GameplayState : GameState
         PlayerController.Update(dt);
         EnemySystem.Update(dt);
         DetectionSystem.Update(dt);
-        Projectile.Update(dt); // FIXME: Projectile trail not appearing for last-frame-destroyed entities.
+        Projectile.Update(dt);
         TargetingDirection.Update(dt);
         Motion.Update(dt);
         Collision.Update(dt);
