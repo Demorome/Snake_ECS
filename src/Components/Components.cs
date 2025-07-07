@@ -123,8 +123,10 @@ public readonly record struct DrawDetectionCone();
 public readonly record struct CanBeDetected();
 public readonly record struct ChargingUpAttack();
 
-public readonly record struct DestroyWhenOutOfBounds();
 
+public readonly record struct HasVisualTrail();
+
+public readonly record struct DestroyWhenOutOfBounds();
 public readonly record struct DestroyForDebugTestReasons();
 public readonly record struct ColorFlicker(int ElapsedFrames, Color Color);
 public readonly record struct MotionDamp(float Damping);

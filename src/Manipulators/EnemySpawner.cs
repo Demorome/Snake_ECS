@@ -30,6 +30,8 @@ public class EnemySpawner : MoonTools.ECS.Manipulator
         Set(entity, new Direction(Vector2.Zero));
         Set(entity, new CanDetect(float.DegreesToRadians(45f), 100f));
         Set(entity, new DrawDetectionCone());
+
+        Set(entity, new HasHealth(2));
         
         return entity;
     }

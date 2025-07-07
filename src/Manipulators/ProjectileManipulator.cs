@@ -68,6 +68,8 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
             Set(entity, new DestroyOnImpact());
         }
 
+        Set(entity, new HasVisualTrail());
+
         return entity;
     }
 

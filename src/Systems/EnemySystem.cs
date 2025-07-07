@@ -13,6 +13,8 @@ public class EnemySystem : MoonTools.ECS.System
     EnemySpawner EnemySpawner;
     ProjectileManipulator ProjectileManipulator;
 
+    bool InitDone = false;
+
     public EnemySystem(World world) : base(world)
     {
         EnemyFilter =
@@ -27,9 +29,10 @@ public class EnemySystem : MoonTools.ECS.System
 
     public override void Update(TimeSpan delta)
     {
-        if (EnemyFilter.Empty)
+        if (!InitDone)
         {
-            //var newEnemy = EnemySpawner.SpawnFrog();
+            var newEnemy = EnemySpawner.SpawnFrog();
+            InitDone = true;
         }
 
         foreach (var entity in EnemyFilter.Entities)

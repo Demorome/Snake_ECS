@@ -58,12 +58,7 @@ public class Projectile : MoonTools.ECS.System
 
         foreach (var projectile in ProjectileFilter.Entities)
         {
-            if (Has<LastPosition>(projectile) && 
-                Get<LastPosition>(projectile).Value != Get<Position>(projectile).AsVector())
-            {
-                // Spawn trail
-                var trail = VFXManipulator.SpawnProjectileTrail(projectile, Color.White with {A = 200}, -1f);
-            }
+            
         }
     }
 }

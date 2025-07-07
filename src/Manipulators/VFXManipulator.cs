@@ -52,6 +52,8 @@ public class VFXManipulator : MoonTools.ECS.Manipulator
             Easing.Function.Float.OutCubic
         );
 
+        Relate(projectile, trail, new TrailingVisuals());
+
         return trail;
     }
 

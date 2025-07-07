@@ -1,4 +1,4 @@
-#define ShowDebugRaycastVisuals
+//#define ShowDebugRaycastVisuals
 
 using System;
 using System.Collections.Generic;

@@ -36,6 +36,7 @@ public class GameplayState : GameState
     ChangeAppearanceOverTime ChangeAppearanceOverTime;
     DetectionSystem DetectionSystem;
     EnemySystem EnemySystem;
+    TrailVisualSystem TrailVisualSystem;
 
     public GameplayState(RollAndCashGame game, GameState transitionState)
     {
@@ -121,6 +122,7 @@ public class GameplayState : GameState
         ChangeAppearanceOverTime = new ChangeAppearanceOverTime(World);
         DetectionSystem = new DetectionSystem(World);
         EnemySystem = new(World);
+        TrailVisualSystem = new(World);
 
         Renderer = new Renderer(World, Game.GraphicsDevice, Game.RootTitleStorage, Game.MainWindow.SwapchainFormat);
 
@@ -171,6 +173,7 @@ public class GameplayState : GameState
         Motion.Update(dt);
         Collision.Update(dt);
         Health.Update(dt);
+        TrailVisualSystem.Update(dt);
         FollowingSystem.Update(dt);
         DirectionalAnimation.Update(dt);
         SetSpriteAnimationSystem.Update(dt);
