@@ -141,6 +141,21 @@ public static class ImGuiHandler
         var pos = world.Get<Position2D>(entity);
         var input = pos.AsVector();
 
+        // Credits to @rokups for this trick: https://github.com/ocornut/imgui/discussions/3848
+        // And credits to Samurai Gunn 2 behind-the-scenes vids for the idea.
+        ImGui.Button("Grab");
+        if (ImGui.IsItemHovered())
+        {
+            ImGui.BeginTooltip();
+            ImGui.Text("Click and drag to adjust the position.");
+            ImGui.EndTooltip();
+        }
+        if (ImGui.IsItemActive())
+        {
+            pos += ImGui.GetIO().MouseDelta;
+            world.Set(entity, pos);
+        }
+        
         if (ImGui.InputFloat2("Position2D", ref input))
         {
             world.Set(entity, new Position2D(input));
