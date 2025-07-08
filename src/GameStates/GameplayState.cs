@@ -1,6 +1,7 @@
 using System;
 using MoonTools.ECS;
 using MoonWorks;
+using MoonWorks.Graphics;
 using RollAndCash.Components;
 using RollAndCash.Content;
 using RollAndCash.Messages;
@@ -195,9 +196,9 @@ public class GameplayState : GameState
         World.FinishUpdate();
     }
 
-    public override void Draw(Window window, double alpha)
+    public override void Draw(CommandBuffer commandBuffer, Texture swapchainTexture, Window window, double alpha)
     {
-        Renderer.Render(Game.MainWindow);
+        Renderer.Render(commandBuffer, swapchainTexture, window, alpha);
     }
 
     public override void End()

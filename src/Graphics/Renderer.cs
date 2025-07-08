@@ -11,6 +11,7 @@ using MoonWorks.Storage;
 using System;
 using RollAndCash.Utility;
 using MoonWorks.Math;
+using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
 
 namespace RollAndCash;
 
@@ -116,232 +117,222 @@ public class Renderer : MoonTools.ECS.Renderer
 		return color;
 	}
 
-	public void Render(Window window)
+	public void Render(CommandBuffer commandBuffer, Texture swapchainTexture, Window window, double alpha)
 	{
-		var commandBuffer = GraphicsDevice.AcquireCommandBuffer();
+		ArtSpriteBatch.Start();
 
-		var swapchainTexture = commandBuffer.AcquireSwapchainTexture(window);
-
-		if (swapchainTexture != null)
+		foreach (var entity in RectangleFilter.Entities)
 		{
-			ArtSpriteBatch.Start();
-
-			foreach (var entity in RectangleFilter.Entities)
+			var position = Get<Position>(entity);
+			var rectangle = Get<Rectangle>(entity);
+			var orientation = Has<Angle>(entity) ? Get<Angle>(entity).Value : 0.0f;
+			var color = GetColorBlend(entity); 
+			var depth = -2f;
+			if (Has<Depth>(entity))
 			{
-				var position = Get<Position>(entity);
-				var rectangle = Get<Rectangle>(entity);
-				var orientation = Has<Angle>(entity) ? Get<Angle>(entity).Value : 0.0f;
-				var color = GetColorBlend(entity); 
-				var depth = -2f;
-				if (Has<Depth>(entity))
-				{
-					depth = -Get<Depth>(entity).Value;
-				}
-
-				var sprite = SpriteAnimations.Pixel.Frames[0];
-				ArtSpriteBatch.Add(
-					new Vector3(position.X + rectangle.X, position.Y + rectangle.Y, depth),
-					orientation,
-					new Vector2(rectangle.Width, rectangle.Height),
-					color,
-					sprite.UV.LeftTop,
-					sprite.UV.Dimensions);
+				depth = -Get<Depth>(entity).Value;
 			}
 
-			foreach (var entity in SpriteAnimationFilter.Entities)
+			var sprite = SpriteAnimations.Pixel.Frames[0];
+			ArtSpriteBatch.Add(
+				new Vector3(position.X + rectangle.X, position.Y + rectangle.Y, depth),
+				orientation,
+				new Vector2(rectangle.Width, rectangle.Height),
+				color,
+				sprite.UV.LeftTop,
+				sprite.UV.Dimensions);
+		}
+
+		foreach (var entity in SpriteAnimationFilter.Entities)
+		{
+			if (HasOutRelation<DontDraw>(entity))
+				continue;
+
+			var position = Get<Position>(entity);
+			var animation = Get<SpriteAnimation>(entity);
+			var sprite = animation.CurrentSprite;
+			var origin = animation.Origin;
+			var depth = -1f;
+			var orientation = Has<Angle>(entity) ? Get<Angle>(entity).Value : 0.0f;
+			var color = GetColorBlend(entity);
+
+			foreach (var rotationEnforcingEntity in OutRelations<Rotated>(entity))
 			{
-				if (HasOutRelation<DontDraw>(entity))
-					continue;
-
-				var position = Get<Position>(entity);
-				var animation = Get<SpriteAnimation>(entity);
-				var sprite = animation.CurrentSprite;
-				var origin = animation.Origin;
-				var depth = -1f;
-				var orientation = Has<Angle>(entity) ? Get<Angle>(entity).Value : 0.0f;
-				var color = GetColorBlend(entity);
-
-				foreach (var rotationEnforcingEntity in OutRelations<Rotated>(entity))
-				{
-					var rotationData = GetRelationData<Rotated>(entity, rotationEnforcingEntity);
-					orientation += rotationData.Angle;
-				}
-
-				Vector2 scale = Vector2.One;
-				if (Has<SpriteScale>(entity))
-				{
-					scale = Get<SpriteScale>(entity).Scale;
-				}
-				if ((OutRelationCount<FlippedHorizontally>(entity) % 2) == 1)
-				{
-					scale.X *= -1;
-				}
-				if ((OutRelationCount<FlippedVertically>(entity) % 2) == 1)
-				{
-					scale.Y *= -1;
-				}
-				origin *= scale;
-
-				if (orientation != 0.0f)
-				{
-					//var rotationMatrix = Matrix3x2.CreateRotation(orientation);
-					//origin = Vector2.Transform(origin, rotationMatrix);
-					origin = MathUtilities.Rotate(origin, orientation);
-				}
-
-				var offset = -origin - new Vector2(sprite.FrameRect.X, sprite.FrameRect.Y) * scale;
-
-				if (Has<Alpha>(entity))
-				{
-					color.A = Get<Alpha>(entity).Value;
-				}
-
-				if (Has<Depth>(entity))
-				{
-					depth = -Get<Depth>(entity).Value;
-				}
-
-				ArtSpriteBatch.Add(
-					new Vector3(position.X + offset.X, position.Y + offset.Y, depth),
-					orientation,
-					new Vector2(sprite.SliceRect.W, sprite.SliceRect.H) * scale,
-					color,
-					sprite.UV.LeftTop,
-					sprite.UV.Dimensions
-				);
+				var rotationData = GetRelationData<Rotated>(entity, rotationEnforcingEntity);
+				orientation += rotationData.Angle;
 			}
 
-			TextBatch.Start();
-			foreach (var entity in TextFilter.Entities)
+			Vector2 scale = Vector2.One;
+			if (Has<SpriteScale>(entity))
 			{
-				if (HasOutRelation<DontDraw>(entity))
-					continue;
+				scale = Get<SpriteScale>(entity).Scale;
+			}
+			if ((OutRelationCount<FlippedHorizontally>(entity) % 2) == 1)
+			{
+				scale.X *= -1;
+			}
+			if ((OutRelationCount<FlippedVertically>(entity) % 2) == 1)
+			{
+				scale.Y *= -1;
+			}
+			origin *= scale;
 
-				var text = Get<Text>(entity);
-				var position = Get<Position>(entity);
+			if (orientation != 0.0f)
+			{
+				//var rotationMatrix = Matrix3x2.CreateRotation(orientation);
+				//origin = Vector2.Transform(origin, rotationMatrix);
+				origin = MathUtilities.Rotate(origin, orientation);
+			}
 
-				var str = Data.TextStorage.GetString(text.TextID);
-				var font = Fonts.FromID(text.FontID);
-				var color = Has<Color>(entity) ? Get<Color>(entity) : Color.White;
-				var depth = -1f;
+			var offset = -origin - new Vector2(sprite.FrameRect.X, sprite.FrameRect.Y) * scale;
 
-				if (Has<ColorBlend>(entity))
-				{
-					color = Get<ColorBlend>(entity).Color;
-				}
+			if (Has<Alpha>(entity))
+			{
+				color.A = Get<Alpha>(entity).Value;
+			}
 
-				if (Has<Depth>(entity))
-				{
-					depth = -Get<Depth>(entity).Value;
-				}
+			if (Has<Depth>(entity))
+			{
+				depth = -Get<Depth>(entity).Value;
+			}
 
-				if (Has<TextDropShadow>(entity))
-				{
-					var dropShadow = Get<TextDropShadow>(entity);
+			ArtSpriteBatch.Add(
+				new Vector3(position.X + offset.X, position.Y + offset.Y, depth),
+				orientation,
+				new Vector2(sprite.SliceRect.W, sprite.SliceRect.H) * scale,
+				color,
+				sprite.UV.LeftTop,
+				sprite.UV.Dimensions
+			);
+		}
 
-					var dropShadowPosition = position + new Position(dropShadow.OffsetX, dropShadow.OffsetY);
+		TextBatch.Start();
+		foreach (var entity in TextFilter.Entities)
+		{
+			if (HasOutRelation<DontDraw>(entity))
+				continue;
 
-					TextBatch.Add(
-						font,
-						str,
-						text.Size,
-						Matrix4x4.CreateTranslation(dropShadowPosition.X, dropShadowPosition.Y, depth - 1),
-						new Color((byte)0, (byte)0, (byte)0, color.A),
-						text.HorizontalAlignment,
-						text.VerticalAlignment
-					);
-				}
+			var text = Get<Text>(entity);
+			var position = Get<Position>(entity);
+
+			var str = Data.TextStorage.GetString(text.TextID);
+			var font = Fonts.FromID(text.FontID);
+			var color = Has<Color>(entity) ? Get<Color>(entity) : Color.White;
+			var depth = -1f;
+
+			if (Has<ColorBlend>(entity))
+			{
+				color = Get<ColorBlend>(entity).Color;
+			}
+
+			if (Has<Depth>(entity))
+			{
+				depth = -Get<Depth>(entity).Value;
+			}
+
+			if (Has<TextDropShadow>(entity))
+			{
+				var dropShadow = Get<TextDropShadow>(entity);
+
+				var dropShadowPosition = position + new Position(dropShadow.OffsetX, dropShadow.OffsetY);
 
 				TextBatch.Add(
 					font,
 					str,
 					text.Size,
-					Matrix4x4.CreateTranslation(position.X, position.Y, depth),
-					color,
+					Matrix4x4.CreateTranslation(dropShadowPosition.X, dropShadowPosition.Y, depth - 1),
+					new Color((byte)0, (byte)0, (byte)0, color.A),
 					text.HorizontalAlignment,
 					text.VerticalAlignment
 				);
-
 			}
 
-			TriangleBatch.Start();
-			foreach (var entity in DetectionConeFilter.Entities)
-			{
-				if (HasOutRelation<DontDraw>(entity))
-					continue;
-
-				var selfPosition = Get<Position>(entity);
-
-				 // FIXME: use detection color (alert state?)
-				var color = (HasInRelation<Detected>(entity) || Has<ChargingUpAttack>(entity)) ? Color.Red : Color.Green;
-				color.A = 100;
-
-				// FIXME: ensure this draws below most entities, but above the ground
-				var depth = -10; 
-
-				var selfPosVec = new Vector3(selfPosition.X, selfPosition.Y, depth);
-				var colorVec = color.ToVector4();
-
-				var numPoints = OutRelationCount<DetectionVisualPoint>(entity);
-				if (numPoints < 2)
-				{
-					continue;
-				}
-
-				var points = OutRelations<DetectionVisualPoint>(entity);
-				points.MoveNext(); // points to OOB at the start
-				var prevOther = points.Current;
-				while (points.MoveNext())
-				{
-					var other = points.Current;
-					var position = Get<Position>(other);
-					var prevPos = Get<Position>(prevOther);
-
-					// FIXME: Order of positions matters for winding order.
-					TriangleBatch.AddTriangle(
-						colorVec,
-						new Vector3(position.X, position.Y, depth),
-						new Vector3(prevPos.X, prevPos.Y, depth),
-						selfPosVec
-					);
-
-					prevOther = other;
-				}
-			}
-
-			ArtSpriteBatch.Upload(commandBuffer); // Copy and Compute passes happen here!
-			TextBatch.UploadBufferData(commandBuffer);
-			TriangleBatch.Upload(commandBuffer);
-
-#region RENDER PASS START
-			var renderPass = commandBuffer.BeginRenderPass(
-				new DepthStencilTargetInfo(DepthTexture, 1, 0),
-				new ColorTargetInfo(RenderTexture, Color.Black)
+			TextBatch.Add(
+				font,
+				str,
+				text.Size,
+				Matrix4x4.CreateTranslation(position.X, position.Y, depth),
+				color,
+				text.HorizontalAlignment,
+				text.VerticalAlignment
 			);
 
-			var viewProjectionMatrices = new ViewProjectionMatrices(GetCameraMatrix(), GetProjectionMatrix());
-
-			if (ArtSpriteBatch.InstanceCount > 0)
-			{
-				ArtSpriteBatch.Render(renderPass, SpriteAtlasTexture, PointSampler, viewProjectionMatrices);
-			}
-
-			if (TriangleBatch.InstanceCount > 0)
-			{
-				TriangleBatch.Render(renderPass, viewProjectionMatrices);
-			}
-
-			renderPass.BindGraphicsPipeline(TextPipeline);
-			TextBatch.Render(renderPass, GetCameraMatrix() * GetProjectionMatrix());
-
-			commandBuffer.EndRenderPass(renderPass);
-#endregion
-
-			commandBuffer.Blit(RenderTexture, swapchainTexture, MoonWorks.Graphics.Filter.Nearest);
 		}
 
-		// You must always submit the command buffer.
-		GraphicsDevice.Submit(commandBuffer);
+		TriangleBatch.Start();
+		foreach (var entity in DetectionConeFilter.Entities)
+		{
+			if (HasOutRelation<DontDraw>(entity))
+				continue;
+
+			var selfPosition = Get<Position>(entity);
+
+				// FIXME: use detection color (alert state?)
+			var color = (HasInRelation<Detected>(entity) || Has<ChargingUpAttack>(entity)) ? Color.Red : Color.Green;
+			color.A = 100;
+
+			// FIXME: ensure this draws below most entities, but above the ground
+			var depth = -10; 
+
+			var selfPosVec = new Vector3(selfPosition.X, selfPosition.Y, depth);
+			var colorVec = color.ToVector4();
+
+			var numPoints = OutRelationCount<DetectionVisualPoint>(entity);
+			if (numPoints < 2)
+			{
+				continue;
+			}
+
+			var points = OutRelations<DetectionVisualPoint>(entity);
+			points.MoveNext(); // points to OOB at the start
+			var prevOther = points.Current;
+			while (points.MoveNext())
+			{
+				var other = points.Current;
+				var position = Get<Position>(other);
+				var prevPos = Get<Position>(prevOther);
+
+				// FIXME: Order of positions matters for winding order.
+				TriangleBatch.AddTriangle(
+					colorVec,
+					new Vector3(position.X, position.Y, depth),
+					new Vector3(prevPos.X, prevPos.Y, depth),
+					selfPosVec
+				);
+
+				prevOther = other;
+			}
+		}
+
+		ArtSpriteBatch.Upload(commandBuffer); // Copy and Compute passes happen here!
+		TextBatch.UploadBufferData(commandBuffer);
+		TriangleBatch.Upload(commandBuffer);
+
+#region RENDER PASS START
+		var renderPass = commandBuffer.BeginRenderPass(
+			new DepthStencilTargetInfo(DepthTexture, 1, 0),
+			new ColorTargetInfo(RenderTexture, Color.Black)
+		);
+
+		var viewProjectionMatrices = new ViewProjectionMatrices(GetCameraMatrix(), GetProjectionMatrix());
+
+		if (ArtSpriteBatch.InstanceCount > 0)
+		{
+			ArtSpriteBatch.Render(renderPass, SpriteAtlasTexture, PointSampler, viewProjectionMatrices);
+		}
+
+		if (TriangleBatch.InstanceCount > 0)
+		{
+			TriangleBatch.Render(renderPass, viewProjectionMatrices);
+		}
+
+		renderPass.BindGraphicsPipeline(TextPipeline);
+		TextBatch.Render(renderPass, GetCameraMatrix() * GetProjectionMatrix());
+
+		commandBuffer.EndRenderPass(renderPass);
+#endregion
+
+		commandBuffer.Blit(RenderTexture, swapchainTexture, MoonWorks.Graphics.Filter.Nearest);
 	}
 
 	public Matrix4x4 GetCameraMatrix()

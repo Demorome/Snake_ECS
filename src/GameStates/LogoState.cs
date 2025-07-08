@@ -86,45 +86,36 @@ public class LogoState : GameState
         }
     }
 
-    public override void Draw(Window window, double alpha)
+    public override void Draw(CommandBuffer commandBuffer, Texture swapchainTexture, Window window, double alpha)
     {
         var logoPosition = new Position(680, 250);
 
-        var commandBuffer = GraphicsDevice.AcquireCommandBuffer();
+        HiResSpriteBatch.Start();
 
-        var swapchainTexture = commandBuffer.AcquireSwapchainTexture(window);
+        var logoAnimation = SpriteAnimations.Logo_MoonWorks;
+        var sprite = logoAnimation.Frames[0];
+        HiResSpriteBatch.Add(
+            new Vector3(logoPosition.X, logoPosition.Y, -1f),
+            0,
+            new Vector2(sprite.SliceRect.W, sprite.SliceRect.H),
+            Color.Lerp(Color.White, Color.Black, 1 - Fade),
+            sprite.UV.LeftTop, sprite.UV.Dimensions
+        );
 
-        if (swapchainTexture != null)
-        {
-            HiResSpriteBatch.Start();
+        HiResSpriteBatch.Upload(commandBuffer);
 
-            var logoAnimation = SpriteAnimations.Logo_MoonWorks;
-            var sprite = logoAnimation.Frames[0];
-            HiResSpriteBatch.Add(
-                new Vector3(logoPosition.X, logoPosition.Y, -1f),
-                0,
-                new Vector2(sprite.SliceRect.W, sprite.SliceRect.H),
-                Color.Lerp(Color.White, Color.Black, 1 - Fade),
-                sprite.UV.LeftTop, sprite.UV.Dimensions
-            );
+        var renderPass = commandBuffer.BeginRenderPass(new ColorTargetInfo(swapchainTexture, Color.Black));
 
-            HiResSpriteBatch.Upload(commandBuffer);
+        var hiResViewProjectionMatrices = new ViewProjectionMatrices(Matrix4x4.Identity, GetHiResProjectionMatrix());
 
-            var renderPass = commandBuffer.BeginRenderPass(new ColorTargetInfo(swapchainTexture, Color.Black));
+        HiResSpriteBatch.Render(
+            renderPass,
+            TextureAtlases.TP_HiRes.Texture,
+            LinearSampler,
+            hiResViewProjectionMatrices
+        );
 
-            var hiResViewProjectionMatrices = new ViewProjectionMatrices(Matrix4x4.Identity, GetHiResProjectionMatrix());
-
-            HiResSpriteBatch.Render(
-                renderPass,
-                TextureAtlases.TP_HiRes.Texture,
-                LinearSampler,
-                hiResViewProjectionMatrices
-            );
-
-            commandBuffer.EndRenderPass(renderPass);
-        }
-
-        GraphicsDevice.Submit(commandBuffer);
+        commandBuffer.EndRenderPass(renderPass);
     }
 
     public override void End()

@@ -88,34 +88,26 @@ public class LoadState : GameState
         }
     }
 
-    public override void Draw(Window window, double alpha)
+    public override void Draw(CommandBuffer commandBuffer, Texture swapchainTexture, Window window, double alpha)
     {
-        var commandBuffer = GraphicsDevice.AcquireCommandBuffer();
+        TextBatch.Start();
+        AddString("L", 60, new Position(1640, 1020), 1.2f + 4 * (float)Timer.Elapsed.TotalSeconds);
+        AddString("O", 60, new Position(1680, 1020), 1.0f + 4 * (float)Timer.Elapsed.TotalSeconds);
+        AddString("A", 60, new Position(1720, 1020), 0.8f + 4 * (float)Timer.Elapsed.TotalSeconds);
+        AddString("D", 60, new Position(1760, 1020), 0.6f + 4 * (float)Timer.Elapsed.TotalSeconds);
+        AddString("I", 60, new Position(1782, 1020), 0.4f + 4 * (float)Timer.Elapsed.TotalSeconds);
+        AddString("N", 60, new Position(1820, 1020), 0.2f + 4 * (float)Timer.Elapsed.TotalSeconds);
+        AddString("G", 60, new Position(1860, 1020), 0.0f + 4 * (float)Timer.Elapsed.TotalSeconds);
+        TextBatch.UploadBufferData(commandBuffer);
 
-        var swapchainTexture = commandBuffer.AcquireSwapchainTexture(Game.MainWindow);
-        if (swapchainTexture != null)
-        {
-            TextBatch.Start();
-            AddString("L", 60, new Position(1640, 1020), 1.2f + 4 * (float)Timer.Elapsed.TotalSeconds);
-            AddString("O", 60, new Position(1680, 1020), 1.0f + 4 * (float)Timer.Elapsed.TotalSeconds);
-            AddString("A", 60, new Position(1720, 1020), 0.8f + 4 * (float)Timer.Elapsed.TotalSeconds);
-            AddString("D", 60, new Position(1760, 1020), 0.6f + 4 * (float)Timer.Elapsed.TotalSeconds);
-            AddString("I", 60, new Position(1782, 1020), 0.4f + 4 * (float)Timer.Elapsed.TotalSeconds);
-            AddString("N", 60, new Position(1820, 1020), 0.2f + 4 * (float)Timer.Elapsed.TotalSeconds);
-            AddString("G", 60, new Position(1860, 1020), 0.0f + 4 * (float)Timer.Elapsed.TotalSeconds);
-            TextBatch.UploadBufferData(commandBuffer);
+        var renderPass = commandBuffer.BeginRenderPass(
+            new ColorTargetInfo(swapchainTexture, Color.Black)
+        );
 
-            var renderPass = commandBuffer.BeginRenderPass(
-                new ColorTargetInfo(swapchainTexture, Color.Black)
-            );
+        renderPass.BindGraphicsPipeline(TextPipeline);
+        TextBatch.Render(renderPass, GetHiResProjectionMatrix());
 
-            renderPass.BindGraphicsPipeline(TextPipeline);
-            TextBatch.Render(renderPass, GetHiResProjectionMatrix());
-
-            commandBuffer.EndRenderPass(renderPass);
-        }
-
-        GraphicsDevice.Submit(commandBuffer);
+        commandBuffer.EndRenderPass(renderPass);
     }
 
     public override void End()

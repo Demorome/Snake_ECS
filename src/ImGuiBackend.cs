@@ -89,15 +89,24 @@ public class ImGuiBackend : IDisposable
         SDL.SDL_SetClipboardText(text);
     }
 
-    public unsafe ImGuiBackend(Game game, Shader vertexShader, Shader fragmentShader)
+    public unsafe ImGuiBackend(Game game)
     {
         Instance = this;
 
         Game = game;
-        VertexShader = vertexShader;
-        FragmentShader = fragmentShader;
 
-        RebuildPipeline();
+        var shaderContentPath = "Content/Shaders";
+
+		var vertShader = ShaderCross.Create(Game.GraphicsDevice, Game.RootTitleStorage,
+            $"{shaderContentPath}/ImGui.vert.hlsl.spv", "main", ShaderCross.ShaderFormat.SPIRV, ShaderStage.Vertex);
+
+		var fragShader = ShaderCross.Create(Game.GraphicsDevice, Game.RootTitleStorage,
+            $"{shaderContentPath}/ImGui.frag.hlsl.spv", "main", ShaderCross.ShaderFormat.SPIRV, ShaderStage.Fragment);
+
+        RebuildPipeline(vertShader, fragShader);
+
+        vertShader.Dispose();
+        fragShader.Dispose();
 
         samplers =
         [
@@ -123,7 +132,7 @@ public class ImGuiBackend : IDisposable
         */
     }
 
-    public void RebuildPipeline()
+    public void RebuildPipeline(Shader vertexShader, Shader fragmentShader)
     {
         pipeline?.Dispose();
 
@@ -137,8 +146,8 @@ public class ImGuiBackend : IDisposable
                 DepthStencilState = DepthStencilState.Disable,
                 MultisampleState = MultisampleState.None,
                 VertexInputState = VertexInputState.CreateSingleBinding<Vertex>(),
-                VertexShader = VertexShader,
-                FragmentShader = FragmentShader,
+                VertexShader = vertexShader,
+                FragmentShader = fragmentShader,
                 TargetInfo = new GraphicsPipelineTargetInfo
                 {
                     ColorTargetDescriptions =
