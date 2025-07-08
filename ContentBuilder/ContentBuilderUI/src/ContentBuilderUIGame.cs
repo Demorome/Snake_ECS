@@ -520,23 +520,6 @@ namespace ContentBuilderUI
 
 		private void RenderCommandLists(CommandBuffer commandBuffer, Texture renderTexture, ImDrawDataPtr drawDataPtr, ImGuiIOPtr ioPtr)
 		{
-			var view = Matrix4x4.CreateLookAt(
-				new Vector3(0, 0, 1),
-				Vector3.Zero,
-				Vector3.UnitY
-			);
-
-			var projection = Matrix4x4.CreateOrthographicOffCenter(
-				0,
-				480,
-				270,
-				0,
-				0.01f,
-				4000f
-			);
-
-			var viewProjectionMatrix = view * projection;
-
 			var renderPass = commandBuffer.BeginRenderPass(
 				new ColorTargetInfo(renderTexture, Color.White)
 			);
@@ -564,9 +547,6 @@ namespace ContentBuilderUI
 					renderPass.BindFragmentSamplers(
 						new TextureSamplerBinding(TextureStorage.GetTexture(drawCmd.TextureId), ImGuiSampler)
 					);
-
-					var topLeft = Vector2.Transform(new Vector2(drawCmd.ClipRect.X, drawCmd.ClipRect.Y), viewProjectionMatrix);
-					var bottomRight = Vector2.Transform(new Vector2(drawCmd.ClipRect.Z, drawCmd.ClipRect.W), viewProjectionMatrix);
 
 					var width = drawCmd.ClipRect.Z - (int)drawCmd.ClipRect.X;
 					var height = drawCmd.ClipRect.W - (int)drawCmd.ClipRect.Y;
