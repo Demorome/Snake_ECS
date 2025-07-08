@@ -27,6 +27,7 @@
 	<ItemGroup>
 		<ProjectReference Include="lib\MoonWorks\MoonWorks.csproj" />
 		<ProjectReference Include="lib\MoonTools.ECS\MoonTools.ECS.csproj" />
+		<ProjectReference Include="lib\ImGui.NET\ImGui.NET.csproj" />
 	</ItemGroup>
 
 	<!-- The MacOS dynamic loader really sucks! -->
