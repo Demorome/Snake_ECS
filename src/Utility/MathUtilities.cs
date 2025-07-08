@@ -7,7 +7,8 @@ public static class MathUtilities
 {
     public static Vector2 SafeNormalize(Vector2 v)
     {
-        if (v.LengthSquared() == 0) {
+        if (v.LengthSquared() == 0)
+        {
             return Vector2.Zero;
         }
 
@@ -47,4 +48,8 @@ public static class MathUtilities
         return angle;*/
     }
 
+    public static Vector2 UnitVectorFromAngle(float angleInRadians)
+    {
+        return SafeNormalize(new Vector2(MathF.Cos(angleInRadians), MathF.Sin(angleInRadians)));
+    }
 }

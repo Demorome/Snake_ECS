@@ -80,6 +80,8 @@ public class Input : MoonTools.ECS.System
 			Set(playerEntity, inputState);
 
 			// FIXME: Determine cursor position if using controller.
+			// FIXME: Mouse pos doesn't seem to correlate to actual cursor pos???
+			// Could be due to projection matrix?
 			Set(playerEntity, new CursorPosition(new Vector2(Inputs.Mouse.X, Inputs.Mouse.Y)));
 		}
 	}

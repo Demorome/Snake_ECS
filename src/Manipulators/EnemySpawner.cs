@@ -17,7 +17,7 @@ public class EnemySpawner : MoonTools.ECS.Manipulator
 
     public Entity SpawnFrog()
     {
-        var entity = CreateEntity();
+        var entity = CreateEntity("Frog");
     
         Set(entity, new Position2D(200, 150));
         var sprite = SpriteAnimations.NPC_Frog;

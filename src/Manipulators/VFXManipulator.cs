@@ -5,6 +5,7 @@ using System.Numerics;
 using MoonTools.ECS;
 using MoonWorks.Graphics;
 using MoonWorks.Math;
+using RollAndCash;
 using RollAndCash.Components;
 using RollAndCash.Content;
 using RollAndCash.Data;
@@ -38,14 +39,15 @@ public class VFXManipulator : MoonTools.ECS.Manipulator
 
         Set(trail, new Angle(MathUtilities.GetHeadingAngle(lastPos.AsVector(), projectilePos)));
 
-        // TODO: Center scale changes based on sprite origin!!!!!
+        // FIXME: Center scale changes based on sprite origin!!!!!
 
         // Stretch from projectile lastPos -> currentPos
         var distance = Vector2.Distance(projectilePos, lastPos.AsVector());
-        var startScale = new Vector2(distance, 1f); // TODO: Account for size of sprites to reduce distance!
+        var startScale = new Vector2(distance, 1f); // FIXME: Account for size of sprites to reduce distance!
 
         // Shrinks down to form a thin line at the end of the trail.
         var endScale = new Vector2(startScale.X, 0.0f); // only shrink the width of the trail
+
         TimedChangeManipulator.SetTimedScaleChange(trail, trail,
             endScale, endScale, // order of args backwards on purpose
             startScale, startScale,
@@ -77,7 +79,7 @@ public class VFXManipulator : MoonTools.ECS.Manipulator
         Vector2? direction = null
         )
     {
-        var vfx = CreateEntity();
+        var vfx = CreateEntity("VFX");
 
         Set(vfx, position);
         Set(vfx, sprite);

@@ -31,7 +31,7 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
         bool destroyOnCollision = true
         )
     {
-        var entity = CreateEntity();
+        var entity = CreateEntity("Projectile");
         Set(entity, new SpriteAnimation(SpriteAnimations.Projectile));
         Set(entity, position);
 
@@ -100,7 +100,7 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
 
         if (delayTime > 0.0f)
         {
-            var attackDelayTimer = CreateEntity();
+            var attackDelayTimer = CreateEntity("Attack Delay Timer");
             Set(attackDelayTimer, new Timer(delayTime));
             Relate(projectile, attackDelayTimer, new SpeedMult(0.0f));
             //Relate(projectile, attackDelayTimer, new DelayedAttack()); // TODO: Send ProjectileAttack message
@@ -168,7 +168,7 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
         );
 
         // Manual spinning animation.
-        var flipTimer = CreateEntity();
+        var flipTimer = CreateEntity("Flip Timer");
         Set(flipTimer, new Timer(1f, true));
         Relate(proj, flipTimer, new WillRotate(0.1f, float.DegreesToRadians(90)));
 

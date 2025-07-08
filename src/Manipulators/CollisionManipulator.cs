@@ -122,7 +122,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
 
     Entity Debug_ShowRay(Position2D rayOrigin, float rayAngle, float length)
     {
-        var entity = CreateEntity();
+        var entity = CreateEntity("Raycast Visual");
         Set(entity, new Timer(-1)); // lasts 1 frame
         Set(entity, rayOrigin);
         Set(entity, new SpriteAnimation(SpriteAnimations.Pixel));
@@ -137,7 +137,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
 
     Entity Debug_ShowCollisionPos(Position2D pos)
     {
-        var entity = CreateEntity();
+        var entity = CreateEntity("Raycast Collision Pos Visual");
         Set(entity, new Timer(-1)); // lasts 1 frame
         Set(entity, new SpriteAnimation(SpriteAnimations.Pixel));
         {

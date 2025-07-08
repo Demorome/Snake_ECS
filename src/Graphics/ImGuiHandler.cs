@@ -10,7 +10,10 @@ using MoonWorks;
 using MoonWorks.AsyncIO;
 using MoonWorks.Graphics;
 using MoonWorks.Input;
+using MoonWorks.Math;
 using RollAndCash.Components;
+using RollAndCash.Relations;
+using RollAndCash.Utility;
 using SDL3;
 using Buffer = MoonWorks.Graphics.Buffer;
 
@@ -39,6 +42,12 @@ public static class ImGuiHandler
         {
             foreach (var entity in world.Debug_GetEntities(typeof(Position2D)))
             {
+                // Don't want to spam debugger with boring entities.
+                if (world.HasInRelation<DetectionVisualPoint>(entity))
+                {
+                    continue;
+                }
+
                 if (!ImGui.TreeNode(EntityToString(world, entity)))
                 {
                     continue;
@@ -68,7 +77,7 @@ public static class ImGuiHandler
         //{ typeof(LevelBoundaries), DrawLevelBoundariesParameters },
         //{ typeof(SpriteAnimation), DrawSpriteAnimation },
         //{ typeof(Text), DrawText },
-        //{ typeof(Lives), DrawLives },
+        { typeof(HasHealth), DrawHealth },
         { typeof(ColorBlend), DrawColorBlend },
         { typeof(Rectangle), DrawRectangle }
     };
@@ -152,14 +161,15 @@ public static class ImGuiHandler
     private static void DrawDirection2D(World world, Entity entity)
     {
         var direction = world.Get<Direction2D>(entity);
-        var input = direction.Value;
+        var input = float.RadiansToDegrees(MathUtilities.AngleFromUnitVector(direction.Value));
 
-        if (ImGui.InputFloat2("Direction2D", ref input))
+        if (ImGui.InputFloat("Angle (degrees)", ref input))
         {
-            world.Set(entity, new SpriteScale(input));
+            var output = MathUtilities.UnitVectorFromAngle(float.DegreesToRadians(input));
+            world.Set(entity, new Direction2D(output));
         }
     }
-    
+
     private static void DrawColorBlend(World world, Entity entity)
     {
         var color = world.Get<ColorBlend>(entity);
@@ -168,6 +178,17 @@ public static class ImGuiHandler
         if (ImGui.InputFloat4("ColorBlend", ref input))
         {
             world.Set(entity, new ColorBlend(new Color(input)));
+        }
+    }
+    
+    private static void DrawHealth(World world, Entity entity)
+    {
+        var health = world.Get<HasHealth>(entity);
+        var input = health.Health;
+
+        if (ImGui.InputInt("Health", ref input))
+        {
+            world.Set(entity, new HasHealth(input));
         }
     }
 }
