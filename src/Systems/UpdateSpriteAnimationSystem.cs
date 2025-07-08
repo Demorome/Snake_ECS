@@ -21,11 +21,11 @@ public class UpdateSpriteAnimationSystem : MoonTools.ECS.System
 	{
 		SpriteAnimationFilter = FilterBuilder
 			.Include<SpriteAnimation>()
-			.Include<Position>()
+			.Include<Position2D>()
 			.Build();
 		FlickerFilter = FilterBuilder.Include<ColorFlicker>().Build();
 		TextFilter = FilterBuilder.Include<Text>().Build();
-		SlowDownAnimationFilter = FilterBuilder.Include<SlowDownAnimation>().Include<Position>().Build();
+		SlowDownAnimationFilter = FilterBuilder.Include<SlowDownAnimation>().Include<Position2D>().Build();
 	}
 
 	public override void Update(TimeSpan delta)

@@ -1,4 +1,6 @@
+#if DEBUG
 #define UseDebugGUI
+#endif
 
 using MoonWorks.Graphics;
 using MoonWorks;

@@ -25,8 +25,8 @@ public class Projectile : MoonTools.ECS.System
 
         ProjectileFilter = FilterBuilder
         .Include<SpriteAnimation>()
-        .Include<Position>()
-        .Include<Direction>()
+        .Include<Position2D>()
+        .Include<Direction2D>()
         .Include<Speed>()
         .Include<DealsDamageOnContact>()
         .Exclude<Player>()

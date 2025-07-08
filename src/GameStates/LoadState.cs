@@ -91,13 +91,13 @@ public class LoadState : GameState
     public override void Draw(CommandBuffer commandBuffer, Texture swapchainTexture, Window window, double alpha)
     {
         TextBatch.Start();
-        AddString("L", 60, new Position(1640, 1020), 1.2f + 4 * (float)Timer.Elapsed.TotalSeconds);
-        AddString("O", 60, new Position(1680, 1020), 1.0f + 4 * (float)Timer.Elapsed.TotalSeconds);
-        AddString("A", 60, new Position(1720, 1020), 0.8f + 4 * (float)Timer.Elapsed.TotalSeconds);
-        AddString("D", 60, new Position(1760, 1020), 0.6f + 4 * (float)Timer.Elapsed.TotalSeconds);
-        AddString("I", 60, new Position(1782, 1020), 0.4f + 4 * (float)Timer.Elapsed.TotalSeconds);
-        AddString("N", 60, new Position(1820, 1020), 0.2f + 4 * (float)Timer.Elapsed.TotalSeconds);
-        AddString("G", 60, new Position(1860, 1020), 0.0f + 4 * (float)Timer.Elapsed.TotalSeconds);
+        AddString("L", 60, new Position2D(1640, 1020), 1.2f + 4 * (float)Timer.Elapsed.TotalSeconds);
+        AddString("O", 60, new Position2D(1680, 1020), 1.0f + 4 * (float)Timer.Elapsed.TotalSeconds);
+        AddString("A", 60, new Position2D(1720, 1020), 0.8f + 4 * (float)Timer.Elapsed.TotalSeconds);
+        AddString("D", 60, new Position2D(1760, 1020), 0.6f + 4 * (float)Timer.Elapsed.TotalSeconds);
+        AddString("I", 60, new Position2D(1782, 1020), 0.4f + 4 * (float)Timer.Elapsed.TotalSeconds);
+        AddString("N", 60, new Position2D(1820, 1020), 0.2f + 4 * (float)Timer.Elapsed.TotalSeconds);
+        AddString("G", 60, new Position2D(1860, 1020), 0.0f + 4 * (float)Timer.Elapsed.TotalSeconds);
         TextBatch.UploadBufferData(commandBuffer);
 
         var renderPass = commandBuffer.BeginRenderPass(
@@ -131,7 +131,7 @@ public class LoadState : GameState
         );
     }
 
-    private void AddString(string text, int pixelSize, Position position, float rotation)
+    private void AddString(string text, int pixelSize, Position2D position, float rotation)
     {
         TextBatch.Add(
             Fonts.FromID(Fonts.KosugiID),

@@ -24,9 +24,9 @@ public class PlayerController : MoonTools.ECS.System
 		PlayerFilter =
 		FilterBuilder
 		.Include<Player>()
-		.Include<Position>()
+		.Include<Position2D>()
 		.Include<Speed>()
-		.Include<Direction>()
+		.Include<Direction2D>()
 		.Include<HasHealth>()
 		.Build();
 
@@ -35,9 +35,9 @@ public class PlayerController : MoonTools.ECS.System
 
 	public Entity SpawnPlayer(int index)
 	{
-		var player = World.CreateEntity();
+		var player = World.CreateEntity($"Player {index}");
 		Set(player, new Player(index));
-		Set(player, new Position(Dimensions.GAME_W / 2, Dimensions.GAME_H / 2));
+		Set(player, new Position2D(Dimensions.GAME_W / 2, Dimensions.GAME_H / 2));
 		//Set(player, new SpriteAnimation(index == 0 ? Content.SpriteAnimations.Char_Walk_Down : Content.SpriteAnimations.Char2_Walk_Down, 0));
 		//Set(player, new DrawAsRectangle());
 		Set(player, new SpriteAnimation(Content.SpriteAnimations.Heart));
@@ -49,7 +49,7 @@ public class PlayerController : MoonTools.ECS.System
 		Set(player, new Depth(5));
 		Set(player, new MaxSpeed(MaxSpeedBase));
 		Set(player, new Speed(0f));
-		Set(player, new Direction(Vector2.Zero));
+		Set(player, new Direction2D(Vector2.Zero));
 		//Set(player, new AdjustFramerateToSpeed());
 		Set(player, new InputState());
 		Set(player, new CursorPosition());
@@ -110,7 +110,7 @@ public class PlayerController : MoonTools.ECS.System
 			if (inputState.Interact.IsPressed)
 			{
 				// Shoot where player is aiming
-				var pos = Get<Position>(entity);
+				var pos = Get<Position2D>(entity);
 				var cursorPos = Get<CursorPosition>(entity).Value;
 
 				ProjectileManipulator.CreateProjectile(
@@ -130,7 +130,7 @@ public class PlayerController : MoonTools.ECS.System
 			direction = MathUtilities.SafeNormalize(direction);
 			//var velocity = direction * maxSpeed;
 
-			Set(entity, new Direction(direction));
+			Set(entity, new Direction2D(direction));
 			Set(entity, new Speed(maxSpeed));
 
 			#endregion

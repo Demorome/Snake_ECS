@@ -88,7 +88,7 @@ public class LogoState : GameState
 
     public override void Draw(CommandBuffer commandBuffer, Texture swapchainTexture, Window window, double alpha)
     {
-        var logoPosition = new Position(680, 250);
+        var logoPosition = new Position2D(680, 250);
 
         HiResSpriteBatch.Start();
 

@@ -14,8 +14,8 @@ public class TargetingDirection : MoonTools.ECS.System
     public TargetingDirection(World world) : base(world)
     {
         TargetDirectionFilter = FilterBuilder
-        .Include<Position>()
-        .Include<Direction>()
+        .Include<Position2D>()
+        .Include<Direction2D>()
         .Include<UpdateDirectionToTargetPosition>()
         .Build();
     }
@@ -32,7 +32,7 @@ public class TargetingDirection : MoonTools.ECS.System
             if (HasOutRelation<Targeting>(entity))
             {
                 var targetEntity = OutRelationSingleton<Targeting>(entity);
-                var targetPos = Get<Position>(targetEntity).AsVector();
+                var targetPos = Get<Position2D>(targetEntity).AsVector();
                 Set(entity, new TargetPosition(targetPos));
             }
             
@@ -40,10 +40,10 @@ public class TargetingDirection : MoonTools.ECS.System
             {
                 var updateData = Get<UpdateDirectionToTargetPosition>(entity);
                 var targetPosition = Get<TargetPosition>(entity).Value;
-                var projectilePosition = Get<Position>(entity).AsVector();
+                var projectilePosition = Get<Position2D>(entity).AsVector();
                 Vector2 projectileDirection = MathUtilities.SafeNormalize(targetPosition - projectilePosition);
                 //Vector2 projectileDirection = new Vector2(MathF.Sin(angleToPlayer), MathF.Cos(angleToPlayer));
-                Set(entity, new Direction(projectileDirection));
+                Set(entity, new Direction2D(projectileDirection));
 
                 if (updateData.DoOnce)
                 {

@@ -44,7 +44,7 @@ public readonly record struct Rectangle(int X, int Y, int Width, int Height)
         );
     }
 
-    public Rectangle GetWorldRect(Position p)
+    public Rectangle GetWorldRect(Position2D p)
     {
         return new Rectangle(p.X + X, p.Y + Y, Width, Height);
     }
@@ -95,7 +95,7 @@ public readonly record struct Speed(float Value);
 public readonly record struct SpeedAcceleration(float Value);
 public readonly record struct AdjustFramerateToSpeed();
 
-public readonly record struct Direction(System.Numerics.Vector2 Value);
+public readonly record struct Direction2D(System.Numerics.Vector2 Value);
 public readonly record struct SlowDownAnimation(int BaseSpeed, int step);
 
 //public readonly record struct IsPopupBox(); // jank because we cant check relation type count
@@ -115,7 +115,7 @@ public readonly record struct DirectionalSprites(
     SpriteAnimationInfoID UpLeft
     );
 
-public readonly record struct AccelerateToPosition(Position Target, float Acceleration, float MotionDampFactor);
+public readonly record struct AccelerateToPosition(Position2D Target, float Acceleration, float MotionDampFactor);
 public readonly record struct DestroyAtGameEnd();
 public readonly record struct DealsDamageOnContact(int Damage);
 public readonly record struct CanDetect(float ConeRadius, float MaxDistance);

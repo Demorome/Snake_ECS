@@ -1,56 +1,56 @@
 using System;
 using System.Numerics;
 
-public readonly record struct Position
+public readonly record struct Position2D
 {
     private readonly Vector2 RawPosition;
     public readonly int X { get; }
     public readonly int Y { get; }
 
-    public Position(float x, float y)
+    public Position2D(float x, float y)
     {
         RawPosition = new Vector2(x, y);
         X = (int)MathF.Round(x);
         Y = (int)MathF.Round(y);
     }
 
-    public Position(int x, int y)
+    public Position2D(int x, int y)
     {
         RawPosition = new Vector2(x, y);
         X = x;
         Y = y;
     }
 
-    public Position(Vector2 v)
+    public Position2D(Vector2 v)
     {
         RawPosition = v;
         X = (int)MathF.Round(v.X);
         Y = (int)MathF.Round(v.Y);
     }
 
-    public Position SetX(int x)
+    public Position2D SetX(int x)
     {
-        return new Position((float)x, RawPosition.Y);
+        return new Position2D((float)x, RawPosition.Y);
     }
 
-    public Position SetY(int y)
+    public Position2D SetY(int y)
     {
-        return new Position(RawPosition.X, (float)y);
+        return new Position2D(RawPosition.X, (float)y);
     }
 
-    public static Position operator +(Position a, Position b)
+    public static Position2D operator +(Position2D a, Position2D b)
     {
-        return new Position(a.RawPosition + b.RawPosition);
+        return new Position2D(a.RawPosition + b.RawPosition);
     }
 
-    public static Vector2 operator -(Position a, Position b)
+    public static Vector2 operator -(Position2D a, Position2D b)
     {
         return a.RawPosition - b.RawPosition;
     }
 
-    public static Position operator +(Position a, Vector2 b)
+    public static Position2D operator +(Position2D a, Vector2 b)
     {
-        return new Position(a.RawPosition + b);
+        return new Position2D(a.RawPosition + b);
     }
 
     public override string ToString()

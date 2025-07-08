@@ -47,8 +47,8 @@ public class EnemySystem : MoonTools.ECS.System
                     if (HasOutRelation<Targeting>(entity))
                     {
                         var target = OutRelationSingleton<Targeting>(entity);
-                        var position = Get<Position>(entity);
-                        var targetPos = Get<Position>(target);
+                        var position = Get<Position2D>(entity);
+                        var targetPos = Get<Position2D>(target);
 
                         // TODO: Don't use target position, but rather an outdated position of theirs(?)
                         // Do the attack

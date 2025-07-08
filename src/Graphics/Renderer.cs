@@ -40,10 +40,10 @@ public class Renderer : MoonTools.ECS.Renderer
 	{
 		GraphicsDevice = graphicsDevice;
 
-		RectangleFilter = FilterBuilder.Include<Rectangle>().Include<Position>().Include<DrawAsRectangle>().Build();
-		TextFilter = FilterBuilder.Include<Text>().Include<Position>().Build();
-		SpriteAnimationFilter = FilterBuilder.Include<SpriteAnimation>().Include<Position>().Build();
-		DetectionConeFilter = FilterBuilder.Include<CanDetect>().Include<Position>().Include<DrawDetectionCone>().Build();
+		RectangleFilter = FilterBuilder.Include<Rectangle>().Include<Position2D>().Include<DrawAsRectangle>().Build();
+		TextFilter = FilterBuilder.Include<Text>().Include<Position2D>().Build();
+		SpriteAnimationFilter = FilterBuilder.Include<SpriteAnimation>().Include<Position2D>().Build();
+		DetectionConeFilter = FilterBuilder.Include<CanDetect>().Include<Position2D>().Include<DrawDetectionCone>().Build();
 
 		RenderTexture = Texture.Create2D(GraphicsDevice, "Render Texture", Dimensions.GAME_W, Dimensions.GAME_H, swapchainFormat, TextureUsageFlags.ColorTarget | TextureUsageFlags.Sampler);
 		DepthTexture = Texture.Create2D(GraphicsDevice, "Depth Texture", Dimensions.GAME_W, Dimensions.GAME_H, TextureFormat.D16Unorm, TextureUsageFlags.DepthStencilTarget);
@@ -123,7 +123,7 @@ public class Renderer : MoonTools.ECS.Renderer
 
 		foreach (var entity in RectangleFilter.Entities)
 		{
-			var position = Get<Position>(entity);
+			var position = Get<Position2D>(entity);
 			var rectangle = Get<Rectangle>(entity);
 			var orientation = Has<Angle>(entity) ? Get<Angle>(entity).Value : 0.0f;
 			var color = GetColorBlend(entity); 
@@ -148,7 +148,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			if (HasOutRelation<DontDraw>(entity))
 				continue;
 
-			var position = Get<Position>(entity);
+			var position = Get<Position2D>(entity);
 			var animation = Get<SpriteAnimation>(entity);
 			var sprite = animation.CurrentSprite;
 			var origin = animation.Origin;
@@ -213,7 +213,7 @@ public class Renderer : MoonTools.ECS.Renderer
 				continue;
 
 			var text = Get<Text>(entity);
-			var position = Get<Position>(entity);
+			var position = Get<Position2D>(entity);
 
 			var str = Data.TextStorage.GetString(text.TextID);
 			var font = Fonts.FromID(text.FontID);
@@ -234,7 +234,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			{
 				var dropShadow = Get<TextDropShadow>(entity);
 
-				var dropShadowPosition = position + new Position(dropShadow.OffsetX, dropShadow.OffsetY);
+				var dropShadowPosition = position + new Position2D(dropShadow.OffsetX, dropShadow.OffsetY);
 
 				TextBatch.Add(
 					font,
@@ -265,7 +265,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			if (HasOutRelation<DontDraw>(entity))
 				continue;
 
-			var selfPosition = Get<Position>(entity);
+			var selfPosition = Get<Position2D>(entity);
 
 				// FIXME: use detection color (alert state?)
 			var color = (HasInRelation<Detected>(entity) || Has<ChargingUpAttack>(entity)) ? Color.Red : Color.Green;
@@ -289,8 +289,8 @@ public class Renderer : MoonTools.ECS.Renderer
 			while (points.MoveNext())
 			{
 				var other = points.Current;
-				var position = Get<Position>(other);
-				var prevPos = Get<Position>(prevOther);
+				var position = Get<Position2D>(other);
+				var prevPos = Get<Position2D>(prevOther);
 
 				// FIXME: Order of positions matters for winding order.
 				TriangleBatch.AddTriangle(

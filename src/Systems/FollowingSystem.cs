@@ -22,7 +22,7 @@ public class FollowingSystem : MoonTools.ECS.System
                 continue;
             }
 
-            Set(follower, Get<Position>(target));
+            Set(follower, Get<Position2D>(target));
         }
 
         foreach (var (follower, target) in Relations<VisuallyFollowing>())
@@ -34,8 +34,8 @@ public class FollowingSystem : MoonTools.ECS.System
 
             var followData = GetRelationData<VisuallyFollowing>(follower, target);
 
-            var followerPos = Get<Position>(follower);
-            var targetPos = Get<Position>(target);
+            var followerPos = Get<Position2D>(follower);
+            var targetPos = Get<Position2D>(target);
             var distance = Vector2.Distance(targetPos.AsVector(), followerPos.AsVector());
 
             if (followData.LookTowards)

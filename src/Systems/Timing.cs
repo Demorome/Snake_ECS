@@ -33,7 +33,7 @@ public class Timing : MoonTools.ECS.System
                     var outEntity = OutRelationSingleton<TeleportToAtTimerEnd>(entity);
                     var data = World.GetRelationData<TeleportToAtTimerEnd>(entity, outEntity);
                     var entityToTeleportTo = data.TeleportTo;
-                    var position = Get<Position>(entityToTeleportTo);
+                    var position = Get<Position2D>(entityToTeleportTo);
                     Set(outEntity, position);
                 }
 

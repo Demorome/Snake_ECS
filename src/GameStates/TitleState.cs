@@ -83,7 +83,7 @@ public class TitleState : GameState
 
     public override void Draw(CommandBuffer commandBuffer, Texture swapchainTexture, Window window, double alpha)
     {
-        var logoPosition = new Position(Rando.Range(-1, 1), Rando.Range(-1, 1));
+        var logoPosition = new Position2D(Rando.Range(-1, 1), Rando.Range(-1, 1));
 
         HiResSpriteBatch.Start();
 

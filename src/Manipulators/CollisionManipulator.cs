@@ -29,7 +29,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
     public CollisionManipulator(World world) : base(world)
     {
         CollisionFilter = FilterBuilder
-        .Include<Position>()
+        .Include<Position2D>()
         .Include<Rectangle>()
         .Include<Layer>()
         .Build();
@@ -48,7 +48,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
 
         foreach (var entity in CollisionFilter.Entities)
         {
-            var position = Get<Position>(entity);
+            var position = Get<Position2D>(entity);
             var rect = Get<Rectangle>(entity);
             CollidersSpatialHash.Insert(entity, rect.GetWorldRect(position));
         }
@@ -120,7 +120,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         return CheckCollisions_AABB_vs_AABBs(e, worldPosRect, layer.ExistsOn, layer.CollideWith, canMoveLayer);
     }
 
-    Entity Debug_ShowRay(Position rayOrigin, float rayAngle, float length)
+    Entity Debug_ShowRay(Position2D rayOrigin, float rayAngle, float length)
     {
         var entity = CreateEntity();
         Set(entity, new Timer(-1)); // lasts 1 frame
@@ -135,7 +135,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         return entity;
     }
 
-    Entity Debug_ShowCollisionPos(Position pos)
+    Entity Debug_ShowCollisionPos(Position2D pos)
     {
         var entity = CreateEntity();
         Set(entity, new Timer(-1)); // lasts 1 frame
@@ -145,7 +145,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
             var scale = new Vector2(5f, 5f);
             Set(entity, new SpriteScale(scale));
             // Don't have to account for height/width of sprite, since both are 1.
-            Set(entity, new Position(pos.X - MathF.Floor(scale.X * 0.5f), pos.Y - MathF.Floor(scale.Y * 0.5f)));
+            Set(entity, new Position2D(pos.X - MathF.Floor(scale.X * 0.5f), pos.Y - MathF.Floor(scale.Y * 0.5f)));
         }
         Set(entity, new ColorBlend(Color.LimeGreen));
         Set(entity, new Depth(-100f)); // draw above most things
@@ -163,7 +163,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
     {
         var entity = CreateEntity();
         Set(entity, new Timer(-1)); // lasts 1 frame
-        Set(entity, new Position(worldRect.Left, worldRect.Top));
+        Set(entity, new Position2D(worldRect.Left, worldRect.Top));
         Set(entity, new SpriteAnimation(SpriteAnimations.Pixel));
         Set(entity, new ColorBlend(Color.LightGreen with { A = 100 }));
         Set(entity, new SpriteScale(new Vector2(worldRect.Width, worldRect.Height)));
@@ -182,7 +182,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
 
         var rayVec = direction * maxDistance;
         var invRayVec = new Vector2(1, 1) / rayVec;
-        Position startPos = Get<Position>(source);
+        Position2D startPos = Get<Position2D>(source);
 
         var startVec = startPos.AsVector();
         var spatialHashCellAABB = new Rectangle(0, 0, CollidersSpatialHash.CellSize, CollidersSpatialHash.CellSize);
@@ -219,7 +219,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
                         {
                             continue;
                         }
-                        var otherRect = Get<Rectangle>(other).GetWorldRect(Get<Position>(other));
+                        var otherRect = Get<Rectangle>(other).GetWorldRect(Get<Position2D>(other));
                         var (hit, hitPos) = RayCollision.Intersects_AABB(startVec, rayVec, invRayVec, otherRect/*otherRect.TopLeft(), otherRect.BottomRight()*/);
                         if (!hit)
                         {

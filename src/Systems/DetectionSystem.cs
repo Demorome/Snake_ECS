@@ -18,7 +18,7 @@ public class DetectionSystem : MoonTools.ECS.System
 
         DetecterFilter = FilterBuilder
         .Include<CanDetect>()
-        .Include<Direction>()
+        .Include<Direction2D>()
         .Build();
     }
 
@@ -34,7 +34,7 @@ public class DetectionSystem : MoonTools.ECS.System
         foreach (var entity in DetecterFilter.Entities)
         {
             var detectionArgs = Get<CanDetect>(entity);
-            var angle = MathUtilities.AngleFromUnitVector(Get<Direction>(entity).Value);
+            var angle = MathUtilities.AngleFromUnitVector(Get<Direction2D>(entity).Value);
             var angleStep = float.DegreesToRadians(5f);
             var maxAngle = angle + detectionArgs.ConeRadius;
 
@@ -60,7 +60,7 @@ public class DetectionSystem : MoonTools.ECS.System
                 else
                 {
                     var movement = MathUtilities.SafeNormalize(new Vector2(MathF.Cos(nthAngle), MathF.Sin(nthAngle))) * detectionArgs.MaxDistance;
-                    stopPos = Get<Position>(entity).AsVector() + movement;
+                    stopPos = Get<Position2D>(entity).AsVector() + movement;
 
                     foreach (var (other, hitPos) in CollisionManipulator.RaycastHits)
                     {
@@ -73,7 +73,7 @@ public class DetectionSystem : MoonTools.ECS.System
 
                 var pointEntity = CreateEntity();
                 Relate(entity, pointEntity, new DetectionVisualPoint());
-                Set(pointEntity, new Position(stopPos));
+                Set(pointEntity, new Position2D(stopPos));
             }
         }
     }

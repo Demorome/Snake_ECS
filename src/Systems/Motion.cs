@@ -27,7 +27,7 @@ public class Motion : MoonTools.ECS.System
 
         SpeedFilter = 
         FilterBuilder
-        .Include<Position>()
+        .Include<Position2D>()
         .Include<Speed>()
         .Build();
 
@@ -35,7 +35,7 @@ public class Motion : MoonTools.ECS.System
 
         AccelerateToPositionFilter = 
         FilterBuilder
-        .Include<Position>()
+        .Include<Position2D>()
         .Include<AccelerateToPosition>()
         .Include<Speed>()
         .Build();
@@ -85,10 +85,10 @@ public class Motion : MoonTools.ECS.System
         }
     }
 
-    Position HighSpeedSweepTest(Entity e, float travelDistance, float dt)
+    Position2D HighSpeedSweepTest(Entity e, float travelDistance, float dt)
     {
-        var position = Get<Position>(e);
-        var direction = Get<Direction>(e);
+        var position = Get<Position2D>(e);
+        var direction = Get<Direction2D>(e);
         var r = Get<Rectangle>(e);
 
         var movement = direction.Value * travelDistance * dt;
@@ -109,7 +109,7 @@ public class Motion : MoonTools.ECS.System
         {
             var x = xEnum.Current;
             var y = yEnum.Current;
-            var newPos = new Position(x, y);
+            var newPos = new Position2D(x, y);
             var rect = r.GetWorldRect(newPos);
 
             var stopMoving = CollisionManipulator.CheckCollisions_AABB_vs_AABBs(e, rect);
@@ -138,9 +138,9 @@ public class Motion : MoonTools.ECS.System
         return position + movement;
     }
 
-    Position SweepTest(Entity e, Vector2 velocity, float dt)
+    Position2D SweepTest(Entity e, Vector2 velocity, float dt)
     {
-        var position = Get<Position>(e);
+        var position = Get<Position2D>(e);
         var r = Get<Rectangle>(e);
 
         var movement = new Vector2(velocity.X, velocity.Y) * dt;
@@ -158,7 +158,7 @@ public class Motion : MoonTools.ECS.System
 
         foreach (var x in xEnum)
         {
-            var newPos = new Position(x, position.Y);
+            var newPos = new Position2D(x, position.Y);
             var rect = r.GetWorldRect(newPos);
 
             var stopMoving = CollisionManipulator.CheckCollisions_AABB_vs_AABBs(e, rect);
@@ -177,7 +177,7 @@ public class Motion : MoonTools.ECS.System
 
         foreach (var y in yEnum)
         {
-            var newPos = new Position(mostRecentValidXPosition, y);
+            var newPos = new Position2D(mostRecentValidXPosition, y);
             var rect = r.GetWorldRect(newPos);
 
             var stopMoving = CollisionManipulator.CheckCollisions_AABB_vs_AABBs(e, rect);
@@ -196,7 +196,7 @@ public class Motion : MoonTools.ECS.System
         return position + movement;
     }
 
-    Position DoRegularMovement(Entity entity, Position entityPos, float baseSpeed, float secondsDelta)
+    Position2D DoRegularMovement(Entity entity, Position2D entityPos, float baseSpeed, float secondsDelta)
     {
         var speed = baseSpeed;
         foreach (var otherEntity in OutRelations<SpeedMult>(entity))
@@ -204,7 +204,7 @@ public class Motion : MoonTools.ECS.System
             var speedMult = GetRelationData<SpeedMult>(entity, otherEntity).Value;
             speed *= speedMult;
         }
-        var vel = speed * Get<Direction>(entity).Value;
+        var vel = speed * Get<Direction2D>(entity).Value;
 
         if (Has<Rectangle>(entity) && Has<Layer>(entity)) // if has colliders
         {
@@ -229,10 +229,10 @@ public class Motion : MoonTools.ECS.System
     }
 
     // FIXME: Currently ignores the entity's AABB; just shoots a thin ray.
-    Position DoHitscanMovement(Entity e, float secondsDelta)
+    Position2D DoHitscanMovement(Entity e, float secondsDelta)
     {
         float hitscanSpeed = Get<HitscanSpeed>(e).Value;
-        var direction = Get<Direction>(e).Value;
+        var direction = Get<Direction2D>(e).Value;
         //float maxDistance = Has<MaxMovementDistance>(e) ? Get<MaxMovementDistance>(e).Value : hitscanSpeed;
         float scaledVelocity = hitscanSpeed * secondsDelta;
 
@@ -247,7 +247,7 @@ public class Motion : MoonTools.ECS.System
             endPos = CollisionManipulator.RaycastHits[stoppedAtEntity.Value];
         }
         else {
-            endPos = Get<Position>(e).AsVector() + (direction * scaledVelocity);
+            endPos = Get<Position2D>(e).AsVector() + (direction * scaledVelocity);
         }
 
         /*
@@ -259,7 +259,7 @@ public class Motion : MoonTools.ECS.System
         // FIXME: Check if we've travelled the MaxDistance.
         // If so, stop any future movement.
 
-        return new Position(endPos);
+        return new Position2D(endPos);
     }
 
     public override void Update(TimeSpan delta)
@@ -306,7 +306,7 @@ public class Motion : MoonTools.ECS.System
             if (HasOutRelation<DontMove>(entity))
                 continue;
 
-            var pos = Get<Position>(entity);
+            var pos = Get<Position2D>(entity);
             Set(entity, new LastPosition(pos.AsVector()));
 
             if (Has<HitscanSpeed>(entity))
@@ -322,7 +322,7 @@ public class Motion : MoonTools.ECS.System
                 {
                     baseSpeed *= Get<SpeedAcceleration>(entity).Value;
                 }
-                var baseVel = baseSpeed * Get<Direction>(entity).Value;
+                var baseVel = baseSpeed * Get<Direction2D>(entity).Value;
 
                 // FIXME: Ensure it won't crash when going outside the screen position.
                 pos = DoRegularMovement(entity, pos, baseSpeed, (float)delta.TotalSeconds);
@@ -343,7 +343,7 @@ public class Motion : MoonTools.ECS.System
                 }
 
                 Set(entity, new Speed(baseVel.Length()));
-                Set(entity, new Direction(MathUtilities.SafeNormalize(baseVel)));
+                Set(entity, new Direction2D(MathUtilities.SafeNormalize(baseVel)));
             }
 
             if (Has<DestroyAtScreenBottom>(entity) && pos.Y > Dimensions.GAME_H - 32)
@@ -403,7 +403,7 @@ public class Motion : MoonTools.ECS.System
 
             if (Has<Layer>(entity) && Has<Rectangle>(entity))
             {
-                var position = Get<Position>(entity);
+                var position = Get<Position2D>(entity);
                 var rect = Get<Rectangle>(entity);
                 CollisionManipulator.CollidersSpatialHash.Insert(entity, rect.GetWorldRect(position));
             }

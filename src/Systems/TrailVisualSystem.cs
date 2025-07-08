@@ -32,7 +32,7 @@ public class TrailVisualSystem : MoonTools.ECS.System
             // TODO: Account for HasOutRelation<DontDraw>(entity)
 
             var lastPos = Get<LastPosition>(entity).Value;
-            if (lastPos != Get<Position>(entity).AsVector())
+            if (lastPos != Get<Position2D>(entity).AsVector())
             {
                 // Spawn trail
                 // TODO: Add different trail effects (determined by sub-components)

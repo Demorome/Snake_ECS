@@ -29,8 +29,8 @@ public class VFXManipulator : MoonTools.ECS.Manipulator
         float depth
         )
     {
-        var lastPos = new Position(Get<LastPosition>(projectile).Value);
-        var projectilePos = Get<Position>(projectile).AsVector();
+        var lastPos = new Position2D(Get<LastPosition>(projectile).Value);
+        var projectilePos = Get<Position2D>(projectile).AsVector();
         var trailSprite = new SpriteAnimation(SpriteAnimations.ProjectileTrail);
 
         Entity trail = CreateVFX(lastPos, trailSprite, depth, 0.5f, 0.5f);
@@ -63,7 +63,7 @@ public class VFXManipulator : MoonTools.ECS.Manipulator
     // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
     // I decided to break up the min/max start/end values into their own functions.
     public Entity CreateVFX(
-        Position position,
+        Position2D position,
         SpriteAnimation sprite,
         float depth,
 
@@ -95,7 +95,7 @@ public class VFXManipulator : MoonTools.ECS.Manipulator
 
         if (direction != null)
         {
-            Set(vfx, new Direction(direction.Value));
+            Set(vfx, new Direction2D(direction.Value));
         }
         else if (speed != 0.0f)
         {
@@ -167,7 +167,7 @@ public class VFXManipulator : MoonTools.ECS.Manipulator
         var sprite = new SpriteAnimation(SpriteAnimations.Pixel);
 
         Entity targetingVisual = CreateVFX(
-            Get<Position>(source),
+            Get<Position2D>(source),
             sprite,
             -1f
         );
