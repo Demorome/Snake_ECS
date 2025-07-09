@@ -31,10 +31,37 @@ public static class ImGuiHandler
         return $"Entity {{ ID = {e.ID}, Tag = {tag} }}";
     }
 
+    static Dictionary<string, object> DetachedWindows = new();
+
+    public static void DrawDetachedWindows(World world)
+    {
+        // Credits to @APurpleApple for this trick: https://discord.com/channels/571020752904519693/571020753479401483/1347847933709783102
+        foreach (var (windowTitle, obj) in DetachedWindows)
+        {
+            bool flag = true;
+            ImGui.Begin(windowTitle, ref flag);
+
+            if (obj.GetType() == typeof(Entity))
+            {
+                var entity = (Entity)obj;
+                foreach (var type in world.Debug_GetAllComponentTypes(entity))
+                {
+                    DrawComponentInspector(world, entity, type);
+                }
+            }
+
+            ImGui.End();
+            if (!flag)
+            {
+                DetachedWindows.Remove(windowTitle);
+            }
+        }
+    }
+
     public static void DrawEntitiesAndComponents(World world)
     {
-        ImGui.SetNextWindowSize(new Vector2(500, 500), ImGuiCond.Once);
-        ImGui.SetNextWindowPos(new Vector2(0, 0), ImGuiCond.Once);
+        ImGui.SetNextWindowSize(new Vector2(500, 500), ImGuiCond.FirstUseEver);
+        ImGui.SetNextWindowPos(new Vector2(0, 0), ImGuiCond.FirstUseEver);
 
         ImGui.Begin("Entities (with positions)");
 
@@ -48,9 +75,15 @@ public static class ImGuiHandler
                     continue;
                 }
 
-                if (!ImGui.TreeNode(EntityToString(world, entity)))
+                var entityStr = EntityToString(world, entity);
+                if (!ImGui.TreeNode(entityStr))
                 {
                     continue;
+                }
+
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                {
+                    DetachedWindows.TryAdd(entityStr, entity);
                 }
 
                 foreach (var type in world.Debug_GetAllComponentTypes(entity))
@@ -141,6 +174,11 @@ public static class ImGuiHandler
         var pos = world.Get<Position2D>(entity);
         var input = pos.AsVector();
 
+        if (ImGui.InputFloat2("Position2D", ref input))
+        {
+            world.Set(entity, new Position2D(input));
+        }
+
         // Credits to @rokups for this trick: https://github.com/ocornut/imgui/discussions/3848
         // And credits to Samurai Gunn 2 behind-the-scenes vids for the idea.
         ImGui.Button("Grab");
@@ -154,11 +192,6 @@ public static class ImGuiHandler
         {
             pos += ImGui.GetIO().MouseDelta;
             world.Set(entity, pos);
-        }
-        
-        if (ImGui.InputFloat2("Position2D", ref input))
-        {
-            world.Set(entity, new Position2D(input));
         }
     }
 

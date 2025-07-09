@@ -189,6 +189,7 @@ public class GameplayState : GameState
 
 #if DEBUG
         ImGuiHandler.DrawEntitiesAndComponents(World);
+        ImGuiHandler.DrawDetachedWindows(World);
 #endif
 
         if (World.SomeMessage<EndGame>())
