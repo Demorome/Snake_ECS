@@ -88,8 +88,8 @@ public static class ImGuiHandler
         // Credits to @APurpleApple for this trick: https://discord.com/channels/571020752904519693/571020753479401483/1347847933709783102
         foreach (var (windowTitle, obj) in DetachedWindows)
         {
-            bool flag = true;
-            ImGui.Begin(windowTitle, ref flag);
+            bool dontCloseWindow = true;
+            ImGui.Begin(windowTitle, ref dontCloseWindow);
 
             if (obj.GetType() == typeof(Entity))
             {
@@ -106,14 +106,14 @@ public static class ImGuiHandler
             }
 
             ImGui.End();
-            if (!flag)
+            if (!dontCloseWindow)
             {
                 DetachedWindows.Remove(windowTitle);
             }
         }
     }
 
-    static List<Type> ComponentTypeWindows = new();
+    static HashSet<Type> ComponentTypeWindows = new();
     
     static int Item_selected_idx = 0;
 
@@ -139,6 +139,10 @@ public static class ImGuiHandler
             {
                 ImGui.SetKeyboardFocusHere(-1);
             }
+
+            // FIXME: LOTS OF THINGS
+
+            // FIXME: When pressing a type, add to ComponentTypeWindows
 
             int n = 0;
             foreach (var type in Assembly.GetExecutingAssembly().GetTypes())
@@ -168,7 +172,8 @@ public static class ImGuiHandler
             ImGui.SetNextWindowSize(new Vector2(500, 500), ImGuiCond.FirstUseEver);
             ImGui.SetNextWindowPos(new Vector2(0, 0), ImGuiCond.FirstUseEver);
 
-            ImGui.Begin($"Entities with {componentType.Name}");
+            bool dontCloseWindow = true;
+            ImGui.Begin($"Entities with {componentType.Name}", ref dontCloseWindow);
 
             if (ImGui.TreeNode("World"))
             {
@@ -203,6 +208,10 @@ public static class ImGuiHandler
             }
 
             ImGui.End();
+            if (!dontCloseWindow)
+            {
+                ComponentTypeWindows.Remove(componentType);
+            }
         }
     }
 

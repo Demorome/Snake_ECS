@@ -190,8 +190,8 @@ public class GameplayState : GameState
 #if DEBUG
         ImGuiHandler.DrawHelpWindow(World);
         ImGuiHandler.HandleDebugKeybinds(World);
-        ImGuiHandler.DrawEntitiesWithComponentWindows(World);
         ImGuiHandler.DrawDetachedWindows(World);
+        ImGuiHandler.DrawEntitiesWithComponentWindows(World);
 #endif
 
         if (World.SomeMessage<EndGame>())
