@@ -188,7 +188,9 @@ public class GameplayState : GameState
         Destroyer.Update(dt);
 
 #if DEBUG
-        ImGuiHandler.DrawEntitiesAndComponents(World);
+        ImGuiHandler.DrawHelpWindow(World);
+        ImGuiHandler.HandleDebugKeybinds(World);
+        ImGuiHandler.DrawEntitiesWithComponentWindows(World);
         ImGuiHandler.DrawDetachedWindows(World);
 #endif
 

@@ -3,7 +3,10 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Runtime.InteropServices.Marshalling;
+using System.Text.Unicode;
 using ImGuiNET;
 using MoonTools.ECS;
 using MoonWorks;
@@ -31,6 +34,53 @@ public static class ImGuiHandler
         return $"Entity {{ ID = {e.ID}, Tag = {tag} }}";
     }
 
+    class NamedDebugAction
+    {
+        public NamedDebugAction(Action<World> action, string name)
+        {
+            Action = action;
+            Name = name;
+        }
+
+        public Action<World> Action;
+        public string Name;
+    };
+
+    static Dictionary<ImGuiKey, NamedDebugAction> DebugKeybinds = new()
+    {
+        { ImGuiKey.F1, new NamedDebugAction(DrawComponentTypeSearch, "Search By Component")}
+    };
+
+    public static void DrawHelpWindow(World world)
+    {
+        ImGui.Begin("Help");
+
+        if (ImGui.BeginTable("##Help", 2))
+        {
+            foreach (var (key, namedAction) in DebugKeybinds)
+            {
+                ImGui.Text(key.ToString());
+                ImGui.TableNextColumn();
+                ImGui.Text(namedAction.Name);
+                ImGui.TableNextColumn();
+            }
+            ImGui.EndTable();
+        }
+
+        ImGui.End();
+    }
+
+    public static void HandleDebugKeybinds(World world)
+    {
+        foreach (var (key, namedAction) in DebugKeybinds)
+        {
+            if (ImGui.IsKeyPressed(key))
+            {
+                DetachedWindows.TryAdd(namedAction.Name, namedAction.Action);
+            }
+        }
+    }
+
     static Dictionary<string, object> DetachedWindows = new();
 
     public static void DrawDetachedWindows(World world)
@@ -49,6 +99,11 @@ public static class ImGuiHandler
                     DrawComponentInspector(world, entity, type);
                 }
             }
+            else if (obj.GetType() == typeof(Action<World>))
+            {
+                var action = (Action<World>)obj;
+                action(world);
+            }
 
             ImGui.End();
             if (!flag)
@@ -58,46 +113,97 @@ public static class ImGuiHandler
         }
     }
 
-    public static void DrawEntitiesAndComponents(World world)
+    static List<Type> ComponentTypeWindows = new();
+    
+    static int Item_selected_idx = 0;
+
+    unsafe static ImGuiTextFilterPtr searchFilter = new(ImGuiNative.ImGuiTextFilter_ImGuiTextFilter(null));
+
+    public static void DrawComponentTypeSearch(World world)
     {
-        ImGui.SetNextWindowSize(new Vector2(500, 500), ImGuiCond.FirstUseEver);
-        ImGui.SetNextWindowPos(new Vector2(0, 0), ImGuiCond.FirstUseEver);
+        string namespaceStr = "RollAndCash.Components";
 
-        ImGui.Begin("Entities (with positions)");
+        byte[] searchBuf = new byte[256];
+        ImGui.InputText("##Name", searchBuf, (uint)searchBuf.Length * sizeof(byte));
+        var searchStr = System.Text.Encoding.Default.GetString(searchBuf);
 
-        if (ImGui.TreeNode("World"))
+        if (ImGui.BeginCombo("combo 1", "???"))
         {
-            foreach (var entity in world.Debug_GetEntities(typeof(Position2D)))
+            ImGui.SetNextItemWidth(-float.MinValue);
+            if (ImGui.InputTextWithHint("##Filter", "Filter (inc,-exc)", ref searchStr, (uint)100))
             {
-                // Don't want to spam debugger with boring entities.
-                if (world.HasInRelation<DetectionVisualPoint>(entity))
-                {
-                    continue;
-                }
+                searchFilter.Build();
+            }
+            //ImGui.SetNextItemShortcut(ImGuiModFlags.Ctrl | ImGuiKey.F);
+            if (ImGui.IsWindowAppearing())
+            {
+                ImGui.SetKeyboardFocusHere(-1);
+            }
 
-                var entityStr = EntityToString(world, entity);
-                if (!ImGui.TreeNode(entityStr))
+            int n = 0;
+            foreach (var type in Assembly.GetExecutingAssembly().GetTypes())
+            {
+                if (type.IsClass && type.Namespace == namespaceStr)
                 {
-                    continue;
+                    bool is_selected = (Item_selected_idx == n);
+                    if (searchFilter.PassFilter(type.Name))
+                    {
+                        if (ImGui.Selectable(type.Name, is_selected))
+                        {
+                            Item_selected_idx = n;
+                        }
+                    }
+                    ++n;
                 }
+            }
 
-                if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
-                {
-                    DetachedWindows.TryAdd(entityStr, entity);
-                }
+            ImGui.EndCombo();
+        }
+    }
 
-                foreach (var type in world.Debug_GetAllComponentTypes(entity))
+    public static void DrawEntitiesWithComponentWindows(World world)
+    {
+        foreach (var componentType in ComponentTypeWindows)
+        {
+            ImGui.SetNextWindowSize(new Vector2(500, 500), ImGuiCond.FirstUseEver);
+            ImGui.SetNextWindowPos(new Vector2(0, 0), ImGuiCond.FirstUseEver);
+
+            ImGui.Begin($"Entities with {componentType.Name}");
+
+            if (ImGui.TreeNode("World"))
+            {
+                foreach (var entity in world.Debug_GetEntities(componentType))
                 {
-                    DrawComponentInspector(world, entity, type);
+                    // Don't want to spam debugger with boring entities.
+                    if (world.HasInRelation<DetectionVisualPoint>(entity))
+                    {
+                        continue;
+                    }
+
+                    var entityStr = EntityToString(world, entity);
+                    if (!ImGui.TreeNode(entityStr))
+                    {
+                        continue;
+                    }
+
+                    if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                    {
+                        DetachedWindows.TryAdd(entityStr, entity);
+                    }
+
+                    foreach (var type in world.Debug_GetAllComponentTypes(entity))
+                    {
+                        DrawComponentInspector(world, entity, type);
+                    }
+
+                    ImGui.TreePop();
                 }
 
                 ImGui.TreePop();
             }
 
-            ImGui.TreePop();
+            ImGui.End();
         }
-
-        ImGui.End();
     }
 
     // Credits to @cosmonaut: https://discord.com/channels/571020752904519693/591369371369209871/1298383364813881385
@@ -110,6 +216,7 @@ public static class ImGuiHandler
         //{ typeof(LevelBoundaries), DrawLevelBoundariesParameters },
         //{ typeof(SpriteAnimation), DrawSpriteAnimation },
         //{ typeof(Text), DrawText },
+        { typeof(Angle), DrawAngle },
         { typeof(HasHealth), DrawHealth },
         { typeof(ColorBlend), DrawColorBlend },
         { typeof(Rectangle), DrawRectangle }
@@ -125,7 +232,7 @@ public static class ImGuiHandler
     {
         if (ComponentTypeToInspectorAction.ContainsKey(type))
         {
-            var expanded = ImGui.CollapsingHeader(type.ToString());
+            var expanded = ImGui.CollapsingHeader(type.Name);
             if (expanded)
             {
                 ComponentTypeToInspectorAction[type].Invoke(world, entity);
@@ -215,6 +322,30 @@ public static class ImGuiHandler
         {
             var output = MathUtilities.UnitVectorFromAngle(float.DegreesToRadians(input));
             world.Set(entity, new Direction2D(output));
+        }
+
+        if (ImGui.SliderFloat("Slider", ref input, -360f, 360))
+        {
+            var output = MathUtilities.UnitVectorFromAngle(float.DegreesToRadians(input));
+            world.Set(entity, new Direction2D(output));
+        }
+    }
+
+    private static void DrawAngle(World world, Entity entity)
+    {
+        var angle = world.Get<Angle>(entity);
+        var input = float.RadiansToDegrees(angle.Value);
+
+        if (ImGui.InputFloat("Angle (degrees)", ref input))
+        {
+            var output = float.DegreesToRadians(input);
+            world.Set(entity, new Angle(output));
+        }
+
+        if (ImGui.SliderFloat("Slider", ref input, -360f, 360))
+        {
+            var output = float.DegreesToRadians(input);
+            world.Set(entity, new Angle(output));
         }
     }
 
