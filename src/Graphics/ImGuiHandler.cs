@@ -57,12 +57,18 @@ public static class ImGuiHandler
 
         if (ImGui.BeginTable("##Help", 2))
         {
+            // FIXME: Key doesn't show up????
+
             foreach (var (key, namedAction) in DebugKeybinds)
             {
+                ImGui.TableNextRow();
+
+                ImGui.TableSetColumnIndex(0);
                 ImGui.Text(key.ToString());
-                ImGui.TableNextColumn();
+                
+                ImGui.TableSetColumnIndex(1);
                 ImGui.Text(namedAction.Name);
-                ImGui.TableNextColumn();
+
             }
             ImGui.EndTable();
         }
