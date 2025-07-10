@@ -22,7 +22,7 @@ using Buffer = MoonWorks.Graphics.Buffer;
 
 namespace RollAndCash;
 
-public static class ImGuiHandler
+public static class ImGuiEditor
 {
     static List<Type> ComponentTypes = new();
 
@@ -145,7 +145,7 @@ public static class ImGuiHandler
     }
 
     static HashSet<Type> ComponentTypeWindows = new();
-    
+
     unsafe static ImGuiTextFilterPtr searchFilter = new(ImGuiNative.ImGuiTextFilter_ImGuiTextFilter(null));
     static byte[] searchBuf = new byte[256];
 
@@ -229,6 +229,8 @@ public static class ImGuiHandler
             }
         }
     }
+
+    #region Draw Components
 
     // Credits to @cosmonaut: https://discord.com/channels/571020752904519693/591369371369209871/1298383364813881385
     static Dictionary<Type, Action<World, Entity>> ComponentTypeToInspectorAction = new()
@@ -378,12 +380,12 @@ public static class ImGuiHandler
         var color = world.Get<ColorBlend>(entity);
         var input = color.Color.ToVector4();
 
-        if (ImGui.InputFloat4("ColorBlend", ref input))
+        if (ImGui.ColorEdit4("Color", ref input))
         {
             world.Set(entity, new ColorBlend(new Color(input)));
         }
     }
-    
+
     private static void DrawHealth(World world, Entity entity)
     {
         var health = world.Get<HasHealth>(entity);
@@ -394,5 +396,8 @@ public static class ImGuiHandler
             world.Set(entity, new HasHealth(input));
         }
     }
+    #endregion Draw Components
+
 }
+
 #endif
