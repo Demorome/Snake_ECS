@@ -53,20 +53,22 @@ public static class ImGuiHandler
 
     public static void DrawHelpWindow(World world)
     {
-        ImGui.Begin("Help");
+        ImGui.Begin("Help", ImGuiWindowFlags.AlwaysAutoResize);
 
-        if (ImGui.BeginTable("##Help", 2))
+        var tableFlags = ImGuiTableFlags.BordersInnerV
+            | ImGuiTableFlags.NoHostExtendX
+            | ImGuiTableFlags.SizingFixedFit;
+
+        if (ImGui.BeginTable("##Help", 2, tableFlags))
         {
-            // FIXME: Key doesn't show up????
-
             foreach (var (key, namedAction) in DebugKeybinds)
             {
                 ImGui.TableNextRow();
 
-                ImGui.TableSetColumnIndex(0);
+                ImGui.TableNextColumn();
                 ImGui.Text(key.ToString());
-                
-                ImGui.TableSetColumnIndex(1);
+
+                ImGui.TableNextColumn();
                 ImGui.Text(namedAction.Name);
 
             }
