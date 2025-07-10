@@ -4,6 +4,7 @@ using MoonWorks;
 using MoonWorks.AsyncIO;
 using MoonWorks.Graphics;
 using MoonWorks.Graphics.Font;
+using RollAndCash.Components;
 using RollAndCash.Content;
 using RollAndCash.Systems;
 

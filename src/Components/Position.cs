@@ -1,6 +1,8 @@
 using System;
 using System.Numerics;
 
+namespace RollAndCash.Components;
+
 public readonly record struct Position2D
 {
     private readonly Vector2 RawPosition;
@@ -64,5 +66,3 @@ public readonly record struct Position2D
     }
 
 }
-
-public readonly record struct LastPosition(Vector2 Value);

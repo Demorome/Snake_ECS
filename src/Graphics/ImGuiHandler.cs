@@ -24,6 +24,29 @@ namespace RollAndCash;
 
 public static class ImGuiHandler
 {
+    static List<Type> ComponentTypes = new();
+
+    public static void Init()
+    {
+        // FIXME: Update on hot-reload, if we add new component types?
+        InitComponentTypesList();
+    }
+
+    static void InitComponentTypesList()
+    {
+        string namespaceFilter = "RollAndCash.Components";
+
+        foreach (var type in Assembly.GetExecutingAssembly().GetTypes())
+        {
+            if (!type.IsValueType || type.Namespace != namespaceFilter)
+            {
+                continue;
+            }
+
+            ComponentTypes.Add(type);
+        }
+    }
+
     public static string EntityToString(World world, Entity e)
     {
         var tag = world.GetTag(e);
@@ -123,19 +146,15 @@ public static class ImGuiHandler
 
     static HashSet<Type> ComponentTypeWindows = new();
     
-    static int Item_selected_idx = 0;
-
     unsafe static ImGuiTextFilterPtr searchFilter = new(ImGuiNative.ImGuiTextFilter_ImGuiTextFilter(null));
+    static byte[] searchBuf = new byte[256];
 
     public static void DrawComponentTypeSearch(World world)
     {
-        string namespaceStr = "RollAndCash.Components";
-
-        byte[] searchBuf = new byte[256];
         ImGui.InputText("##Name", searchBuf, (uint)searchBuf.Length * sizeof(byte));
         var searchStr = System.Text.Encoding.Default.GetString(searchBuf);
 
-        if (ImGui.BeginCombo("combo 1", "???"))
+        if (ImGui.BeginCombo("List", ""))
         {
             ImGui.SetNextItemWidth(-float.MinValue);
             if (ImGui.InputTextWithHint("##Filter", "Filter (inc,-exc)", ref searchStr, (uint)100))
@@ -150,22 +169,15 @@ public static class ImGuiHandler
 
             // FIXME: LOTS OF THINGS
 
-            // FIXME: When pressing a type, add to ComponentTypeWindows
-
-            int n = 0;
-            foreach (var type in Assembly.GetExecutingAssembly().GetTypes())
+            foreach (var type in ComponentTypes)
             {
-                if (type.IsClass && type.Namespace == namespaceStr)
+                bool is_selected = false;
+                if (searchFilter.PassFilter(type.Name))
                 {
-                    bool is_selected = (Item_selected_idx == n);
-                    if (searchFilter.PassFilter(type.Name))
+                    if (ImGui.Selectable(type.Name, is_selected))
                     {
-                        if (ImGui.Selectable(type.Name, is_selected))
-                        {
-                            Item_selected_idx = n;
-                        }
+                        ComponentTypeWindows.Add(type);
                     }
-                    ++n;
                 }
             }
 
@@ -183,33 +195,28 @@ public static class ImGuiHandler
             bool dontCloseWindow = true;
             ImGui.Begin($"Entities with {componentType.Name}", ref dontCloseWindow);
 
-            if (ImGui.TreeNode("World"))
+            foreach (var entity in world.Debug_GetEntities(componentType))
             {
-                foreach (var entity in world.Debug_GetEntities(componentType))
+                // Don't want to spam debugger with boring entities.
+                if (world.HasInRelation<DetectionVisualPoint>(entity))
                 {
-                    // Don't want to spam debugger with boring entities.
-                    if (world.HasInRelation<DetectionVisualPoint>(entity))
-                    {
-                        continue;
-                    }
+                    continue;
+                }
 
-                    var entityStr = EntityToString(world, entity);
-                    if (!ImGui.TreeNode(entityStr))
-                    {
-                        continue;
-                    }
+                var entityStr = EntityToString(world, entity);
+                if (!ImGui.TreeNode(entityStr))
+                {
+                    continue;
+                }
 
-                    if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
-                    {
-                        DetachedWindows.TryAdd(entityStr, entity);
-                    }
+                if (ImGui.IsItemClicked(ImGuiMouseButton.Right))
+                {
+                    DetachedWindows.TryAdd(entityStr, entity);
+                }
 
-                    foreach (var type in world.Debug_GetAllComponentTypes(entity))
-                    {
-                        DrawComponentInspector(world, entity, type);
-                    }
-
-                    ImGui.TreePop();
+                foreach (var type in world.Debug_GetAllComponentTypes(entity))
+                {
+                    DrawComponentInspector(world, entity, type);
                 }
 
                 ImGui.TreePop();
