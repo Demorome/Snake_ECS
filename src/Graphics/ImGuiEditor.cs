@@ -76,7 +76,7 @@ public static class ImGuiEditor
     static Dictionary<ImGuiKey, DebugAction> DebugKeybinds = new()
     {
         { ImGuiKey.F1, new DebugAction(DrawComponentTypeSearch, "Search By Component", true)},
-        { (ImGuiKey)ImGuiModFlags.Ctrl | ImGuiKey.E, new DebugAction(
+        { ImGuiKey.ModCtrl | ImGuiKey.E, new DebugAction(
             (World _) => { Renderer.DrawDebugColliders = !Renderer.DrawDebugColliders; },
             "Show Colliders")
         },
@@ -93,12 +93,15 @@ public static class ImGuiEditor
 
         if (ImGui.BeginTable("##Help", 2, tableFlags))
         {
-            foreach (var (key, namedAction) in DebugKeybinds)
+            foreach (var (requiredInput, namedAction) in DebugKeybinds)
             {
                 ImGui.TableNextRow();
 
                 ImGui.TableNextColumn();
-                ImGui.Text(key.ToString());
+                var modKey = requiredInput & ImGuiKey.ModMask;
+                var key = requiredInput & ~ImGuiKey.ModMask;
+                var prefix = modKey != 0 ? modKey.ToString().Remove(0, 3) + "+" : "";
+                ImGui.Text(prefix + key.ToString());
 
                 ImGui.TableNextColumn();
                 ImGui.Text(namedAction.Name);
@@ -114,7 +117,7 @@ public static class ImGuiEditor
     {
         foreach (var (key, debugAction) in DebugKeybinds)
         {
-            if (ImGui.IsKeyPressed(key))
+            if (ImGui.IsKeyChordPressed(key))
             {
                 if (debugAction.OpensWindow)
                 {
