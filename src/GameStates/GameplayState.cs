@@ -192,14 +192,14 @@ public class GameplayState : GameState
             ColorAnimation.Update(dt);
             FlickerSystem.Update(dt);
             FlipAnimationSystem.Update(dt);
-            Audio.Update(dt);
-            Destroyer.Update(dt);
-
 #if DEBUG
         }
 
         ImGuiEditor.DrawAll(World);
 #endif
+
+        Audio.Update(dt);
+        Destroyer.Update(dt);
 
         if (World.SomeMessage<EndGame>())
         {
