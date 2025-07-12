@@ -39,6 +39,10 @@ public class GameplayState : GameState
     EnemySystem EnemySystem;
     TrailVisualSystem TrailVisualSystem;
 
+#if DEBUG
+    public static bool FreezeTimeForAll = false;
+#endif
+
     public GameplayState(RollAndCashGame game, GameState transitionState)
     {
         Game = game;
@@ -165,33 +169,36 @@ public class GameplayState : GameState
 
     public override void Update(TimeSpan dt)
     {
-        Timing.Update(dt);
-        ChangeAppearanceOverTime.Update(dt);
-        UpdateSpriteAnimationSystem.Update(dt);
-        Input.Update(dt);
-        PlayerController.Update(dt);
-        EnemySystem.Update(dt);
-        DetectionSystem.Update(dt);
-        Projectile.Update(dt);
-        TargetingDirection.Update(dt);
-        Motion.Update(dt);
-        Collision.Update(dt);
-        Health.Update(dt);
-        TrailVisualSystem.Update(dt);
-        FollowingSystem.Update(dt);
-        DirectionalAnimation.Update(dt);
-        SetSpriteAnimationSystem.Update(dt);
-        ColorAnimation.Update(dt);
-        FlickerSystem.Update(dt);
-        FlipAnimationSystem.Update(dt);
-        Audio.Update(dt);
-        Destroyer.Update(dt);
+#if DEBUG
+        if (!FreezeTimeForAll)
+        {
+#endif
+            Timing.Update(dt);
+            ChangeAppearanceOverTime.Update(dt);
+            UpdateSpriteAnimationSystem.Update(dt);
+            Input.Update(dt);
+            PlayerController.Update(dt);
+            EnemySystem.Update(dt);
+            DetectionSystem.Update(dt);
+            Projectile.Update(dt);
+            TargetingDirection.Update(dt);
+            Motion.Update(dt);
+            Collision.Update(dt);
+            Health.Update(dt);
+            TrailVisualSystem.Update(dt);
+            FollowingSystem.Update(dt);
+            DirectionalAnimation.Update(dt);
+            SetSpriteAnimationSystem.Update(dt);
+            ColorAnimation.Update(dt);
+            FlickerSystem.Update(dt);
+            FlipAnimationSystem.Update(dt);
+            Audio.Update(dt);
+            Destroyer.Update(dt);
 
 #if DEBUG
-        ImGuiEditor.DrawHelpWindow(World);
-        ImGuiEditor.HandleDebugKeybinds(World);
-        ImGuiEditor.DrawDetachedWindows(World);
-        ImGuiEditor.DrawEntitiesWithComponentWindows(World);
+        }
+
+        ImGuiEditor.DrawAll(World);
 #endif
 
         if (World.SomeMessage<EndGame>())

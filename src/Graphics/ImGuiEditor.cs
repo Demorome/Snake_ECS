@@ -15,6 +15,7 @@ using MoonWorks.Graphics;
 using MoonWorks.Input;
 using MoonWorks.Math;
 using RollAndCash.Components;
+using RollAndCash.GameStates;
 using RollAndCash.Relations;
 using RollAndCash.Utility;
 using SDL3;
@@ -22,6 +23,7 @@ using Buffer = MoonWorks.Graphics.Buffer;
 
 namespace RollAndCash;
 
+// You better not be pronouncing ImGui as "I'm Gooey"... :^)
 public static class ImGuiEditor
 {
     static List<Type> ComponentTypes = new();
@@ -30,6 +32,14 @@ public static class ImGuiEditor
     {
         // FIXME: Update on hot-reload, if we add new component types?
         InitComponentTypesList();
+    }
+
+    public static void DrawAll(World world)
+    {
+        DrawHelpWindow(world);
+        HandleDebugKeybinds(world);
+        DrawDetachedWindows(world);
+        DrawEntitiesWithComponentWindows(world);
     }
 
     static void InitComponentTypesList()
@@ -71,6 +81,18 @@ public static class ImGuiEditor
         public Action<World> Action;
         public string Name;
         public bool OpensWindow;
+
+        public void Invoke(World world)
+        {
+            if (OpensWindow)
+            {
+                DetachedWindows.TryAdd(Name, Action);
+            }
+            else
+            {
+                Action(world);
+            }
+        }
     };
 
     static Dictionary<ImGuiKey, DebugAction> DebugKeybinds = new()
@@ -80,10 +102,13 @@ public static class ImGuiEditor
             (World _) => { Renderer.DrawDebugColliders = !Renderer.DrawDebugColliders; },
             "Show Colliders")
         },
-
+        { ImGuiKey.F6, new DebugAction(
+            (World _) => { GameplayState.FreezeTimeForAll = !GameplayState.FreezeTimeForAll; },
+            "Freeze Time For All")
+        }
     };
 
-    public static void DrawHelpWindow(World world)
+    static void DrawHelpWindow(World world)
     {
         ImGui.Begin("Help", ImGuiWindowFlags.AlwaysAutoResize);
 
@@ -105,8 +130,10 @@ public static class ImGuiEditor
                 ImGui.Text(modKeyStr + key.ToString());
 
                 ImGui.TableNextColumn();
-                ImGui.Text(namedAction.Name);
-
+                if (ImGui.SmallButton(namedAction.Name))
+                {
+                    namedAction.Invoke(world);
+                }
             }
             ImGui.EndTable();
         }
@@ -114,27 +141,20 @@ public static class ImGuiEditor
         ImGui.End();
     }
 
-    public static void HandleDebugKeybinds(World world)
+    static void HandleDebugKeybinds(World world)
     {
         foreach (var (key, debugAction) in DebugKeybinds)
         {
             if (ImGui.IsKeyChordPressed(key))
             {
-                if (debugAction.OpensWindow)
-                {
-                    DetachedWindows.TryAdd(debugAction.Name, debugAction.Action);
-                }
-                else
-                {
-                    debugAction.Action(world);
-                }
+                debugAction.Invoke(world);
             }
         }
     }
 
     static Dictionary<string, object> DetachedWindows = new();
 
-    public static void DrawDetachedWindows(World world)
+    static void DrawDetachedWindows(World world)
     {
         // Credits to @APurpleApple for this trick: https://discord.com/channels/571020752904519693/571020753479401483/1347847933709783102
         foreach (var (windowTitle, obj) in DetachedWindows)
@@ -168,7 +188,7 @@ public static class ImGuiEditor
 
     unsafe static ImGuiTextFilterPtr searchFilter = new(ImGuiNative.ImGuiTextFilter_ImGuiTextFilter(null));
 
-    public static void DrawComponentTypeSearch(World world)
+    static void DrawComponentTypeSearch(World world)
     {
         searchFilter.Draw("Search");
 
@@ -186,7 +206,7 @@ public static class ImGuiEditor
         }
     }
 
-    public static void DrawEntitiesWithComponentWindows(World world)
+    static void DrawEntitiesWithComponentWindows(World world)
     {
         foreach (var componentType in ComponentTypeWindows)
         {
@@ -243,7 +263,8 @@ public static class ImGuiEditor
         { typeof(Angle), DrawAngle },
         { typeof(HasHealth), DrawHealth },
         { typeof(ColorBlend), DrawColorBlend },
-        { typeof(Rectangle), DrawRectangle }
+        { typeof(Rectangle), DrawRectangle },
+        { typeof(Depth), DrawDepth },
     };
 
     static Dictionary<Type, Func<Entity, string>> ComponentTypeToInspectorString = new()
@@ -288,13 +309,13 @@ public static class ImGuiEditor
         var rect = world.Get<Rectangle>(entity);
         var inputPosOffset = new Vector2(rect.X, rect.Y);
 
-        if (ImGui.InputFloat2("Offset", ref inputPosOffset))
+        if (ImGui.DragFloat2("Offset", ref inputPosOffset))
         {
             world.Set(entity, new Rectangle((int)inputPosOffset.X, (int)inputPosOffset.Y, rect.Width, rect.Height));
         }
 
         var inputSize = new Vector2(rect.Width, rect.Height);
-        if (ImGui.InputFloat2("Width/Height", ref inputSize))
+        if (ImGui.DragFloat2("Width/Height", ref inputSize))
         {
             world.Set(entity, new Rectangle(rect.X, rect.Y, (int)inputSize.X, (int)inputSize.Y));
         }
@@ -305,7 +326,7 @@ public static class ImGuiEditor
         var pos = world.Get<Position2D>(entity);
         var input = pos.AsVector();
 
-        if (ImGui.InputFloat2("Position2D", ref input))
+        if (ImGui.DragFloat2("Position2D", ref input))
         {
             world.Set(entity, new Position2D(input));
         }
@@ -326,14 +347,31 @@ public static class ImGuiEditor
         }
     }
 
+    static bool UniformScaleStretch = true;
+
     private static void DrawSpriteScale(World world, Entity entity)
     {
         var scale = world.Get<SpriteScale>(entity);
-        var input = scale.Scale;
 
-        if (ImGui.InputFloat2("SpriteScale", ref input))
+        ImGui.Checkbox("Uniform scale?", ref UniformScaleStretch);
+
+        if (UniformScaleStretch)
         {
-            world.Set(entity, new SpriteScale(input));
+            var input = scale.Scale.Y;
+            ImGui.Text(scale.Scale.X.ToString());
+            ImGui.SameLine();
+            if (ImGui.DragFloat("Scale", ref input))
+            {
+                world.Set(entity, new SpriteScale(new Vector2(input, input)));
+            }
+        }
+        else
+        {
+            var input = scale.Scale;
+            if (ImGui.DragFloat2("Scale", ref input))
+            {
+                world.Set(entity, new SpriteScale(input));
+            }
         }
     }
 
@@ -392,6 +430,17 @@ public static class ImGuiEditor
         if (ImGui.InputInt("Health", ref input))
         {
             world.Set(entity, new HasHealth(input));
+        }
+    }
+
+    private static void DrawDepth(World world, Entity entity)
+    {
+        var depth = world.Get<Depth>(entity);
+        var input = depth.Value;
+
+        if (ImGui.InputFloat("Depth", ref input))
+        {
+            world.Set(entity, new Depth(input));
         }
     }
     #endregion Draw Components

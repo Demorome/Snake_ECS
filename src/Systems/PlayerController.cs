@@ -56,6 +56,7 @@ public class PlayerController : MoonTools.ECS.System
 		Set(player, new HasHealth(5));
 		Set(player, new BecomeInvincibleOnDamage(1f));
 		Set(player, new CanBeDetected());
+		Set(player, new SpriteScale(new Vector2(1, 1)));
 
 		// For debugging raycasts
 		//Set(player, new CanDetect(float.DegreesToRadians(45f), 30f));
