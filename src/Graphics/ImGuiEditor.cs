@@ -98,10 +98,11 @@ public static class ImGuiEditor
                 ImGui.TableNextRow();
 
                 ImGui.TableNextColumn();
-                var modKey = requiredInput & ImGuiKey.ModMask;
                 var key = requiredInput & ~ImGuiKey.ModMask;
-                var prefix = modKey != 0 ? modKey.ToString().Remove(0, 3) + "+" : "";
-                ImGui.Text(prefix + key.ToString());
+                var modKey = requiredInput & ImGuiKey.ModMask;
+                // Remove first 3 chars to get rid of "Mod" prefix
+                var modKeyStr = modKey != 0 ? modKey.ToString().Remove(0, 3) + "+" : "";
+                ImGui.Text(modKeyStr + key.ToString());
 
                 ImGui.TableNextColumn();
                 ImGui.Text(namedAction.Name);
