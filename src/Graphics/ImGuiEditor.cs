@@ -45,6 +45,8 @@ public static class ImGuiEditor
 
             ComponentTypes.Add(type);
         }
+
+        ComponentTypes.Sort((Type A, Type B) => { return A.Name.CompareTo(B.Name); });
     }
 
     public static string EntityToString(World world, Entity e)
@@ -57,21 +59,28 @@ public static class ImGuiEditor
         return $"Entity {{ ID = {e.ID}, Tag = {tag} }}";
     }
 
-    class NamedDebugAction
+    class DebugAction
     {
-        public NamedDebugAction(Action<World> action, string name)
+        public DebugAction(Action<World> action, string name, bool opensWindow = false)
         {
             Action = action;
             Name = name;
+            OpensWindow = opensWindow;
         }
 
         public Action<World> Action;
         public string Name;
+        public bool OpensWindow;
     };
 
-    static Dictionary<ImGuiKey, NamedDebugAction> DebugKeybinds = new()
+    static Dictionary<ImGuiKey, DebugAction> DebugKeybinds = new()
     {
-        { ImGuiKey.F1, new NamedDebugAction(DrawComponentTypeSearch, "Search By Component")}
+        { ImGuiKey.F1, new DebugAction(DrawComponentTypeSearch, "Search By Component", true)},
+        { (ImGuiKey)ImGuiModFlags.Ctrl | ImGuiKey.E, new DebugAction(
+            (World _) => { Renderer.DrawDebugColliders = !Renderer.DrawDebugColliders; },
+            "Show Colliders")
+        },
+
     };
 
     public static void DrawHelpWindow(World world)
@@ -103,11 +112,18 @@ public static class ImGuiEditor
 
     public static void HandleDebugKeybinds(World world)
     {
-        foreach (var (key, namedAction) in DebugKeybinds)
+        foreach (var (key, debugAction) in DebugKeybinds)
         {
             if (ImGui.IsKeyPressed(key))
             {
-                DetachedWindows.TryAdd(namedAction.Name, namedAction.Action);
+                if (debugAction.OpensWindow)
+                {
+                    DetachedWindows.TryAdd(debugAction.Name, debugAction.Action);
+                }
+                else
+                {
+                    debugAction.Action(world);
+                }
             }
         }
     }
@@ -147,41 +163,22 @@ public static class ImGuiEditor
     static HashSet<Type> ComponentTypeWindows = new();
 
     unsafe static ImGuiTextFilterPtr searchFilter = new(ImGuiNative.ImGuiTextFilter_ImGuiTextFilter(null));
-    static byte[] searchBuf = new byte[256];
 
     public static void DrawComponentTypeSearch(World world)
     {
-        ImGui.InputText("##Name", searchBuf, (uint)searchBuf.Length * sizeof(byte));
-        var searchStr = System.Text.Encoding.Default.GetString(searchBuf);
+        searchFilter.Draw("Search");
 
-        if (ImGui.BeginCombo("List", ""))
+        for (int i = 0; i < ComponentTypes.Count; ++i)
         {
-            ImGui.SetNextItemWidth(-float.MinValue);
-            if (ImGui.InputTextWithHint("##Filter", "Filter (inc,-exc)", ref searchStr, (uint)100))
-            {
-                searchFilter.Build();
-            }
-            //ImGui.SetNextItemShortcut(ImGuiModFlags.Ctrl | ImGuiKey.F);
-            if (ImGui.IsWindowAppearing())
-            {
-                ImGui.SetKeyboardFocusHere(-1);
-            }
+            var type = ComponentTypes[i];
 
-            // FIXME: LOTS OF THINGS
-
-            foreach (var type in ComponentTypes)
+            if (searchFilter.PassFilter(type.Name))
             {
-                bool is_selected = false;
-                if (searchFilter.PassFilter(type.Name))
+                if (ImGui.Selectable(type.Name))
                 {
-                    if (ImGui.Selectable(type.Name, is_selected))
-                    {
-                        ComponentTypeWindows.Add(type);
-                    }
+                    ComponentTypeWindows.Add(type);
                 }
             }
-
-            ImGui.EndCombo();
         }
     }
 
@@ -189,11 +186,8 @@ public static class ImGuiEditor
     {
         foreach (var componentType in ComponentTypeWindows)
         {
-            ImGui.SetNextWindowSize(new Vector2(500, 500), ImGuiCond.FirstUseEver);
-            ImGui.SetNextWindowPos(new Vector2(0, 0), ImGuiCond.FirstUseEver);
-
             bool dontCloseWindow = true;
-            ImGui.Begin($"Entities with {componentType.Name}", ref dontCloseWindow);
+            ImGui.Begin($"Entities with {componentType.Name}", ref dontCloseWindow, ImGuiWindowFlags.AlwaysAutoResize);
 
             foreach (var entity in world.Debug_GetEntities(componentType))
             {

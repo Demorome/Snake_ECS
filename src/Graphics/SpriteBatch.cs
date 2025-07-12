@@ -21,7 +21,12 @@ public class SpriteBatch
 	Buffer QuadVertexBuffer;
 	Buffer QuadIndexBuffer;
 
-	public SpriteBatch(GraphicsDevice graphicsDevice, MoonWorks.Storage.TitleStorage titleStorage, TextureFormat renderTextureFormat, TextureFormat? depthTextureFormat = null)
+	public SpriteBatch(
+		GraphicsDevice graphicsDevice,
+		MoonWorks.Storage.TitleStorage titleStorage,
+		TextureFormat renderTextureFormat,
+		TextureFormat? depthTextureFormat = null
+		)
 	{
 		GraphicsDevice = graphicsDevice;
 
@@ -67,7 +72,7 @@ public class SpriteBatch
 			};
 		}
 
-        GraphicsPipeline = GraphicsPipeline.Create(
+		GraphicsPipeline = GraphicsPipeline.Create(
             GraphicsDevice,
             createInfo
         );

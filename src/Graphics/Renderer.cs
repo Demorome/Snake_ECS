@@ -23,6 +23,9 @@ public class Renderer : MoonTools.ECS.Renderer
 	TriangleBatch TriangleBatch;
 
 	SpriteBatch ArtSpriteBatch;
+#if DEBUG
+	public static bool DrawDebugColliders = false;
+#endif
 
 	Texture RenderTexture;
 	Texture DepthTexture;
@@ -31,19 +34,25 @@ public class Renderer : MoonTools.ECS.Renderer
 
 	Sampler PointSampler;
 
-	MoonTools.ECS.Filter RectangleFilter;
+	MoonTools.ECS.Filter DrawRectFilter;
 	MoonTools.ECS.Filter TextFilter;
 	MoonTools.ECS.Filter SpriteAnimationFilter;
 	MoonTools.ECS.Filter DetectionConeFilter;
+#if DEBUG
+	MoonTools.ECS.Filter ColliderFilter;
+#endif
 
 	public Renderer(World world, GraphicsDevice graphicsDevice, TitleStorage titleStorage, TextureFormat swapchainFormat) : base(world)
 	{
 		GraphicsDevice = graphicsDevice;
 
-		RectangleFilter = FilterBuilder.Include<Rectangle>().Include<Position2D>().Include<DrawAsRectangle>().Build();
+		DrawRectFilter = FilterBuilder.Include<Rectangle>().Include<Position2D>().Include<DrawAsRectangle>().Build();
 		TextFilter = FilterBuilder.Include<Text>().Include<Position2D>().Build();
 		SpriteAnimationFilter = FilterBuilder.Include<SpriteAnimation>().Include<Position2D>().Build();
 		DetectionConeFilter = FilterBuilder.Include<CanDetect>().Include<Position2D>().Include<DrawDetectionCone>().Build();
+#if DEBUG
+		ColliderFilter = FilterBuilder.Include<Rectangle>().Include<Position2D>().Build();
+#endif
 
 		RenderTexture = Texture.Create2D(GraphicsDevice, "Render Texture", Dimensions.GAME_W, Dimensions.GAME_H, swapchainFormat, TextureUsageFlags.ColorTarget | TextureUsageFlags.Sampler);
 		DepthTexture = Texture.Create2D(GraphicsDevice, "Depth Texture", Dimensions.GAME_W, Dimensions.GAME_H, TextureFormat.D16Unorm, TextureUsageFlags.DepthStencilTarget);
@@ -121,7 +130,7 @@ public class Renderer : MoonTools.ECS.Renderer
 	{
 		ArtSpriteBatch.Start();
 
-		foreach (var entity in RectangleFilter.Entities)
+		foreach (var entity in DrawRectFilter.Entities)
 		{
 			var position = Get<Position2D>(entity);
 			var rectangle = Get<Rectangle>(entity);
@@ -140,7 +149,8 @@ public class Renderer : MoonTools.ECS.Renderer
 				new Vector2(rectangle.Width, rectangle.Height),
 				color,
 				sprite.UV.LeftTop,
-				sprite.UV.Dimensions);
+				sprite.UV.Dimensions
+			);
 		}
 
 		foreach (var entity in SpriteAnimationFilter.Entities)
@@ -206,6 +216,74 @@ public class Renderer : MoonTools.ECS.Renderer
 			);
 		}
 
+#if DEBUG
+		if (DrawDebugColliders)
+		{
+			foreach (var entity in ColliderFilter.Entities)
+			{
+				var position = Get<Position2D>(entity);
+				var rect = Get<Rectangle>(entity);
+				var orientation = 0.0f;
+
+				// Get a high-contrasting color.
+				var color = Has<ColorBlend>(entity) ? Get<ColorBlend>(entity).Color.Inverse() : Color.Red;
+
+				var depth = -2f;
+				if (Has<Depth>(entity))
+				{
+					// Render above the actual entity.
+					depth = -Get<Depth>(entity).Value + 1;
+				}
+
+				var sprite = SpriteAnimations.Pixel.Frames[0];
+
+				const int lineThickness = 1;
+				var horizontalLineSize = new Vector2(rect.Width, lineThickness);
+				var verticalLineSize = new Vector2(lineThickness, rect.Height);
+
+				// Horizontal Top
+				ArtSpriteBatch.Add(
+					new Vector3(position.X + rect.X, position.Y + rect.Y, depth),
+					orientation,
+					horizontalLineSize,
+					color,
+					sprite.UV.LeftTop,
+					sprite.UV.Dimensions
+				);
+
+				// Horizontal Bottom
+				ArtSpriteBatch.Add(
+					new Vector3(position.X + rect.X, position.Y + rect.Y + rect.Height - 1, depth),
+					orientation,
+					horizontalLineSize,
+					color,
+					sprite.UV.LeftTop,
+					sprite.UV.Dimensions
+				);
+
+				// Vertical Left
+				ArtSpriteBatch.Add(
+					new Vector3(position.X + rect.X, position.Y + rect.Y, depth),
+					orientation,
+					verticalLineSize,
+					color,
+					sprite.UV.LeftTop,
+					sprite.UV.Dimensions
+				);
+
+				// Vertical Right
+				ArtSpriteBatch.Add(
+					new Vector3(position.X + rect.X + rect.Width - 1, position.Y + rect.Y, depth),
+					orientation,
+					verticalLineSize,
+					color,
+					sprite.UV.LeftTop,
+					sprite.UV.Dimensions
+				);
+			}
+		}
+#endif
+
 		TextBatch.Start();
 		foreach (var entity in TextFilter.Entities)
 		{
@@ -267,7 +345,7 @@ public class Renderer : MoonTools.ECS.Renderer
 
 			var selfPosition = Get<Position2D>(entity);
 
-				// FIXME: use detection color (alert state?)
+			// FIXME: use detection color (alert state?)
 			var color = (HasInRelation<Detected>(entity) || Has<ChargingUpAttack>(entity)) ? Color.Red : Color.Green;
 			color.A = 100;
 
