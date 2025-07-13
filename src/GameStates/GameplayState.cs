@@ -163,7 +163,7 @@ public class GameplayState : GameState
         var gameInProgressEntity = World.CreateEntity();
         World.Set(gameInProgressEntity, new GameInProgress());
 
-        World.Send(new PlaySongMessage());
+       // World.Send(new PlaySongMessage());
 
     }
 
