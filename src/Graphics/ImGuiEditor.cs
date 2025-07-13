@@ -105,8 +105,116 @@ public static class ImGuiEditor
         { ImGuiKey.F6, new DebugAction(
             (World _) => { GameplayState.FreezeTimeForAll = !GameplayState.FreezeTimeForAll; },
             "Freeze Time For All")
-        }
+        },
+        { ImGuiKey.ModCtrl | ImGuiKey.Z, new DebugAction(UndoLastComponentChange, "Undo") },
+        { ImGuiKey.ModCtrl | ImGuiKey.Y, new DebugAction(RedoLastComponentChange, "Redo") }
     };
+
+    // FIXME: clear entry when entity is deleted in Destroyer system
+    // For Ctrl+Z 'Undo' feature.
+    static Stack<(Entity, dynamic, bool)> ComponentChangeHistory = new();
+    static Stack<(Entity, dynamic, bool)> UndoHistory = new();
+
+    // For some reason, can't directly pass a `dynamic` value to an "in" param, so we use this.
+    static void WorkaroundSet<T>(World world, Entity entity, T component) where T : unmanaged
+    {
+        world.Set(entity, component);
+    }
+
+    // Need to pass dummy typed component to extract the T type from the `dynamic` value.
+    static void WorkaroundRemove<T>(World world, Entity entity, T component) where T : unmanaged
+    {
+        world.Remove<T>(entity);
+    }
+    static T WorkaroundGet<T>(World world, Entity entity, T component) where T : unmanaged
+    {
+        return world.Get<T>(entity);
+    }
+    static bool WorkaroundHas<T>(World world, Entity entity, T component) where T : unmanaged
+    {
+        return world.Has<T>(entity);
+    }
+
+    static void UndoRedoLastComponentChange(
+        World world,
+        Stack<(Entity, dynamic, bool)> ToRestore,
+        Stack<(Entity, dynamic, bool)> ToRememberRestore,
+        bool isUndoOrRedo
+        )
+    {
+        if (ToRestore.Count == 0)
+        {
+            return;
+        }
+
+        // If componentExisted == false, then `componentPriorToChange` will be a default-instantiated dummy component.
+        // `componentPriorToChange` will never be null. FIXME: Enforce this!
+        var (entity, componentPriorToChange, hadComponent) = ToRestore.Pop();
+
+        if (!isUndoOrRedo)
+        {
+            Console.Write("Undid");
+        }
+        else
+        {
+            Console.Write("Redid");
+        }
+        Console.WriteLine($" change to {EntityToString(world, entity)} for {componentPriorToChange.GetType().Name} : Reset to {componentPriorToChange.ToString()}");
+
+
+        // Store current state so we can potentially 'Redo' this 'Undo' change.
+        if (!WorkaroundHas(world, entity, componentPriorToChange))
+        {
+            var type = componentPriorToChange.GetType();
+            ToRememberRestore.Push((entity, (dynamic)Activator.CreateInstance(type), false));
+        }
+        else
+        {
+            // Component didn't exist before the change, so it's safe to assume it must exist now.
+            var componentPriorToUndo = WorkaroundGet(world, entity, componentPriorToChange);
+            ToRememberRestore.Push((entity, componentPriorToUndo, true));
+        }
+
+        // Undo the change.
+        if (!hadComponent)
+        {
+            WorkaroundRemove(world, entity, componentPriorToChange);
+        }
+        else
+        {
+            WorkaroundSet(world, entity, componentPriorToChange);
+        }
+    }
+
+    static void UndoLastComponentChange(World world)
+    {
+        UndoRedoLastComponentChange(world, ComponentChangeHistory, UndoHistory, false);
+    }
+
+    static void RedoLastComponentChange(World world)
+    {
+        UndoRedoLastComponentChange(world, UndoHistory, ComponentChangeHistory, true);
+    }
+
+    /*
+        static void RedoLastComponentChange(World world)
+        {
+            if (UndoHistory.Count == 0)
+            {
+                return;
+            }
+
+            var (entity, componentPriorToUndo, hadComponent) = UndoHistory.Pop();
+
+            if (!hadComponent)
+            {
+                WorkaroundRemove(world, entity, componentPriorToUndo);
+            }
+            else
+            {
+                WorkaroundSet(world, entity, componentPriorToUndo);
+            }
+        }*/
 
     static void DrawHelpWindow(World world)
     {
@@ -250,8 +358,10 @@ public static class ImGuiEditor
 
     #region Draw Components
 
+    delegate void DrawComponentAction(World world, Entity entity, ref bool changed);
+
     // Credits to @cosmonaut: https://discord.com/channels/571020752904519693/591369371369209871/1298383364813881385
-    static Dictionary<Type, Action<World, Entity>> ComponentTypeToInspectorAction = new()
+    static Dictionary<Type, DrawComponentAction> ComponentTypeToInspectorAction = new()
     {
         { typeof(Position2D), DrawPosition2D },
         { typeof(SpriteScale), DrawSpriteScale },
@@ -272,6 +382,9 @@ public static class ImGuiEditor
 
     };
 
+
+    static dynamic ComponentPriorToChange_Cached = null;
+
     // Credits to @cosmonaut: https://discord.com/channels/571020752904519693/591369371369209871/1298383364813881385
     private static void DrawComponentInspector(World world, Entity entity, Type type)
     {
@@ -280,7 +393,26 @@ public static class ImGuiEditor
             var expanded = ImGui.CollapsingHeader(type.Name);
             if (expanded)
             {
-                ComponentTypeToInspectorAction[type].Invoke(world, entity);
+                var dummyComponent = (dynamic)Activator.CreateInstance(type);
+                var componentPriorToChange = WorkaroundGet(world, entity, dummyComponent);
+                // FIXME: Destroy dummyComponent?
+
+                bool doingChanges = false;
+                ComponentTypeToInspectorAction[type].Invoke(world, entity, ref doingChanges);
+
+                // Store quick-succession changes as a single change, for the 'Undo' feature. 
+                if (ComponentPriorToChange_Cached == null)
+                {
+                    if (doingChanges)
+                    {
+                        ComponentPriorToChange_Cached = componentPriorToChange;
+                    }
+                }
+                else if (!doingChanges && !ImGui.IsAnyItemActive())
+                {
+                    ComponentChangeHistory.Push((entity, ComponentPriorToChange_Cached, true));
+                    ComponentPriorToChange_Cached = null;
+                }
             }
         }
         else if (ComponentTypeToInspectorString.ContainsKey(type))
@@ -293,7 +425,7 @@ public static class ImGuiEditor
         }
     }
 
-    private static void DrawSpeed(World world, Entity entity)
+    private static void DrawSpeed(World world, Entity entity, ref bool changed)
     {
         var velocity = world.Get<Speed>(entity);
         var inputVelocity = velocity.Value;
@@ -301,10 +433,11 @@ public static class ImGuiEditor
         if (ImGui.InputFloat("Speed", ref inputVelocity))
         {
             world.Set(entity, new Speed(inputVelocity));
+            changed = true;
         }
     }
 
-    private static void DrawRectangle(World world, Entity entity)
+    private static void DrawRectangle(World world, Entity entity, ref bool changed)
     {
         var rect = world.Get<Rectangle>(entity);
         var inputPosOffset = new Vector2(rect.X, rect.Y);
@@ -312,16 +445,18 @@ public static class ImGuiEditor
         if (ImGui.DragFloat2("Offset", ref inputPosOffset))
         {
             world.Set(entity, new Rectangle((int)inputPosOffset.X, (int)inputPosOffset.Y, rect.Width, rect.Height));
+            changed = true;
         }
 
         var inputSize = new Vector2(rect.Width, rect.Height);
         if (ImGui.DragFloat2("Width/Height", ref inputSize))
         {
             world.Set(entity, new Rectangle(rect.X, rect.Y, (int)inputSize.X, (int)inputSize.Y));
+            changed = true;
         }
     }
 
-    private static void DrawPosition2D(World world, Entity entity)
+    private static void DrawPosition2D(World world, Entity entity, ref bool changed)
     {
         var pos = world.Get<Position2D>(entity);
         var input = pos.AsVector();
@@ -329,6 +464,7 @@ public static class ImGuiEditor
         if (ImGui.DragFloat2("Position2D", ref input))
         {
             world.Set(entity, new Position2D(input));
+            changed = true;
         }
 
         // Credits to @rokups for this trick: https://github.com/ocornut/imgui/discussions/3848
@@ -344,12 +480,13 @@ public static class ImGuiEditor
         {
             pos += ImGui.GetIO().MouseDelta;
             world.Set(entity, pos);
+            changed = true;
         }
     }
 
     static bool UniformScaleStretch = true;
 
-    private static void DrawSpriteScale(World world, Entity entity)
+    private static void DrawSpriteScale(World world, Entity entity, ref bool changed)
     {
         var scale = world.Get<SpriteScale>(entity);
 
@@ -362,7 +499,9 @@ public static class ImGuiEditor
             ImGui.SameLine();
             if (ImGui.DragFloat("Scale", ref input))
             {
-                world.Set(entity, new SpriteScale(new Vector2(input, input)));
+                var newScale = new Vector2(input, input);
+                world.Set(entity, new SpriteScale(newScale));
+                changed = true;
             }
         }
         else
@@ -371,11 +510,12 @@ public static class ImGuiEditor
             if (ImGui.DragFloat2("Scale", ref input))
             {
                 world.Set(entity, new SpriteScale(input));
+                changed = true;
             }
         }
     }
 
-    private static void DrawDirection2D(World world, Entity entity)
+    private static void DrawDirection2D(World world, Entity entity, ref bool changed)
     {
         var direction = world.Get<Direction2D>(entity);
         var input = float.RadiansToDegrees(MathUtilities.AngleFromUnitVector(direction.Value));
@@ -384,16 +524,18 @@ public static class ImGuiEditor
         {
             var output = MathUtilities.UnitVectorFromAngle(float.DegreesToRadians(input));
             world.Set(entity, new Direction2D(output));
+            changed = true;
         }
 
         if (ImGui.SliderFloat("Slider", ref input, -360f, 360))
         {
             var output = MathUtilities.UnitVectorFromAngle(float.DegreesToRadians(input));
             world.Set(entity, new Direction2D(output));
+            changed = true;
         }
     }
 
-    private static void DrawAngle(World world, Entity entity)
+    private static void DrawAngle(World world, Entity entity, ref bool changed)
     {
         var angle = world.Get<Angle>(entity);
         var input = float.RadiansToDegrees(angle.Value);
@@ -402,27 +544,31 @@ public static class ImGuiEditor
         {
             var output = float.DegreesToRadians(input);
             world.Set(entity, new Angle(output));
+            changed = true;
         }
 
         if (ImGui.SliderFloat("Slider", ref input, -360f, 360))
         {
             var output = float.DegreesToRadians(input);
             world.Set(entity, new Angle(output));
+            changed = true;
         }
     }
 
-    private static void DrawColorBlend(World world, Entity entity)
+    private static void DrawColorBlend(World world, Entity entity, ref bool changed)
     {
         var color = world.Get<ColorBlend>(entity);
         var input = color.Color.ToVector4();
 
         if (ImGui.ColorEdit4("Color", ref input))
         {
-            world.Set(entity, new ColorBlend(new Color(input)));
+            var output = new Color(input);
+            world.Set(entity, new ColorBlend(output));
+            changed = true;
         }
     }
 
-    private static void DrawHealth(World world, Entity entity)
+    private static void DrawHealth(World world, Entity entity, ref bool changed)
     {
         var health = world.Get<HasHealth>(entity);
         var input = health.Health;
@@ -430,10 +576,11 @@ public static class ImGuiEditor
         if (ImGui.InputInt("Health", ref input))
         {
             world.Set(entity, new HasHealth(input));
+            changed = true;
         }
     }
 
-    private static void DrawDepth(World world, Entity entity)
+    private static void DrawDepth(World world, Entity entity, ref bool changed)
     {
         var depth = world.Get<Depth>(entity);
         var input = depth.Value;
@@ -441,6 +588,7 @@ public static class ImGuiEditor
         if (ImGui.InputFloat("Depth", ref input))
         {
             world.Set(entity, new Depth(input));
+            changed = true;
         }
     }
     #endregion Draw Components
