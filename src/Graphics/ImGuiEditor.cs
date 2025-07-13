@@ -151,15 +151,7 @@ public static class ImGuiEditor
         // `componentPriorToChange` will never be null. FIXME: Enforce this!
         var (entity, componentPriorToChange, hadComponent) = ToRestore.Pop();
 
-        if (!isUndoOrRedo)
-        {
-            Console.Write("Undid");
-        }
-        else
-        {
-            Console.Write("Redid");
-        }
-        Console.WriteLine($" change to {EntityToString(world, entity)} for {componentPriorToChange.GetType().Name} : Reset to {componentPriorToChange.ToString()}");
+        Logger.LogInfo($"{(!isUndoOrRedo ? "Undid" : "Redid")} change to {EntityToString(world, entity)} for {componentPriorToChange.GetType().Name} : Reset to {componentPriorToChange.ToString()}");
 
 
         // Store current state so we can potentially 'Redo' this 'Undo' change.
@@ -406,11 +398,17 @@ public static class ImGuiEditor
                     if (doingChanges)
                     {
                         ComponentPriorToChange_Cached = componentPriorToChange;
+                        if (UndoHistory.Count != 0)
+                        {
+                            Logger.LogInfo("Cleared Redo list.");
+                            UndoHistory.Clear();
+                        }
                     }
                 }
                 else if (!doingChanges && !ImGui.IsAnyItemActive())
                 {
                     ComponentChangeHistory.Push((entity, ComponentPriorToChange_Cached, true));
+                    Logger.LogInfo($"Stored prior state for {EntityToString(world, entity)}'s {ComponentPriorToChange_Cached.GetType()}: {ComponentPriorToChange_Cached}");
                     ComponentPriorToChange_Cached = null;
                 }
             }
@@ -430,7 +428,8 @@ public static class ImGuiEditor
         var velocity = world.Get<Speed>(entity);
         var inputVelocity = velocity.Value;
 
-        if (ImGui.InputFloat("Speed", ref inputVelocity))
+        // NOTE: Without a space or ## in this tag, we can't input anything! Weird bug.
+        if (ImGui.InputFloat("##Speed", ref inputVelocity))
         {
             world.Set(entity, new Speed(inputVelocity));
             changed = true;
@@ -585,7 +584,7 @@ public static class ImGuiEditor
         var depth = world.Get<Depth>(entity);
         var input = depth.Value;
 
-        if (ImGui.InputFloat("Depth", ref input))
+        if (ImGui.InputFloat("##Depth", ref input))
         {
             world.Set(entity, new Depth(input));
             changed = true;
