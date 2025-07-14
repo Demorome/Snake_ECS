@@ -299,7 +299,6 @@ public class Renderer : MoonTools.ECS.Renderer
 			}
 		}
 
-		if (ImGuiEditor.IsInSelectionMode)
 		{
 			// Render above everything (except menus).
 			var depth = 2f;
@@ -319,30 +318,35 @@ public class Renderer : MoonTools.ECS.Renderer
 				selectionColor = Color.Lerp(selectionColor, Color.Gray, 0.5f);
 			}
 
-			foreach (var entity in SpriteAnimationFilter.Entities)
+				
+			if (ImGuiEditor.IsInSelectionMode)
 			{
-				if (selectedEntity.HasValue && entity == selectedEntity.Value)
+				foreach (var entity in SpriteAnimationFilter.Entities)
 				{
-					continue;
+					if (selectedEntity.HasValue && entity == selectedEntity.Value)
+					{
+						continue;
+					}
+
+					var sprite = Get<SpriteAnimation>(entity);
+					var rect = sprite.CurrentSprite.FrameRect;
+					var rectangle = new Rectangle(rect.X - rect.W / 2, rect.Y - rect.H / 2, rect.W, rect.H);
+					DrawDebugRectangle(entity, rectangle, selectionColor, depth);
 				}
 
-				var sprite = Get<SpriteAnimation>(entity);
-				var rect = sprite.CurrentSprite.FrameRect;
-				var rectangle = new Rectangle(rect.X - rect.W / 2, rect.Y - rect.H / 2, rect.W, rect.H);
-				DrawDebugRectangle(entity, rectangle, selectionColor, depth);
-			}
-
-			foreach (var entity in DrawRectFilter.Entities)
-			{
-				if (selectedEntity.HasValue && entity == selectedEntity.Value)
+				foreach (var entity in DrawRectFilter.Entities)
 				{
-					continue;
-				}
+					if (selectedEntity.HasValue && entity == selectedEntity.Value)
+					{
+						continue;
+					}
 
-				var rect = Get<Rectangle>(entity);
-				DrawDebugRectangle(entity, rect, selectionColor, depth);
+					var rect = Get<Rectangle>(entity);
+					DrawDebugRectangle(entity, rect, selectionColor, depth);
+				}
 			}
 		}
+
 #endif
 
 		TextBatch.Start();

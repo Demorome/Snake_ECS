@@ -72,6 +72,8 @@ public class ImGuiEditor : MoonTools.ECS.System
         var mouseHitboxRect = new Rectangle(0, 0, 1, 1);
         var mouseWorldPosRect = mouseHitboxRect.GetWorldRect(mouseWorldPos);
 
+        var mouseHoveringOverAnyWindow = ImGui.GetIO().WantCaptureMouse;
+
         if (IsInSelectionMode)
         {
             UnrelateAll<Editor_SelectedEntity>(DebugEntity.Value);
@@ -112,17 +114,28 @@ public class ImGuiEditor : MoonTools.ECS.System
 
             // We'll consider this the "selected" entity.
             var hoveredOverEntity = hoveredOverEntities[0];
-            Relate(DebugEntity.Value, hoveredOverEntity, new Editor_SelectedEntity());
 
-            if (ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+            if (ImGui.IsMouseClicked(ImGuiMouseButton.Right) && !mouseHoveringOverAnyWindow)
             {
                 DetachedWindows.TryAdd(EntityToString(hoveredOverEntity), hoveredOverEntity);
             }
-            /*
-            else if (ImGui.IsKeyPressed())
+
+            // Exit selection mode if we confirm our selection.
+            if (ImGui.IsMouseClicked(ImGuiMouseButton.Left) && !mouseHoveringOverAnyWindow)
             {
-                // TODO: Switch selection to one of greater/lower depth @ mouse position
-            }*/
+                IsInSelectionMode = false;
+            }
+            // Switch selection to one of greater/lower depth at the same mouse position.
+            else if (ImGui.IsKeyPressed(ImGuiKey.UpArrow))
+            {
+                // FIXME:
+            }
+            else if (ImGui.IsKeyPressed(ImGuiKey.DownArrow))
+            {
+                // FIXME:
+            }
+
+            Relate(DebugEntity.Value, hoveredOverEntity, new Editor_SelectedEntity());
         }
         else
         {
@@ -132,12 +145,13 @@ public class ImGuiEditor : MoonTools.ECS.System
                 var selectedEntity = oldSelectedEntity.Value;
 
                 // Check if user unselects the entity by clicking away from it.
-                if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+                if (ImGui.IsMouseClicked(ImGuiMouseButton.Left) && !mouseHoveringOverAnyWindow)
                 {
                     var selectedRect = GetEntityVisualRect(selectedEntity);
                     if (selectedRect.HasValue)
                     {
-                        VisualEntitiesSpatialHash.Insert(selectedEntity, selectedRect.Value);
+                        var worldRect = selectedRect.Value.GetWorldRect(Get<Position2D>(selectedEntity));
+                        VisualEntitiesSpatialHash.Insert(selectedEntity, worldRect);
                     }
 
                     bool unselect = true;
@@ -155,7 +169,7 @@ public class ImGuiEditor : MoonTools.ECS.System
                         UnrelateAll<Editor_SelectedEntity>(DebugEntity.Value);
                     }
                 }
-                else if (ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+                else if (ImGui.IsMouseClicked(ImGuiMouseButton.Right) && !mouseHoveringOverAnyWindow)
                 {
                     DetachedWindows.TryAdd(EntityToString(selectedEntity), selectedEntity);
                 }
