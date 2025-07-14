@@ -26,11 +26,6 @@ public class DetectionSystem : MoonTools.ECS.System
     {
         CollisionManipulator.ResetCollidersSpatialHash();
 
-        foreach (var (_, other) in Relations<DetectionVisualPoint>())
-        {
-            Destroy(other);
-        }  
-
         foreach (var entity in DetecterFilter.Entities)
         {
             var detectionArgs = Get<CanDetect>(entity);
@@ -74,6 +69,7 @@ public class DetectionSystem : MoonTools.ECS.System
                 var pointEntity = CreateEntity();
                 Relate(entity, pointEntity, new DetectionVisualPoint());
                 Set(pointEntity, new Position2D(stopPos));
+                Set(pointEntity, new Timer(-1)); // destroy next frame
             }
         }
     }
