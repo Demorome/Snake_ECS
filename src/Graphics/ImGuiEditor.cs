@@ -122,15 +122,15 @@ public static class ImGuiEditor
     }
 
     // Need to pass dummy typed component to extract the T type from the `dynamic` value.
-    static void WorkaroundRemove<T>(World world, Entity entity, T component) where T : unmanaged
+    static void WorkaroundRemove<T>(World world, Entity entity, T dummyComponent) where T : unmanaged
     {
         world.Remove<T>(entity);
     }
-    static T WorkaroundGet<T>(World world, Entity entity, T component) where T : unmanaged
+    static T WorkaroundGet<T>(World world, Entity entity, T dummyComponent) where T : unmanaged
     {
         return world.Get<T>(entity);
     }
-    static bool WorkaroundHas<T>(World world, Entity entity, T component) where T : unmanaged
+    static bool WorkaroundHas<T>(World world, Entity entity, T dummyComponent) where T : unmanaged
     {
         return world.Has<T>(entity);
     }
@@ -187,26 +187,6 @@ public static class ImGuiEditor
     {
         UndoRedoLastComponentChange(world, UndoHistory, ComponentChangeHistory, true);
     }
-
-    /*
-        static void RedoLastComponentChange(World world)
-        {
-            if (UndoHistory.Count == 0)
-            {
-                return;
-            }
-
-            var (entity, componentPriorToUndo, hadComponent) = UndoHistory.Pop();
-
-            if (!hadComponent)
-            {
-                WorkaroundRemove(world, entity, componentPriorToUndo);
-            }
-            else
-            {
-                WorkaroundSet(world, entity, componentPriorToUndo);
-            }
-        }*/
 
     static void DrawHelpWindow(World world)
     {
@@ -387,7 +367,7 @@ public static class ImGuiEditor
             {
                 var dummyComponent = (dynamic)Activator.CreateInstance(type);
                 var componentPriorToChange = WorkaroundGet(world, entity, dummyComponent);
-                // FIXME: Destroy dummyComponent?
+                // FIXME: Destroy dummyComponent? Profile if it leaks mem.
 
                 bool doingChanges = false;
                 ComponentTypeToInspectorAction[type].Invoke(world, entity, ref doingChanges);
