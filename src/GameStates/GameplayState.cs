@@ -40,6 +40,8 @@ public class GameplayState : GameState
     TrailVisualSystem TrailVisualSystem;
 
 #if DEBUG
+    ImGuiEditor ImGuiEditor;
+
     public static bool FreezeTimeForAll = false;
 #endif
 
@@ -49,6 +51,134 @@ public class GameplayState : GameState
         TransitionState = transitionState;
     }
 
+    public override void Start()
+    {
+        World = new World();
+
+        Timing = new(World);
+        Input = new Input(World, Game.Inputs);
+        Motion = new Motion(World);
+        Audio = new Audio(World, Game.AudioDevice);
+        PlayerController = new PlayerController(World);
+        SetSpriteAnimationSystem = new SetSpriteAnimationSystem(World);
+        UpdateSpriteAnimationSystem = new UpdateSpriteAnimationSystem(World);
+        ColorAnimation = new ColorAnimation(World);
+        DirectionalAnimation = new DirectionalAnimation(World);
+        Health = new Health(World);
+        Projectile = new Projectile(World);
+        Collision = new Collision(World);
+        Destroyer = new Destroyer(World);
+        FlickerSystem = new FlickerSystem(World);
+        FlipAnimationSystem = new FlipAnimationSystem(World);
+        TargetingDirection = new TargetingDirection(World);
+        FollowingSystem = new FollowingSystem(World);
+        ChangeAppearanceOverTime = new ChangeAppearanceOverTime(World);
+        DetectionSystem = new DetectionSystem(World);
+        EnemySystem = new(World);
+        TrailVisualSystem = new(World);
+
+#if DEBUG
+        ImGuiEditor = new(World);
+#endif
+        Renderer = new Renderer(
+            World,
+            Game.GraphicsDevice,
+            Game.RootTitleStorage,
+            Game.MainWindow.SwapchainFormat
+#if DEBUG
+            , ImGuiEditor
+#endif
+        );
+
+        CreateGameDimensionBorderCollision();
+        CreateBattleAreaBorder();
+
+        /*
+        var background = World.CreateEntity();
+        World.Set(background, new Position(0, 0));
+        World.Set(background, new Depth(999));
+        World.Set(background, new SpriteAnimation(Content.SpriteAnimations.BG, 0));
+        */
+
+        /*
+        var timer = World.CreateEntity();
+        World.Set(timer, new Position(Dimensions.GAME_W * 0.5f, 38));
+        World.Set(timer, new TextDropShadow(1, 1));
+        */
+
+        /*
+        var scoreOne = World.CreateEntity();
+        World.Set(scoreOne, new Position(80, 345));
+        World.Set(scoreOne, new Score(0));
+        World.Set(scoreOne, new DisplayScore(0));
+        World.Set(scoreOne, new Text(Fonts.KosugiID, FontSizes.SCORE, "0"));
+        */
+
+        var playerOne = PlayerController.SpawnPlayer(0);
+
+        var gameInProgressEntity = World.CreateEntity();
+        World.Set(gameInProgressEntity, new GameInProgress());
+
+        // World.Send(new PlaySongMessage());
+
+    }
+
+    public override void Update(TimeSpan dt)
+    {
+#if DEBUG
+        if (!FreezeTimeForAll)
+        {
+#endif
+            Timing.Update(dt);
+            ChangeAppearanceOverTime.Update(dt);
+            UpdateSpriteAnimationSystem.Update(dt);
+            Input.Update(dt);
+            PlayerController.Update(dt);
+            EnemySystem.Update(dt);
+            DetectionSystem.Update(dt);
+            Projectile.Update(dt);
+            TargetingDirection.Update(dt);
+            Motion.Update(dt);
+            Collision.Update(dt);
+            Health.Update(dt);
+            TrailVisualSystem.Update(dt);
+            FollowingSystem.Update(dt);
+            DirectionalAnimation.Update(dt);
+            SetSpriteAnimationSystem.Update(dt);
+            ColorAnimation.Update(dt);
+            FlickerSystem.Update(dt);
+            FlipAnimationSystem.Update(dt);
+#if DEBUG
+        }
+
+        ImGuiEditor.Update(dt);
+#endif
+
+        Audio.Update(dt);
+        Destroyer.Update(dt);
+
+        if (World.SomeMessage<EndGame>())
+        {
+            World.FinishUpdate();
+            Audio.Cleanup();
+            World.Dispose();
+            Game.SetState(TransitionState);
+            return;
+        }
+
+        World.FinishUpdate();
+    }
+
+    public override void Draw(CommandBuffer commandBuffer, Texture swapchainTexture, Window window, double alpha)
+    {
+        Renderer.Render(commandBuffer, swapchainTexture, window, alpha);
+    }
+
+    public override void End()
+    {
+
+    }
+    
     const string LevelBoundsTag = "Level Bounds";
     const string StaticColliderTag = "Static";
 
@@ -104,122 +234,5 @@ public class GameplayState : GameState
         World.Set(rightBorder, new Rectangle(0, 0, thickness, Dimensions.BATTLE_AREA_H + thickness));
         World.Set(rightBorder, new Layer(CollisionLayer.LevelCollider_ExistsOn, CollisionLayer.StaticLevelCollider_CollidesWith));
         World.Set(rightBorder, new DrawAsRectangle());
-    }
-
-    public override void Start()
-    {
-        World = new World();
-
-        Timing = new(World);
-        Input = new Input(World, Game.Inputs);
-        Motion = new Motion(World);
-        Audio = new Audio(World, Game.AudioDevice);
-        PlayerController = new PlayerController(World);
-        SetSpriteAnimationSystem = new SetSpriteAnimationSystem(World);
-        UpdateSpriteAnimationSystem = new UpdateSpriteAnimationSystem(World);
-        ColorAnimation = new ColorAnimation(World);
-        DirectionalAnimation = new DirectionalAnimation(World);
-        Health = new Health(World);
-        Projectile = new Projectile(World);
-        Collision = new Collision(World);
-        Destroyer = new Destroyer(World);
-        FlickerSystem = new FlickerSystem(World);
-        FlipAnimationSystem = new FlipAnimationSystem(World);
-        TargetingDirection = new TargetingDirection(World);
-        FollowingSystem = new FollowingSystem(World);
-        ChangeAppearanceOverTime = new ChangeAppearanceOverTime(World);
-        DetectionSystem = new DetectionSystem(World);
-        EnemySystem = new(World);
-        TrailVisualSystem = new(World);
-
-        Renderer = new Renderer(World, Game.GraphicsDevice, Game.RootTitleStorage, Game.MainWindow.SwapchainFormat);
-
-        CreateGameDimensionBorderCollision();
-        CreateBattleAreaBorder();
-
-        /*
-        var background = World.CreateEntity();
-        World.Set(background, new Position(0, 0));
-        World.Set(background, new Depth(999));
-        World.Set(background, new SpriteAnimation(Content.SpriteAnimations.BG, 0));
-        */
-
-        /*
-        var timer = World.CreateEntity();
-        World.Set(timer, new Position(Dimensions.GAME_W * 0.5f, 38));
-        World.Set(timer, new TextDropShadow(1, 1));
-        */
-
-        /*
-        var scoreOne = World.CreateEntity();
-        World.Set(scoreOne, new Position(80, 345));
-        World.Set(scoreOne, new Score(0));
-        World.Set(scoreOne, new DisplayScore(0));
-        World.Set(scoreOne, new Text(Fonts.KosugiID, FontSizes.SCORE, "0"));
-        */
-
-        var playerOne = PlayerController.SpawnPlayer(0);
-
-        var gameInProgressEntity = World.CreateEntity();
-        World.Set(gameInProgressEntity, new GameInProgress());
-
-       // World.Send(new PlaySongMessage());
-
-    }
-
-    public override void Update(TimeSpan dt)
-    {
-#if DEBUG
-        if (!FreezeTimeForAll)
-        {
-#endif
-            Timing.Update(dt);
-            ChangeAppearanceOverTime.Update(dt);
-            UpdateSpriteAnimationSystem.Update(dt);
-            Input.Update(dt);
-            PlayerController.Update(dt);
-            EnemySystem.Update(dt);
-            DetectionSystem.Update(dt);
-            Projectile.Update(dt);
-            TargetingDirection.Update(dt);
-            Motion.Update(dt);
-            Collision.Update(dt);
-            Health.Update(dt);
-            TrailVisualSystem.Update(dt);
-            FollowingSystem.Update(dt);
-            DirectionalAnimation.Update(dt);
-            SetSpriteAnimationSystem.Update(dt);
-            ColorAnimation.Update(dt);
-            FlickerSystem.Update(dt);
-            FlipAnimationSystem.Update(dt);
-#if DEBUG
-        }
-
-        ImGuiEditor.DrawAll(World);
-#endif
-
-        Audio.Update(dt);
-        Destroyer.Update(dt);
-
-        if (World.SomeMessage<EndGame>())
-        {
-            World.FinishUpdate();
-            Audio.Cleanup();
-            World.Dispose();
-            Game.SetState(TransitionState);
-            return;
-        }
-
-        World.FinishUpdate();
-    }
-
-    public override void Draw(CommandBuffer commandBuffer, Texture swapchainTexture, Window window, double alpha)
-    {
-        Renderer.Render(commandBuffer, swapchainTexture, window, alpha);
-    }
-
-    public override void End()
-    {
-
     }
 }

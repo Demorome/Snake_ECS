@@ -36,6 +36,9 @@ public class Input : MoonTools.ECS.System
 	ControlSet PlayerTwoKeyboard = new ControlSet();
 	ControlSet PlayerTwoGamepad = new ControlSet();
 
+#if DEBUG
+	public static Position2D WorldMousePosition = new Position2D();
+#endif
 
 	public Input(World world, Inputs inputs) : base(world)
 	{
@@ -79,10 +82,17 @@ public class Input : MoonTools.ECS.System
 
 			Set(playerEntity, inputState);
 
-			// FIXME: Determine cursor position if using controller.
-			// FIXME: Mouse pos doesn't seem to correlate to actual cursor pos???
-			// Could be due to projection matrix?
-			Set(playerEntity, new CursorPosition(new Vector2(Inputs.Mouse.X, Inputs.Mouse.Y)));
+			var mousePosition = new Vector2(
+				(Inputs.Mouse.X + 0.5f) / 2,
+				(Inputs.Mouse.Y + 0.5f) / 2
+			);
+#if DEBUG
+			WorldMousePosition = new Position2D(mousePosition);
+#endif
+
+			// FIXME: Account for potential camera changes (zoom in, etc)
+			// FIXME: Use a more accurate formula
+			Set(playerEntity, new CursorPosition(mousePosition));
 		}
 	}
 

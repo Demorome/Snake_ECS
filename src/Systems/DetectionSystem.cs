@@ -68,6 +68,9 @@ public class DetectionSystem : MoonTools.ECS.System
 
                 var pointEntity = CreateEntity();
                 Relate(entity, pointEntity, new DetectionVisualPoint());
+#if DEBUG
+                Set(pointEntity, new Editor_DontShow());
+#endif
                 Set(pointEntity, new Position2D(stopPos));
                 Set(pointEntity, new Timer(-1)); // destroy next frame
             }

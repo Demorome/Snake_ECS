@@ -185,3 +185,7 @@ public readonly record struct HasHealth(int Health);
 public readonly record struct MaxMovementDistance(float Value);
 
 public readonly record struct CursorPosition(Vector2 Value);
+
+#if DEBUG
+    public readonly record struct Editor_DontShow();
+#endif

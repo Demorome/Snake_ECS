@@ -58,4 +58,6 @@ public readonly record struct ChargingUpAttackTimer();
 public readonly record struct Invincible();
 public readonly record struct WillFlicker(float TimePerFlicker); // called "Flickering" in the tutorial
 
-
+#if DEBUG
+public readonly record struct Editor_SelectedEntity();
+#endif
