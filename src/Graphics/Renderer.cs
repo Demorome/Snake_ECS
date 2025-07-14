@@ -126,6 +126,60 @@ public class Renderer : MoonTools.ECS.Renderer
 		return color;
 	}
 
+#if DEBUG
+	public void DrawDebugRectangle(Entity entity, Rectangle rect, Color color, float depth)
+	{
+		var position = Get<Position2D>(entity);
+		var orientation = 0.0f;
+		var sprite = SpriteAnimations.Pixel.Frames[0];
+
+		const int lineThickness = 1;
+		var horizontalLineSize = new Vector2(rect.Width, lineThickness);
+		var verticalLineSize = new Vector2(lineThickness, rect.Height);
+
+		// Horizontal Top
+		ArtSpriteBatch.Add(
+			new Vector3(position.X + rect.X, position.Y + rect.Y, depth),
+			orientation,
+			horizontalLineSize,
+			color,
+			sprite.UV.LeftTop,
+			sprite.UV.Dimensions
+		);
+
+		// Horizontal Bottom
+		ArtSpriteBatch.Add(
+			new Vector3(position.X + rect.X, position.Y + rect.Y + rect.Height - 1, depth),
+			orientation,
+			horizontalLineSize,
+			color,
+			sprite.UV.LeftTop,
+			sprite.UV.Dimensions
+		);
+
+		// Vertical Left
+		ArtSpriteBatch.Add(
+			new Vector3(position.X + rect.X, position.Y + rect.Y, depth),
+			orientation,
+			verticalLineSize,
+			color,
+			sprite.UV.LeftTop,
+			sprite.UV.Dimensions
+		);
+
+		// Vertical Right
+		ArtSpriteBatch.Add(
+			new Vector3(position.X + rect.X + rect.Width - 1, position.Y + rect.Y, depth),
+			orientation,
+			verticalLineSize,
+			color,
+			sprite.UV.LeftTop,
+			sprite.UV.Dimensions
+		);
+	}
+
+#endif
+
 	public void Render(CommandBuffer commandBuffer, Texture swapchainTexture, Window window, double alpha)
 	{
 		ArtSpriteBatch.Start();
@@ -135,7 +189,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			var position = Get<Position2D>(entity);
 			var rectangle = Get<Rectangle>(entity);
 			var orientation = Has<Angle>(entity) ? Get<Angle>(entity).Value : 0.0f;
-			var color = GetColorBlend(entity); 
+			var color = GetColorBlend(entity);
 			var depth = -2f;
 			if (Has<Depth>(entity))
 			{
@@ -221,65 +275,39 @@ public class Renderer : MoonTools.ECS.Renderer
 		{
 			foreach (var entity in ColliderFilter.Entities)
 			{
-				var position = Get<Position2D>(entity);
-				var rect = Get<Rectangle>(entity);
-				var orientation = 0.0f;
-
-				// Get a high-contrasting color.
-				var color = Has<ColorBlend>(entity) ? Get<ColorBlend>(entity).Color.Inverse() : Color.Red;
-
-				var depth = -2f;
+				var color = Color.Red;
+				var depth = 2f;
 				if (Has<Depth>(entity))
 				{
 					// Render above the actual entity.
 					depth = -Get<Depth>(entity).Value + 1;
 				}
+				var rect = Get<Rectangle>(entity);
+				DrawDebugRectangle(entity, rect, color, depth);
+			}
+		}
 
-				var sprite = SpriteAnimations.Pixel.Frames[0];
+		if (ImGuiEditor.IsInSelectionMode)
+		{
+			// Not fully opaque, so we can see other debug indicators.
+			// FIXME: Scale color intensity by depth?
+			var selectionColor = Color.LimeGreen with { A = 210 };
 
-				const int lineThickness = 1;
-				var horizontalLineSize = new Vector2(rect.Width, lineThickness);
-				var verticalLineSize = new Vector2(lineThickness, rect.Height);
+			// Render above everything (except menus).
+			var depth = 2f;
+			
+			foreach (var entity in SpriteAnimationFilter.Entities)
+			{
+				var sprite = Get<SpriteAnimation>(entity);
+				var rect = sprite.CurrentSprite.FrameRect;
+				var rectangle = new Rectangle(rect.X - rect.W / 2, rect.Y - rect.H / 2, rect.W, rect.H);
+				DrawDebugRectangle(entity, rectangle, selectionColor, depth);
+			}
 
-				// Horizontal Top
-				ArtSpriteBatch.Add(
-					new Vector3(position.X + rect.X, position.Y + rect.Y, depth),
-					orientation,
-					horizontalLineSize,
-					color,
-					sprite.UV.LeftTop,
-					sprite.UV.Dimensions
-				);
-
-				// Horizontal Bottom
-				ArtSpriteBatch.Add(
-					new Vector3(position.X + rect.X, position.Y + rect.Y + rect.Height - 1, depth),
-					orientation,
-					horizontalLineSize,
-					color,
-					sprite.UV.LeftTop,
-					sprite.UV.Dimensions
-				);
-
-				// Vertical Left
-				ArtSpriteBatch.Add(
-					new Vector3(position.X + rect.X, position.Y + rect.Y, depth),
-					orientation,
-					verticalLineSize,
-					color,
-					sprite.UV.LeftTop,
-					sprite.UV.Dimensions
-				);
-
-				// Vertical Right
-				ArtSpriteBatch.Add(
-					new Vector3(position.X + rect.X + rect.Width - 1, position.Y + rect.Y, depth),
-					orientation,
-					verticalLineSize,
-					color,
-					sprite.UV.LeftTop,
-					sprite.UV.Dimensions
-				);
+			foreach (var entity in DrawRectFilter.Entities)
+			{
+				var rect = Get<Rectangle>(entity);
+				DrawDebugRectangle(entity, rect, selectionColor, depth);
 			}
 		}
 #endif
@@ -350,7 +378,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			color.A = 100;
 
 			// FIXME: ensure this draws below most entities, but above the ground
-			var depth = -10; 
+			var depth = -10;
 
 			var selfPosVec = new Vector3(selfPosition.X, selfPosition.Y, depth);
 			var colorVec = color.ToVector4();
@@ -386,7 +414,7 @@ public class Renderer : MoonTools.ECS.Renderer
 		TextBatch.UploadBufferData(commandBuffer);
 		TriangleBatch.Upload(commandBuffer);
 
-#region RENDER PASS START
+		#region RENDER PASS START
 		var renderPass = commandBuffer.BeginRenderPass(
 			new DepthStencilTargetInfo(DepthTexture, 1, 0),
 			new ColorTargetInfo(RenderTexture, Color.Black)
@@ -408,7 +436,7 @@ public class Renderer : MoonTools.ECS.Renderer
 		TextBatch.Render(renderPass, GetCameraMatrix() * GetProjectionMatrix());
 
 		commandBuffer.EndRenderPass(renderPass);
-#endregion
+		#endregion
 
 		commandBuffer.Blit(RenderTexture, swapchainTexture, MoonWorks.Graphics.Filter.Nearest);
 	}

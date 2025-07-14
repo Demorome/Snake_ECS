@@ -98,7 +98,7 @@ public static class ImGuiEditor
     static Dictionary<ImGuiKey, DebugAction> DebugKeybinds = new()
     {
         { ImGuiKey.F1, new DebugAction(DrawComponentTypeSearch, "Search By Component", true)},
-        { ImGuiKey.ModCtrl | ImGuiKey.E, new DebugAction(
+        { ImGuiKey.ModCtrl | ImGuiKey.T, new DebugAction(
             (World _) => { Renderer.DrawDebugColliders = !Renderer.DrawDebugColliders; },
             "Show Colliders")
         },
@@ -107,8 +107,15 @@ public static class ImGuiEditor
             "Freeze Time For All")
         },
         { ImGuiKey.ModCtrl | ImGuiKey.Z, new DebugAction(UndoLastComponentChange, "Undo") },
-        { ImGuiKey.ModCtrl | ImGuiKey.Y, new DebugAction(RedoLastComponentChange, "Redo") }
+        { ImGuiKey.ModCtrl | ImGuiKey.Y, new DebugAction(RedoLastComponentChange, "Redo") },
+        { ImGuiKey.ModCtrl | ImGuiKey.E, new DebugAction(
+             (World _) => { IsInSelectionMode = !IsInSelectionMode; },
+             "Enter Selection Mode")
+        },
+        //{ ImGuiKey.MouseRight, new DebugAction(??, "Show Selected Entity Details") }
     };
+
+    public static bool IsInSelectionMode = false;
 
     // FIXME: clear entry when entity is deleted in Destroyer system
     // For Ctrl+Z 'Undo' feature.
@@ -266,17 +273,17 @@ public static class ImGuiEditor
 
     static HashSet<Type> ComponentTypeWindows = new();
 
-    unsafe static ImGuiTextFilterPtr searchFilter = new(ImGuiNative.ImGuiTextFilter_ImGuiTextFilter(null));
+    unsafe static ImGuiTextFilterPtr TypeSearchFilter = new(ImGuiNative.ImGuiTextFilter_ImGuiTextFilter(null));
 
     static void DrawComponentTypeSearch(World world)
     {
-        searchFilter.Draw("Search");
+        TypeSearchFilter.Draw("Search");
 
         for (int i = 0; i < ComponentTypes.Count; ++i)
         {
             var type = ComponentTypes[i];
 
-            if (searchFilter.PassFilter(type.Name))
+            if (TypeSearchFilter.PassFilter(type.Name))
             {
                 if (ImGui.Selectable(type.Name))
                 {
