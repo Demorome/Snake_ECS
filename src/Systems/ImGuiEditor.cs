@@ -121,9 +121,15 @@ public class ImGuiEditor : MoonTools.ECS.System
 
         var mouseHoveringOverAnyWindow = ImGui.GetIO().WantCaptureMouse;
 
+        Entity? maybeSelectedEntity = null;
+
         if (IsInSelectionMode)
         {
             UnrelateAll<Editor_SelectedEntity>(DebugEntity.Value);
+            if (mouseHoveringOverAnyWindow)
+            {
+                return;
+            }
 
             foreach (var entity in PositionFilter.Entities)
             {
@@ -161,16 +167,13 @@ public class ImGuiEditor : MoonTools.ECS.System
 
             // We'll consider this the "selected" entity.
             var hoveredOverEntity = hoveredOverEntities[0];
-
-            if (ImGui.IsMouseClicked(ImGuiMouseButton.Right) && !mouseHoveringOverAnyWindow)
-            {
-                DetachedWindows.TryAdd(EntityToString(hoveredOverEntity), hoveredOverEntity);
-            }
+            maybeSelectedEntity = hoveredOverEntity;
 
             // Exit selection mode if we confirm our selection.
-            if (ImGui.IsMouseClicked(ImGuiMouseButton.Left) && !mouseHoveringOverAnyWindow)
+            if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
             {
                 IsInSelectionMode = false;
+                Logger.LogInfo($"Selected {EntityToString(hoveredOverEntity)}");
             }
             // Switch selection to one of greater/lower depth at the same mouse position.
             else if (ImGui.IsKeyPressed(ImGuiKey.UpArrow))
@@ -186,10 +189,10 @@ public class ImGuiEditor : MoonTools.ECS.System
         }
         else
         {
-            var oldSelectedEntity = GetSelectedEntity();
-            if (oldSelectedEntity.HasValue)
+            maybeSelectedEntity = GetSelectedEntity();
+            if (maybeSelectedEntity.HasValue)
             {
-                var selectedEntity = oldSelectedEntity.Value;
+                var selectedEntity = maybeSelectedEntity.Value;
 
                 // Check if user unselects the entity by clicking away from it.
                 if (ImGui.IsMouseClicked(ImGuiMouseButton.Left) && !mouseHoveringOverAnyWindow)
@@ -216,11 +219,28 @@ public class ImGuiEditor : MoonTools.ECS.System
                         UnrelateAll<Editor_SelectedEntity>(DebugEntity.Value);
                     }
                 }
-                else if (ImGui.IsMouseClicked(ImGuiMouseButton.Right) && !mouseHoveringOverAnyWindow)
+            }
+        }
+
+        if (maybeSelectedEntity.HasValue)
+        {
+            var selectedEntity = maybeSelectedEntity.Value;
+            if (!mouseHoveringOverAnyWindow)
+            {
+                if (ImGui.IsMouseClicked(ImGuiMouseButton.Right))
                 {
                     DetachedWindows.TryAdd(EntityToString(selectedEntity), selectedEntity);
                 }
+
+                if (ImGui.IsKeyDown(ImGuiKey.Delete))
+                {
+                    Logger.LogInfo($"Deleted {EntityToString(selectedEntity)}");
+                    StoreEntityComponentsBeforeDestroy(selectedEntity, World, ComponentChangeHistory);
+                    Destroy(selectedEntity);
+                    ClearRedoList();
+                }
             }
+
         }
     }
 
@@ -291,10 +311,30 @@ public class ImGuiEditor : MoonTools.ECS.System
 
     public static bool IsInSelectionMode = false;
 
-    // FIXME: clear entry when entity is deleted in Destroyer system
     // For Ctrl+Z 'Undo' feature.
     static Stack<(Entity, dynamic, bool)> ComponentChangeHistory = new();
     static Stack<(Entity, dynamic, bool)> UndoHistory = new();
+
+    static void StoreEntityComponentsBeforeDestroy(
+        Entity entity,
+        World world,
+        Stack<(Entity, dynamic, bool)> ToSaveComponents)
+    {
+        var components = new List<dynamic>();
+
+        foreach (var componentType in world.Debug_GetAllComponentTypes(entity))
+        {
+            var baseGetComponentMethod = typeof(World).GetMethod(nameof(World.Get), BindingFlags.Public | BindingFlags.Instance)!;
+            var genericGetComponentStorageMethod = baseGetComponentMethod.MakeGenericMethod(componentType);
+            var component = (dynamic)genericGetComponentStorageMethod.Invoke(world, [entity]);
+            components.Add(component);
+        }
+
+        // Also store the tag
+        components.Add(world.GetTag(entity));
+
+        ToSaveComponents.Push((entity, components, true));
+    }
 
     // For some reason, can't directly pass a `dynamic` value to an "in" param, so we use this.
     static void WorkaroundSet<T>(World world, Entity entity, T component) where T : unmanaged
@@ -316,6 +356,15 @@ public class ImGuiEditor : MoonTools.ECS.System
         return world.Has<T>(entity);
     }
 
+    static void ClearRedoList()
+    {
+        if (UndoHistory.Count != 0)
+        {
+            Logger.LogInfo("Cleared Redo list.");
+            UndoHistory.Clear();
+        }
+    }
+
     static void UndoRedoLastComponentChange(
         World world,
         Stack<(Entity, dynamic, bool)> ToRestore,
@@ -328,12 +377,47 @@ public class ImGuiEditor : MoonTools.ECS.System
             return;
         }
 
-        // FIXME: What if entity was deleted and no longer exists?
-
         // If componentExisted == false, then `componentPriorToChange` will be a default-instantiated dummy component.
-        // `componentPriorToChange` will never be null. FIXME: Enforce this!
+        // `componentPriorToChange` will never be null. FIXME: Enforce this somehow?
         var (entity, componentPriorToChange, hadComponent) = ToRestore.Pop();
 
+        // Handle entity deletion case.
+        if (componentPriorToChange.GetType() == typeof(List<dynamic>))
+        {
+            string entityString;
+
+            if (hadComponent)
+            {
+                // Entity was deleted; recreate it along with all of its components
+                var componentList = componentPriorToChange as List<dynamic>;
+                var oldTag = componentList[componentList.Count - 1] as string;
+                entity = world.CreateEntity(oldTag);
+                componentList.RemoveAt(componentList.Count - 1);
+
+                foreach (var component in componentList)
+                {
+                    WorkaroundSet(world, entity, component);
+                }
+
+                componentList.Clear();
+                ToRememberRestore.Push((entity, componentList, false));
+                entityString = EntityToString(world, entity);
+            }
+            else
+            {
+                entityString = EntityToString(world, entity);
+
+                // Entity was un-deleted; re-delete it.
+                StoreEntityComponentsBeforeDestroy(entity, world, ToRememberRestore);
+                world.Destroy(entity);
+            }
+
+            Logger.LogInfo($"{(!isUndoOrRedo ? "Undid" : "Redid")} {entityString}'s deletion.");
+
+            return;
+        }
+
+        // Handle single component change case.
         Logger.LogInfo($"{(!isUndoOrRedo ? "Undid" : "Redid")} change to {EntityToString(world, entity)} for {componentPriorToChange.GetType().Name} : Reset to {componentPriorToChange.ToString()}");
 
 
@@ -341,7 +425,8 @@ public class ImGuiEditor : MoonTools.ECS.System
         if (!WorkaroundHas(world, entity, componentPriorToChange))
         {
             var type = componentPriorToChange.GetType();
-            ToRememberRestore.Push((entity, (dynamic)Activator.CreateInstance(type), false));
+            var dummyComponent = (dynamic)Activator.CreateInstance(type);
+            ToRememberRestore.Push((entity, dummyComponent, false));
         }
         else
         {
@@ -567,11 +652,7 @@ public class ImGuiEditor : MoonTools.ECS.System
                     if (doingChanges)
                     {
                         ComponentPriorToChange_Cached = componentPriorToChange;
-                        if (UndoHistory.Count != 0)
-                        {
-                            Logger.LogInfo("Cleared Redo list.");
-                            UndoHistory.Clear();
-                        }
+                        ClearRedoList();
                     }
                 }
                 else if (!doingChanges && !ImGui.IsAnyItemActive())

@@ -72,6 +72,15 @@ public class Input : MoonTools.ECS.System
 
 	public override void Update(TimeSpan timeSpan)
 	{
+		// FIXME: Use a more accurate formula?
+		var mouseWorldPosition = new Vector2(
+			(Inputs.Mouse.X + 0.5f) / 2,
+			(Inputs.Mouse.Y + 0.5f) / 2
+		);
+#if DEBUG
+		WorldMousePosition = new Position2D(mouseWorldPosition);
+#endif
+
 		foreach (var playerEntity in PlayerFilter.Entities)
 		{
 			var index = Get<Player>(playerEntity).Index;
@@ -82,17 +91,8 @@ public class Input : MoonTools.ECS.System
 
 			Set(playerEntity, inputState);
 
-			// FIXME: Use a more accurate formula?
-			var mousePosition = new Vector2(
-				(Inputs.Mouse.X + 0.5f) / 2,
-				(Inputs.Mouse.Y + 0.5f) / 2
-			);
-#if DEBUG
-			WorldMousePosition = new Position2D(mousePosition);
-#endif
-
 			// FIXME: Account for potential camera changes (zoom in, etc)
-			Set(playerEntity, new CursorPosition(mousePosition));
+			Set(playerEntity, new CursorPosition(mouseWorldPosition));
 		}
 	}
 
