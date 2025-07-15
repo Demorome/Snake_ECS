@@ -5,6 +5,10 @@ public static class Dimensions
 	public const int GAME_W = 640;
 	public const int GAME_H = 360;
 
+	public const int TILE_SIZE = 16;
+    public const int TILE_ROW_COUNT = GAME_H / TILE_SIZE;
+    public const int TILE_COLUMN_COUNT = GAME_W / TILE_SIZE;
+
 	public const int BATTLE_AREA_W = GAME_W / 2;
 	public const int BATTLE_AREA_H = GAME_H / 2;
 	public const int BATTLE_AREA_THICKNESS = 10;

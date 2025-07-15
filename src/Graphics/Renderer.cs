@@ -142,6 +142,11 @@ public class Renderer : MoonTools.ECS.Renderer
 	public void DrawDebugRectangle(Entity entity, Rectangle rect, Color color, float depth)
 	{
 		var position = Get<Position2D>(entity);
+		DrawDebugRectangle(position, rect, color, depth);
+	}
+
+	public void DrawDebugRectangle(Position2D position, Rectangle rect, Color color, float depth)
+	{
 		var orientation = 0.0f;
 		var sprite = SpriteAnimations.Pixel.Frames[0];
 
@@ -189,7 +194,6 @@ public class Renderer : MoonTools.ECS.Renderer
 			sprite.UV.Dimensions
 		);
 	}
-
 #endif
 
 	public void Render(CommandBuffer commandBuffer, Texture swapchainTexture, Window window, double alpha)
@@ -283,6 +287,22 @@ public class Renderer : MoonTools.ECS.Renderer
 		}
 
 #if DEBUG
+		if (ImGuiEditor.IsInLevelEditor)
+		{
+			var color = Color.Gray with {A = 150};
+			var depth = -50f; // draw above backgrounds, but nothing else.
+			var tileRect = new Rectangle(0, 0, Dimensions.TILE_SIZE, Dimensions.TILE_SIZE);
+
+			for (int row = 0; row < Dimensions.TILE_ROW_COUNT; ++row)
+			{
+				for (int col = 0; col < Dimensions.TILE_COLUMN_COUNT; ++col)
+				{
+					var pos = new Position2D(col * Dimensions.TILE_SIZE, row * Dimensions.TILE_SIZE);
+					DrawDebugRectangle(pos, tileRect, color, depth);
+				}
+			}
+		}
+
 		if (DrawDebugColliders)
 		{
 			foreach (var entity in ColliderFilter.Entities)
@@ -299,6 +319,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			}
 		}
 
+		// Draw selection mode-related stuff
 		{
 			// Render above everything (except menus).
 			var depth = 2f;
@@ -318,7 +339,7 @@ public class Renderer : MoonTools.ECS.Renderer
 				selectionColor = Color.Lerp(selectionColor, Color.Gray, 0.5f);
 			}
 
-				
+
 			if (ImGuiEditor.IsInSelectionMode)
 			{
 				foreach (var entity in SpriteAnimationFilter.Entities)
@@ -448,7 +469,7 @@ public class Renderer : MoonTools.ECS.Renderer
 		}
 
 #if DEBUG
-		
+
 		{/*
 
 			// Show cursor position
@@ -476,15 +497,15 @@ public class Renderer : MoonTools.ECS.Renderer
 				success = Matrix4x4.Invert(worldToScreen, out screenToWorld);
 				var worldPosition = Vector2.Transform(screenSpacePosition, screenToWorld);*/
 
-				/*ArtSpriteBatch.Add(
-					new Vector3(cursorPos.X, cursorPos.Y, depth),
-					0f,
-					new Vector2(sprite.SliceRect.W, sprite.SliceRect.H) * new Vector2(10, 10),
-					Color.Red,
-					sprite.UV.LeftTop,
-					sprite.UV.Dimensions
-				);
-			}*/
+			/*ArtSpriteBatch.Add(
+				new Vector3(cursorPos.X, cursorPos.Y, depth),
+				0f,
+				new Vector2(sprite.SliceRect.W, sprite.SliceRect.H) * new Vector2(10, 10),
+				Color.Red,
+				sprite.UV.LeftTop,
+				sprite.UV.Dimensions
+			);
+		}*/
 		}
 #endif
 
@@ -492,7 +513,7 @@ public class Renderer : MoonTools.ECS.Renderer
 		TextBatch.UploadBufferData(commandBuffer);
 		TriangleBatch.Upload(commandBuffer);
 
-#region RENDER PASS START
+		#region RENDER PASS START
 		var renderPass = commandBuffer.BeginRenderPass(
 			new DepthStencilTargetInfo(DepthTexture, 1, 0),
 			new ColorTargetInfo(RenderTexture, Color.Black)
@@ -514,7 +535,7 @@ public class Renderer : MoonTools.ECS.Renderer
 		TextBatch.Render(renderPass, GetCameraMatrix() * GetProjectionMatrix());
 
 		commandBuffer.EndRenderPass(renderPass);
-#endregion
+		#endregion
 
 		commandBuffer.Blit(RenderTexture, swapchainTexture, MoonWorks.Graphics.Filter.Nearest);
 	}

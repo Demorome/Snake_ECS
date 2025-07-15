@@ -59,30 +59,45 @@ public class ImGuiEditor : MoonTools.ECS.System
         DrawEntitiesWithComponentWindows(World);
 
         HandleSelectionMode();
+        HandleLevelEditor();
 	}
 
     class DebugAction
     {
         public DebugAction(string name, Action<World> action, bool opensWindow = false)
         {
-            Action = action;
+            WorldAction = action;
             Name = name;
             OpensWindow = opensWindow;
         }
+        public DebugAction(string name, Func<bool> func)
+        {
+            ToggleFunc = func;
+            Name = name;
+        }
 
         public string Name;
-        public Action<World> Action;
-        public bool OpensWindow;
+        public Action<World> WorldAction = null;
+        public Func<bool> ToggleFunc = null;
+        public bool OpensWindow = false;
 
-        public void Invoke(World world)
+        public bool? Invoke(World world)
         {
-            if (OpensWindow)
+            if (WorldAction == null)
             {
-                DetachedWindows.TryAdd(Name, Action);
+                return ToggleFunc();
             }
             else
             {
-                Action(world);
+                if (OpensWindow)
+                {
+                    DetachedWindows.TryAdd(Name, WorldAction);
+                }
+                else
+                {
+                    WorldAction(world);
+                }
+                return null;
             }
         }
     };
@@ -91,22 +106,51 @@ public class ImGuiEditor : MoonTools.ECS.System
     {
         { ImGuiKey.F1,                   new("Search By Component", DrawComponentTypeSearch, true)},
         { ImGuiKey.ModCtrl | ImGuiKey.T, new("Show Colliders",
-            (World _) => { Renderer.DrawDebugColliders = !Renderer.DrawDebugColliders; } )
+            () => { return Renderer.DrawDebugColliders = !Renderer.DrawDebugColliders; } )
         },
         { ImGuiKey.F6,                   new("Toggle Freeze All",
-            (World _) => { GameplayState.FreezeTimeForAll = !GameplayState.FreezeTimeForAll; } )
+            () => { return GameplayState.FreezeTimeForAll = !GameplayState.FreezeTimeForAll; } )
         },
         { ImGuiKey.ModCtrl | ImGuiKey.Z, new("Undo", UndoLastComponentChange) },
         { ImGuiKey.ModCtrl | ImGuiKey.Y, new("Redo", RedoLastComponentChange) },
         { ImGuiKey.ModCtrl | ImGuiKey.E, new("Toggle Selection Mode",
-             (World _) => { IsInSelectionMode = !IsInSelectionMode; } )
+             () => { return IsInSelectionMode = !IsInSelectionMode; } )
         },
         { ImGuiKey.None,                 new("Toggle Level Editor",
-             (World _) => { IsInLevelEditor = !IsInLevelEditor; } )
+            () => { return IsInLevelEditor = !IsInLevelEditor; } )
         },
+        { ImGuiKey.F2,                   new("Prefab Spawner", ShowPrefabSpawnerWindow, true )},
     };
 
-    static bool IsInLevelEditor = false;
+    static void ShowPrefabSpawnerWindow(World world)
+    {
+        ImGui.Begin("Spawn Prefab Entity");
+
+        /*if (ImGui.Button())
+        {
+
+        }*/
+        // TODO: 
+
+        ImGui.End();
+    }
+
+
+    public static bool IsInLevelEditor = false;
+
+    void HandleLevelEditor()
+    {
+        if (!IsInLevelEditor)
+        {
+            return;
+        }
+
+        // TODO: Show window for available tile sprites.
+
+        // TODO: Allow selecting a tile sprite and painting it to the world.
+
+        // TODO: Snap to grid option.
+    }
 
     static SpatialHash<Entity> VisualEntitiesSpatialHash =
         new SpatialHash<Entity>(0, 0, Dimensions.GAME_W, Dimensions.GAME_H, 32);
@@ -481,6 +525,22 @@ public class ImGuiEditor : MoonTools.ECS.System
                 if (ImGui.SmallButton(namedAction.Name))
                 {
                     namedAction.Invoke(world);
+                }
+                if (namedAction.ToggleFunc != null)
+                {
+                    var isChecked = !namedAction.ToggleFunc();
+                    namedAction.ToggleFunc(); // toggle it again to reset it to what it was (hacky, I know).
+                    ImGui.SameLine();
+
+                    // Style manipulation is so we can shrink the checkbox; PushStyleVar would force us to change X padding too.
+                    var style = ImGui.GetStyle();
+                    var oldYFramePadding = style.FramePadding.Y;
+                    style.FramePadding.Y = 0.0f;
+                    if (ImGui.Checkbox($"##{namedAction.Name}Toggle", ref isChecked))
+                    {
+                        namedAction.ToggleFunc();
+                    }
+                    style.FramePadding.Y = oldYFramePadding;
                 }
             }
             ImGui.EndTable();
