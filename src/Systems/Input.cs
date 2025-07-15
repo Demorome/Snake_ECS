@@ -82,6 +82,7 @@ public class Input : MoonTools.ECS.System
 
 			Set(playerEntity, inputState);
 
+			// FIXME: Use a more accurate formula?
 			var mousePosition = new Vector2(
 				(Inputs.Mouse.X + 0.5f) / 2,
 				(Inputs.Mouse.Y + 0.5f) / 2
@@ -91,7 +92,6 @@ public class Input : MoonTools.ECS.System
 #endif
 
 			// FIXME: Account for potential camera changes (zoom in, etc)
-			// FIXME: Use a more accurate formula
 			Set(playerEntity, new CursorPosition(mousePosition));
 		}
 	}

@@ -150,6 +150,10 @@ public class GameplayState : GameState
             FlipAnimationSystem.Update(dt);
 #if DEBUG
         }
+        else
+        {
+            Input.Update(dt);
+        }
 
         ImGuiEditor.Update(dt);
 #endif
