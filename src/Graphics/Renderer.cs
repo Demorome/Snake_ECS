@@ -150,7 +150,7 @@ public class Renderer : MoonTools.ECS.Renderer
 		var orientation = 0.0f;
 		var sprite = SpriteAnimations.Pixel.Frames[0];
 
-		const int lineThickness = 1;
+		const float lineThickness = 0.5f;
 		var horizontalLineSize = new Vector2(rect.Width, lineThickness);
 		var verticalLineSize = new Vector2(lineThickness, rect.Height);
 
@@ -166,7 +166,7 @@ public class Renderer : MoonTools.ECS.Renderer
 
 		// Horizontal Bottom
 		ArtSpriteBatch.Add(
-			new Vector3(position.X + rect.X, position.Y + rect.Y + rect.Height - 1, depth),
+			new Vector3(position.X + rect.X, position.Y + rect.Y + rect.Height, depth),
 			orientation,
 			horizontalLineSize,
 			color,
@@ -186,7 +186,7 @@ public class Renderer : MoonTools.ECS.Renderer
 
 		// Vertical Right
 		ArtSpriteBatch.Add(
-			new Vector3(position.X + rect.X + rect.Width - 1, position.Y + rect.Y, depth),
+			new Vector3(position.X + rect.X + rect.Width, position.Y + rect.Y, depth),
 			orientation,
 			verticalLineSize,
 			color,
@@ -286,90 +286,6 @@ public class Renderer : MoonTools.ECS.Renderer
 			);
 		}
 
-#if DEBUG
-		if (ImGuiEditor.IsInLevelEditor)
-		{
-			var color = Color.Gray with {A = 150};
-			var depth = -50f; // draw above backgrounds, but nothing else.
-			var tileRect = new Rectangle(0, 0, Dimensions.TILE_SIZE, Dimensions.TILE_SIZE);
-
-			for (int row = 0; row < Dimensions.TILE_ROW_COUNT; ++row)
-			{
-				for (int col = 0; col < Dimensions.TILE_COLUMN_COUNT; ++col)
-				{
-					var pos = new Position2D(col * Dimensions.TILE_SIZE, row * Dimensions.TILE_SIZE);
-					DrawDebugRectangle(pos, tileRect, color, depth);
-				}
-			}
-		}
-
-		if (DrawDebugColliders)
-		{
-			foreach (var entity in ColliderFilter.Entities)
-			{
-				var color = Color.Red;
-				var depth = 2f;
-				if (Has<Depth>(entity))
-				{
-					// Render above the actual entity.
-					depth = -Get<Depth>(entity).Value + 1;
-				}
-				var rect = Get<Rectangle>(entity);
-				DrawDebugRectangle(entity, rect, color, depth);
-			}
-		}
-
-		// Draw selection mode-related stuff
-		{
-			// Render above everything (except menus).
-			var depth = 2f;
-
-			// Not fully opaque, so we can see other debug indicators.
-			// FIXME: Scale color intensity by depth?
-			var selectionColor = Color.LimeGreen /*with { A = 210 }*/;
-
-			var selectedEntity = ImGuiEditor.GetSelectedEntity();
-			if (selectedEntity.HasValue)
-			{
-				var entity = selectedEntity.Value;
-				var rectangle = ImGuiEditor.GetEntityVisualRect(entity).Value;
-				DrawDebugRectangle(entity, rectangle, selectionColor, depth);
-
-				// Dim the color intensity for others if there's a selected entity
-				selectionColor = Color.Lerp(selectionColor, Color.Gray, 0.5f);
-			}
-
-
-			if (ImGuiEditor.IsInSelectionMode)
-			{
-				foreach (var entity in SpriteAnimationFilter.Entities)
-				{
-					if (selectedEntity.HasValue && entity == selectedEntity.Value)
-					{
-						continue;
-					}
-
-					var sprite = Get<SpriteAnimation>(entity);
-					var rect = sprite.CurrentSprite.FrameRect;
-					var rectangle = new Rectangle(rect.X - rect.W / 2, rect.Y - rect.H / 2, rect.W, rect.H);
-					DrawDebugRectangle(entity, rectangle, selectionColor, depth);
-				}
-
-				foreach (var entity in DrawRectFilter.Entities)
-				{
-					if (selectedEntity.HasValue && entity == selectedEntity.Value)
-					{
-						continue;
-					}
-
-					var rect = Get<Rectangle>(entity);
-					DrawDebugRectangle(entity, rect, selectionColor, depth);
-				}
-			}
-		}
-
-#endif
-
 		TextBatch.Start();
 		foreach (var entity in TextFilter.Entities)
 		{
@@ -468,7 +384,120 @@ public class Renderer : MoonTools.ECS.Renderer
 			}
 		}
 
+		ArtSpriteBatch.Upload(commandBuffer); // Copy and Compute passes happen here!
+		TextBatch.UploadBufferData(commandBuffer);
+		TriangleBatch.Upload(commandBuffer);
+
+		#region RENDER PASS START
+		var renderPass = commandBuffer.BeginRenderPass(
+			new DepthStencilTargetInfo(DepthTexture, 1, 0),
+			new ColorTargetInfo(RenderTexture, Color.Black)
+		);
+
+		var viewProjectionMatrices = new ViewProjectionMatrices(GetCameraMatrix(), GetProjectionMatrix());
+
+		if (ArtSpriteBatch.InstanceCount > 0)
+		{
+			ArtSpriteBatch.Render(renderPass, SpriteAtlasTexture, PointSampler, viewProjectionMatrices);
+		}
+
+		if (TriangleBatch.InstanceCount > 0)
+		{
+			TriangleBatch.Render(renderPass, viewProjectionMatrices);
+		}
+
+		renderPass.BindGraphicsPipeline(TextPipeline);
+		TextBatch.Render(renderPass, GetCameraMatrix() * GetProjectionMatrix());
+
+		commandBuffer.EndRenderPass(renderPass);
+		#endregion
+
+		commandBuffer.Blit(RenderTexture, swapchainTexture, MoonWorks.Graphics.Filter.Nearest);
+
+		#region EDITOR RENDERING
 #if DEBUG
+		ArtSpriteBatch.Start();
+
+		if (ImGuiEditor.IsInLevelEditor)
+		{
+			var color = Color.Gray with { A = 150 };
+			var depth = -50f; // draw above backgrounds, but nothing else.
+			var tileRect = new Rectangle(0, 0, Dimensions.TILE_SIZE, Dimensions.TILE_SIZE);
+
+			for (int row = 0; row < Dimensions.TILE_ROW_COUNT; ++row)
+			{
+				for (int col = 0; col < Dimensions.TILE_COLUMN_COUNT; ++col)
+				{
+					var pos = new Position2D(col * Dimensions.TILE_SIZE, row * Dimensions.TILE_SIZE);
+					DrawDebugRectangle(pos, tileRect, color, depth);
+				}
+			}
+		}
+
+		if (DrawDebugColliders)
+		{
+			foreach (var entity in ColliderFilter.Entities)
+			{
+				var color = Color.Red;
+				var depth = 2f;
+				if (Has<Depth>(entity))
+				{
+					// Render above the actual entity.
+					depth = -Get<Depth>(entity).Value + 1;
+				}
+				var rect = Get<Rectangle>(entity);
+				DrawDebugRectangle(entity, rect, color, depth);
+			}
+		}
+
+		// Draw selection mode-related stuff
+		{
+			// Render above everything (except menus).
+			var depth = 2f;
+
+			// Not fully opaque, so we can see other debug indicators.
+			// FIXME: Scale color intensity by depth?
+			var selectionColor = Color.LimeGreen /*with { A = 210 }*/;
+
+			var selectedEntity = ImGuiEditor.GetSelectedEntity();
+			if (selectedEntity.HasValue)
+			{
+				var entity = selectedEntity.Value;
+				var rectangle = ImGuiEditor.GetEntityVisualRect(entity).Value;
+				DrawDebugRectangle(entity, rectangle, selectionColor, depth);
+
+				// Dim the color intensity for others if there's a selected entity
+				selectionColor = Color.Lerp(selectionColor, Color.Gray, 0.5f);
+			}
+
+
+			if (ImGuiEditor.IsInSelectionMode)
+			{
+				foreach (var entity in SpriteAnimationFilter.Entities)
+				{
+					if (selectedEntity.HasValue && entity == selectedEntity.Value)
+					{
+						continue;
+					}
+
+					var sprite = Get<SpriteAnimation>(entity);
+					var rect = sprite.CurrentSprite.FrameRect;
+					var rectangle = new Rectangle(rect.X - rect.W / 2, rect.Y - rect.H / 2, rect.W, rect.H);
+					DrawDebugRectangle(entity, rectangle, selectionColor, depth);
+				}
+
+				foreach (var entity in DrawRectFilter.Entities)
+				{
+					if (selectedEntity.HasValue && entity == selectedEntity.Value)
+					{
+						continue;
+					}
+
+					var rect = Get<Rectangle>(entity);
+					DrawDebugRectangle(entity, rect, selectionColor, depth);
+				}
+			}
+		}
 
 		{/*
 
@@ -507,37 +536,22 @@ public class Renderer : MoonTools.ECS.Renderer
 			);
 		}*/
 		}
-#endif
 
-		ArtSpriteBatch.Upload(commandBuffer); // Copy and Compute passes happen here!
-		TextBatch.UploadBufferData(commandBuffer);
-		TriangleBatch.Upload(commandBuffer);
+		ArtSpriteBatch.Upload(commandBuffer);
 
-		#region RENDER PASS START
-		var renderPass = commandBuffer.BeginRenderPass(
-			new DepthStencilTargetInfo(DepthTexture, 1, 0),
-			new ColorTargetInfo(RenderTexture, Color.Black)
+		// FIXME: Support depth texture somehow? Eh, drawing over everything is fine for now.
+		var editorRenderPass = commandBuffer.BeginRenderPass(
+			new ColorTargetInfo(swapchainTexture, LoadOp.Load)
 		);
-
-		var viewProjectionMatrices = new ViewProjectionMatrices(GetCameraMatrix(), GetProjectionMatrix());
-
+		
 		if (ArtSpriteBatch.InstanceCount > 0)
 		{
 			ArtSpriteBatch.Render(renderPass, SpriteAtlasTexture, PointSampler, viewProjectionMatrices);
 		}
 
-		if (TriangleBatch.InstanceCount > 0)
-		{
-			TriangleBatch.Render(renderPass, viewProjectionMatrices);
-		}
-
-		renderPass.BindGraphicsPipeline(TextPipeline);
-		TextBatch.Render(renderPass, GetCameraMatrix() * GetProjectionMatrix());
-
 		commandBuffer.EndRenderPass(renderPass);
+#endif
 		#endregion
-
-		commandBuffer.Blit(RenderTexture, swapchainTexture, MoonWorks.Graphics.Filter.Nearest);
 	}
 
 	// World-to-View matrix

@@ -8,6 +8,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 using System.Text.Unicode;
 using ImGuiNET;
+using Microsoft.VisualBasic;
 using MoonTools.ECS;
 using MoonWorks;
 using MoonWorks.AsyncIO;
@@ -15,6 +16,7 @@ using MoonWorks.Graphics;
 using MoonWorks.Input;
 using MoonWorks.Math;
 using RollAndCash.Components;
+using RollAndCash.Data;
 using RollAndCash.GameStates;
 using RollAndCash.Relations;
 using RollAndCash.Systems;
@@ -35,10 +37,12 @@ public class ImGuiEditor : MoonTools.ECS.System
         InitComponentTypesList();
     }
 
-    public Entity? DebugEntity = null; // So we can stick Relations on this to safely track other entities.
-    static string DebugEntityTag = "EDITOR";
+    TileManipulator TileManipulator;
 
     MoonTools.ECS.Filter PositionFilter;
+
+    public Entity? DebugEntity = null; // So we can stick Relations on this to safely track other entities.
+    static string DebugEntityTag = "EDITOR";
 
     public ImGuiEditor(World world) : base(world)
     {
@@ -113,28 +117,91 @@ public class ImGuiEditor : MoonTools.ECS.System
         },
         { ImGuiKey.ModCtrl | ImGuiKey.Z, new("Undo", UndoLastComponentChange) },
         { ImGuiKey.ModCtrl | ImGuiKey.Y, new("Redo", RedoLastComponentChange) },
-        { ImGuiKey.ModCtrl | ImGuiKey.E, new("Toggle Selection Mode",
+        { ImGuiKey.MouseX2,              new("Toggle Selection Mode",
              () => { return IsInSelectionMode = !IsInSelectionMode; } )
         },
         { ImGuiKey.None,                 new("Toggle Level Editor",
             () => { return IsInLevelEditor = !IsInLevelEditor; } )
         },
-        { ImGuiKey.F2,                   new("Prefab Spawner", ShowPrefabSpawnerWindow, true )},
+        { ImGuiKey.F2,                   new("Prefabs", ShowPrefabSpawnerWindow, true )},
     };
 
     static void ShowPrefabSpawnerWindow(World world)
     {
-        ImGui.Begin("Spawn Prefab Entity");
-
         /*if (ImGui.Button())
         {
 
         }*/
-        // TODO: 
-
-        ImGui.End();
+        // TODO: Once button to spawn a prefab entity is pressed, make it appear transparent below cursor.
+        // TODO: Pressing click will spawn it.
+        // TODO: If spawned, add to change history.
     }
 
+    public static SpriteAnimationInfo SelectedTileSprite = null;
+
+    static void ShowTileSelectionMenu(List<SpriteAnimationInfo> tileSet)
+    {
+        var imageSize = Dimensions.TILE_DIMENSIONS;
+        foreach (var tileSprite in tileSet)
+        {
+            /*if (ImGuiExtensions.ImageButton())
+            {
+                // TODO: Show that tile is selected + store that
+
+            }*/
+        }
+
+    }
+
+    class TileLayer
+    {
+        public TileLayer(string layerName, Action<World> showTilePicker)
+        {
+            Name = layerName;
+            ShowTilePicker = showTilePicker;
+        }
+        public string Name;
+        public Action<World> ShowTilePicker;
+        public bool IsVisible = true;
+    }
+
+    static void ShowSolidTiles(World world)
+    {
+        //ShowTileSelectionMenu(??); // FIXME:
+    }
+
+    static void ShowBackgroundTiles(World world)
+    {
+        //ShowTileSelectionMenu(??);
+    }
+
+    List<TileLayer> TileLayers = new()
+    {
+        new ("Solid Tiles", ShowSolidTiles),
+        new ("Background Tiles", ShowBackgroundTiles)
+    };
+
+    static bool SnapToGrid = true;
+
+    void ShowTileLayerOptions()
+    {
+        // TODO: Snap to grid option? Not sure if I should support going off-grid yet.
+        if (ImGui.Begin("Tile Layers"))
+        {
+            foreach (var tileLayer in TileLayers)
+            {
+                if (ImGui.Checkbox("##" + tileLayer.Name + "Visibility", ref tileLayer.IsVisible))
+                {
+                    // TODO: Hide the sprites on that layer if the layer is checked off.
+                }
+                ImGui.SameLine();
+                if (ImGui.Button(tileLayer.Name))
+                {
+                    DetachedWindows.Add(tileLayer.Name, tileLayer.ShowTilePicker);
+                }
+            }
+        }
+    }
 
     public static bool IsInLevelEditor = false;
 
@@ -145,11 +212,24 @@ public class ImGuiEditor : MoonTools.ECS.System
             return;
         }
 
-        // TODO: Show window for available tile sprites.
+        ShowTileLayerOptions();
+
+        if (SelectedTileSprite != null)
+        {
+            var mouseHoveringOverAnyWindow = ImGui.GetIO().WantCaptureMouse;
+            if (!mouseHoveringOverAnyWindow)
+            {
+                // TODO: Painting the tiles to the world!
+                // TODO: Get nearest tile to paint in
+                // TODO: Don't spawn anything if tile is already painted in (at that tile depth; allow BG tiles for example??)
+                //TileManipulator.SpawnSolidTile(TODO, SelectedTileSprite);
+            }
+        }
+        
 
         // TODO: Allow selecting a tile sprite and painting it to the world.
 
-        // TODO: Snap to grid option.
+        
     }
 
     static SpatialHash<Entity> VisualEntitiesSpatialHash =
@@ -572,7 +652,6 @@ public class ImGuiEditor : MoonTools.ECS.System
 
             if (obj.GetType() == typeof(Entity))
             {
-                // FIXME: Detect if entity was deleted? What if its ID was reused? What if deletion was undone by CTRL+Z?
                 var entity = (Entity)obj;
                 var entityComponentTypes = world.Debug_GetAllComponentTypes(entity);
                 //var hasAnyComponent = false;
@@ -739,6 +818,7 @@ public class ImGuiEditor : MoonTools.ECS.System
         var inputVelocity = velocity.Value;
 
         // NOTE: Without a space or ## in this tag, we can't input anything! Weird bug.
+        // Probably because the label ID is used elsewhere, but hmm.
         if (ImGui.InputFloat("##Speed", ref inputVelocity))
         {
             world.Set(entity, new Speed(inputVelocity));

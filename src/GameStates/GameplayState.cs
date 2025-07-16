@@ -126,7 +126,7 @@ public class GameplayState : GameState
     public override void Update(TimeSpan dt)
     {
 #if DEBUG
-        if (!FreezeTimeForAll)
+        if (!FreezeTimeForAll || ImGuiEditor.IsInLevelEditor)
         {
 #endif
             Timing.Update(dt);
