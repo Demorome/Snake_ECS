@@ -118,7 +118,7 @@ public class ImGuiEditor : MoonTools.ECS.System
         { ImGuiKey.ModCtrl | ImGuiKey.Z, new("Undo", UndoLastComponentChange) },
         { ImGuiKey.ModCtrl | ImGuiKey.Y, new("Redo", RedoLastComponentChange) },
         { ImGuiKey.MouseX2,              new("Toggle Selection Mode",
-             () => { return IsInSelectionMode = !IsInSelectionMode; } )
+             () => { return IsInEntitySelectionMode = !IsInEntitySelectionMode; } )
         },
         { ImGuiKey.None,                 new("Toggle Level Editor",
             () => { return IsInLevelEditor = !IsInLevelEditor; } )
@@ -137,7 +137,7 @@ public class ImGuiEditor : MoonTools.ECS.System
         // TODO: If spawned, add to change history.
     }
 
-    public static SpriteAnimationInfo SelectedTileSprite = null;
+    public static SpriteAnimationInfo SelectedTileSpriteToDraw = null;
 
     static void ShowTileSelectionMenu(List<SpriteAnimationInfo> tileSet)
     {
@@ -203,7 +203,23 @@ public class ImGuiEditor : MoonTools.ECS.System
         }
     }
 
+    Vector2? GetTilePos(Position2D worldPos)
+    {
+        var tilePos = new Vector2(worldPos.X / Dimensions.TILE_SIZE, worldPos.Y / Dimensions.TILE_SIZE);
+        if (tilePos.X < 0 || tilePos.X >= Dimensions.TILE_COLUMN_COUNT)
+        {
+            return null;
+        }
+        else if (tilePos.Y < 0 || tilePos.Y >= Dimensions.TILE_ROW_COUNT)
+        {
+            return null;
+        }
+        return tilePos;
+    }
+
     public static bool IsInLevelEditor = false;
+
+    public Vector2? HoveredOverTile = null;
 
     void HandleLevelEditor()
     {
@@ -214,22 +230,22 @@ public class ImGuiEditor : MoonTools.ECS.System
 
         ShowTileLayerOptions();
 
-        if (SelectedTileSprite != null)
+        var mouseHoveringOverAnyWindow = ImGui.GetIO().WantCaptureMouse;
+        if (!mouseHoveringOverAnyWindow)
         {
-            var mouseHoveringOverAnyWindow = ImGui.GetIO().WantCaptureMouse;
-            if (!mouseHoveringOverAnyWindow)
+            // TODO: Get nearest tile to paint in
+            var worldMousePosition = Input.WorldMousePosition;
+            HoveredOverTile = GetTilePos(worldMousePosition);
+            if (HoveredOverTile.HasValue)
             {
-                // TODO: Painting the tiles to the world!
-                // TODO: Get nearest tile to paint in
-                // TODO: Don't spawn anything if tile is already painted in (at that tile depth; allow BG tiles for example??)
-                //TileManipulator.SpawnSolidTile(TODO, SelectedTileSprite);
+                if (SelectedTileSpriteToDraw != null)
+                {
+                    // TODO: Painting the tiles to the world!
+                    // TODO: Don't spawn anything if tile is already painted in (at that tile depth; allow BG tiles for example??)
+                    //TileManipulator.SpawnSolidTile(TODO, SelectedTileSprite);
+                }
             }
         }
-        
-
-        // TODO: Allow selecting a tile sprite and painting it to the world.
-
-        
     }
 
     static SpatialHash<Entity> VisualEntitiesSpatialHash =
@@ -247,7 +263,7 @@ public class ImGuiEditor : MoonTools.ECS.System
 
         Entity? maybeSelectedEntity = null;
 
-        if (IsInSelectionMode)
+        if (IsInEntitySelectionMode)
         {
             UnrelateAll<Editor_SelectedEntity>(DebugEntity.Value);
             if (mouseHoveringOverAnyWindow)
@@ -296,7 +312,7 @@ public class ImGuiEditor : MoonTools.ECS.System
             // Exit selection mode if we confirm our selection.
             if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
             {
-                IsInSelectionMode = false;
+                IsInEntitySelectionMode = false;
                 Logger.LogInfo($"Selected {EntityToString(hoveredOverEntity)}");
             }
             // Switch selection to one of greater/lower depth at the same mouse position.
@@ -433,7 +449,7 @@ public class ImGuiEditor : MoonTools.ECS.System
         return $"Entity {{ ID = {e.ID}, Tag = {tag} }}";
     }
 
-    public static bool IsInSelectionMode = false;
+    public static bool IsInEntitySelectionMode = false;
 
     // For Ctrl+Z 'Undo' feature.
     static Stack<(Entity, dynamic, bool)> ComponentChangeHistory = new();

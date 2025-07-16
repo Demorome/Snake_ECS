@@ -432,6 +432,14 @@ public class Renderer : MoonTools.ECS.Renderer
 					DrawDebugRectangle(pos, tileRect, color, depth);
 				}
 			}
+
+			if (ImGuiEditor.HoveredOverTile.HasValue)
+			{
+				color = Color.White with { A = 200 };
+				var tilePos = ImGuiEditor.HoveredOverTile.Value;
+				var pos = new Position2D(tilePos.X * Dimensions.TILE_SIZE, tilePos.Y * Dimensions.TILE_SIZE);
+				DrawDebugRectangle(pos, tileRect, color, depth);
+			}
 		}
 
 		if (DrawDebugColliders)
@@ -471,7 +479,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			}
 
 
-			if (ImGuiEditor.IsInSelectionMode)
+			if (ImGuiEditor.IsInEntitySelectionMode)
 			{
 				foreach (var entity in SpriteAnimationFilter.Entities)
 				{
