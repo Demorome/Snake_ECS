@@ -433,10 +433,10 @@ public class Renderer : MoonTools.ECS.Renderer
 				}
 			}
 
-			if (ImGuiEditor.HoveredOverTile.HasValue)
+			if (ImGuiEditor.HoveredOverTilePosition.HasValue)
 			{
 				color = Color.White with { A = 200 };
-				var tilePos = ImGuiEditor.HoveredOverTile.Value;
+				var tilePos = ImGuiEditor.HoveredOverTilePosition.Value;
 				var pos = new Position2D(tilePos.X * Dimensions.TILE_SIZE, tilePos.Y * Dimensions.TILE_SIZE);
 				DrawDebugRectangle(pos, tileRect, color, depth);
 			}

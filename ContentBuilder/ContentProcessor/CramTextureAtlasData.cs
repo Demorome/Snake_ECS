@@ -27,8 +27,8 @@ namespace ContentProcessor
 		public Dictionary<string, CramTextureAtlasAnimationData> Animations { get; set; }
 	}
 
-    public struct CramTextureAtlasImageData
-    {
+	public struct CramTextureAtlasImageData
+	{
 		public string Name { get; set; }
 		public int X { get; set; }
 		public int Y { get; set; }
@@ -38,12 +38,25 @@ namespace ContentProcessor
 		public int TrimOffsetY { get; set; }
 		public int UntrimmedWidth { get; set; }
 		public int UntrimmedHeight { get; set; }
-    }
+	}
 
 	public struct CramTextureAtlasAnimationData
 	{
 		public string[] Frames { get; set; }
 
+		public int FrameRate { get; set; }
+		public int XOrigin { get; set; }
+		public int YOrigin { get; set; }
+	}
+	
+	public struct CramTextureAtlasAnimationData_ToCreateDefault
+	{
+		public CramTextureAtlasAnimationData_ToCreateDefault(CramTextureAtlasAnimationData data)
+		{
+			FrameRate = data.FrameRate;
+			XOrigin = data.XOrigin;
+			YOrigin = data.YOrigin;
+		}
 		public int FrameRate { get; set; }
 		public int XOrigin { get; set; }
 		public int YOrigin { get; set; }

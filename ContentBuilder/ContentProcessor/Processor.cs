@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Numerics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -516,6 +517,28 @@ namespace ContentProcessor
 			ProcessVideos(sourceDir, outputDir, classOutputDir);
 		}
 
+		// Credits to M3rein on StackOverflow: https://stackoverflow.com/a/60858219
+		static (int width, int height) GetPNGSize(string Filename)
+		{
+			BinaryReader br = new BinaryReader(File.OpenRead(Filename));
+			br.BaseStream.Position = 16;
+			byte[] widthBytes = new byte[sizeof(int)];
+			for (int i = 0; i < sizeof(int); ++i)
+			{
+				widthBytes[sizeof(int) - 1 - i] = br.ReadByte();
+			}
+			int width = BitConverter.ToInt32(widthBytes, 0);
+
+			byte[] heightBytes = new byte[sizeof(int)];
+			for (int i = 0; i < sizeof(int); ++i)
+			{
+				heightBytes[sizeof(int) - 1 - i] = br.ReadByte();
+			}
+			int height = BitConverter.ToInt32(heightBytes, 0);
+
+			return (width, height);
+		}
+
 		public static void ProcessTexturePage(DirectoryInfo texturePageDir, DirectoryInfo textureOutputDir)
 		{
 			var inputDir = texturePageDir.FullName;
@@ -566,10 +589,6 @@ namespace ContentProcessor
 
 			foreach (var directory in texturePageDir.EnumerateDirectories())
 			{
-				//var animationMetadataPath = Path.Combine(directory.FullName, directory.Name + ".json");
-				var animationMetadataPath = directory.GetFiles("*.json")[0].FullName;
-				var animationMetadata = JsonSerializer.Deserialize<CramTextureAtlasAnimationData>(File.ReadAllText(animationMetadataPath), jsonSerializerOptions);
-
 				var frameList = new List<string>();
 
 				foreach (var imageFile in directory.EnumerateFiles("*.png").OrderBy(f => f.Name))
@@ -578,6 +597,43 @@ namespace ContentProcessor
 					frameList.Add(spritePath);
 				}
 
+				if (frameList.Count == 0)
+				{
+					continue;
+				}
+
+				CramTextureAtlasAnimationData animationMetadata = new();
+
+				var jsonFiles = directory.GetFiles("*.json");
+				if (jsonFiles.Length == 0)
+				{
+					var firstSpriteFile = new FileInfo(frameList[0]);
+					var firstSpriteFilePath = Path.Combine(directory.FullName, firstSpriteFile.Name);
+					var (width, height) = GetPNGSize(firstSpriteFilePath);
+
+					// Generate a default anim metadata.
+					animationMetadata.XOrigin = width / 2;
+					animationMetadata.YOrigin = height / 2;
+					animationMetadata.FrameRate = 0;
+
+					ExportResource(new CramTextureAtlasAnimationData_ToCreateDefault(animationMetadata),
+						new FileInfo(Path.Combine(directory.FullName, "data.json")));
+						
+					Logger.LogWarn($"Auto-generated a missing metadata file at {directory.Name}; verify it suits your needs.");
+				}
+				else if (jsonFiles.Length > 1)
+				{
+					throw new System.SystemException("Shouldn't provide more than 1 JSON metadata file!");
+				}
+				else
+				{
+					var animationMetadataPath = jsonFiles[0].FullName;
+					animationMetadata = JsonSerializer.Deserialize<CramTextureAtlasAnimationData>(
+						File.ReadAllText(animationMetadataPath),
+						jsonSerializerOptions
+					);	
+				}
+				
 				var newAnimationMetaData = new CramTextureAtlasAnimationData
 				{
 					Frames = frameList.ToArray(),
@@ -1274,6 +1330,7 @@ namespace RollAndCash.Content
 				Indented = true
 			});
 			JsonSerializer.Serialize<T>(writer, resource);
+			stream.Dispose();
 		}
 	}
 }

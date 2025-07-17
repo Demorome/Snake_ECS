@@ -16,6 +16,7 @@ using MoonWorks.Graphics;
 using MoonWorks.Input;
 using MoonWorks.Math;
 using RollAndCash.Components;
+using RollAndCash.Content;
 using RollAndCash.Data;
 using RollAndCash.GameStates;
 using RollAndCash.Relations;
@@ -219,7 +220,7 @@ public class ImGuiEditor : MoonTools.ECS.System
 
     public static bool IsInLevelEditor = false;
 
-    public Vector2? HoveredOverTile = null;
+    public Vector2? HoveredOverTilePosition = null;
 
     void HandleLevelEditor()
     {
@@ -235,11 +236,12 @@ public class ImGuiEditor : MoonTools.ECS.System
         {
             // TODO: Get nearest tile to paint in
             var worldMousePosition = Input.WorldMousePosition;
-            HoveredOverTile = GetTilePos(worldMousePosition);
-            if (HoveredOverTile.HasValue)
+            HoveredOverTilePosition = GetTilePos(worldMousePosition);
+            if (HoveredOverTilePosition.HasValue)
             {
                 if (SelectedTileSpriteToDraw != null)
                 {
+                    //SpriteAnimations.Tile_WhiteBlock
                     // TODO: Painting the tiles to the world!
                     // TODO: Don't spawn anything if tile is already painted in (at that tile depth; allow BG tiles for example??)
                     //TileManipulator.SpawnSolidTile(TODO, SelectedTileSprite);
