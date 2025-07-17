@@ -66,8 +66,15 @@ public class Renderer : MoonTools.ECS.Renderer
 		ImGuiEditor = imGuiEditor;
 #endif
 
-		RenderTexture = Texture.Create2D(GraphicsDevice, "Render Texture", Dimensions.GAME_W, Dimensions.GAME_H, swapchainFormat, TextureUsageFlags.ColorTarget | TextureUsageFlags.Sampler);
-		DepthTexture = Texture.Create2D(GraphicsDevice, "Depth Texture", Dimensions.GAME_W, Dimensions.GAME_H, TextureFormat.D16Unorm, TextureUsageFlags.DepthStencilTarget);
+		RenderTexture = Texture.Create2D(GraphicsDevice, "Render Texture", Dimensions.GAME_W, Dimensions.GAME_H,
+			swapchainFormat,
+			TextureUsageFlags.ColorTarget | TextureUsageFlags.Sampler
+		);
+
+		DepthTexture = Texture.Create2D(GraphicsDevice, "Depth Texture", Dimensions.GAME_W, Dimensions.GAME_H,
+			TextureFormat.D16Unorm,
+			TextureUsageFlags.DepthStencilTarget
+		);
 
 		SpriteAtlasTexture = TextureAtlases.TP_Sprites.Texture;
 
@@ -549,6 +556,7 @@ public class Renderer : MoonTools.ECS.Renderer
 
 		// FIXME: Support depth texture somehow? Eh, drawing over everything is fine for now.
 		var editorRenderPass = commandBuffer.BeginRenderPass(
+			/*new DepthStencilTargetInfo(DepthTexture, 1, 0),*/
 			new ColorTargetInfo(swapchainTexture, LoadOp.Load)
 		);
 		

@@ -123,6 +123,7 @@ public class ImGuiEditor : MoonTools.ECS.System
         },
         { ImGuiKey.None,                 new("Toggle Level Editor",
             () => { return IsInLevelEditor = !IsInLevelEditor; } )
+            // FIXME: Once had a startup where ImGui was unresponsive and this was flickering back and forth (undefined behavior somewhere??)
         },
         { ImGuiKey.F2,                   new("Prefabs", ShowPrefabSpawnerWindow, true )},
     };
@@ -140,18 +141,74 @@ public class ImGuiEditor : MoonTools.ECS.System
 
     public static SpriteAnimationInfo SelectedTileSpriteToDraw = null;
 
-    static void ShowTileSelectionMenu(List<SpriteAnimationInfo> tileSet)
+    const int TileSpriteColumnCount = 10;
+
+    static void ShowTileSelectionMenu(List<string> tileSetSpriteNames)
     {
-        var imageSize = Dimensions.TILE_DIMENSIONS;
-        foreach (var tileSprite in tileSet)
+        // TODO: Draw a "[+]" square image that adds a new sprite slot for the tileset.
+
+        // TODO: Color blend default override option for a specific sprite in the tileset.
+
+        // TODO: Color blend default override for the entire tileset.
+
+        // TODO: Changing color blend overrides applies it to already placed world tiles.
+
+        //ImGui.Columns(10);
+        var col = 0;
+
+        //Color imageBgColor = Color.Transparent;
+
+        foreach (var tileSpriteName in tileSetSpriteNames)
         {
-            /*if (ImGuiExtensions.ImageButton())
+            SpriteAnimationInfo animInfo = SpriteAnimations.AnimNameToInfoMap.GetValueOrDefault(
+                tileSpriteName, SpriteAnimations.Tile_WhiteBlock // TODO: Show invalid tile image
+            );
+            if (SpriteAnimations.AnimNameToInfoMap.ContainsKey(tileSpriteName))
             {
-                // TODO: Show that tile is selected + store that
+                // FIXME: Allow sprite animations to play (simulate frame countdown?)
+                var currentFrame = animInfo.Frames[0];
 
-            }*/
+                // FIXME: Draw with 1 pixel gaps between sprites (grid view)
+
+                // https://github.com/ocornut/imgui/issues/4216#issuecomment-860007592
+
+                if (ImGuiExtensions.ImageButton(
+                    $"##{tileSpriteName}",
+                    currentFrame.Texture,
+                    currentFrame.SliceSize,
+                    currentFrame.UV.LeftTop,
+                    currentFrame.UV.RightBottom,
+                    //imageBgColor.ToVector4(),
+                    ImGuiBackend.SamplerType.PointClamp
+                    ))
+                {
+                    if (SelectedTileSpriteToDraw != null && SelectedTileSpriteToDraw == animInfo)
+                    {
+                        SelectedTileSpriteToDraw = null;
+                    }
+                    else
+                    {
+                        // TODO: Highlight the currently selected tile sprite as long as it isn't unselected
+                        SelectedTileSpriteToDraw = animInfo;
+                    }
+
+                    // TODO: Right-clicking on a sprite opens a menu to replace the sprite with any other "Tile"-named sprite.
+                }
+            }
+            else
+            {
+                // TODO: Show invalid tile image
+            }
+
+            //ImGui.Separator();
+
+            ++col;
+            col %= TileSpriteColumnCount;
+            if (col != 0)
+            {
+                ImGui.SameLine();
+            }
         }
-
     }
 
     class TileLayer
@@ -168,7 +225,8 @@ public class ImGuiEditor : MoonTools.ECS.System
 
     static void ShowSolidTiles(World world)
     {
-        //ShowTileSelectionMenu(??); // FIXME:
+        // FIXME: Get tileset from current level data.
+        ShowTileSelectionMenu(new List<string>() {"Tile_WhiteBlock", "Tile_WhiteBlock"}); 
     }
 
     static void ShowBackgroundTiles(World world)
@@ -182,11 +240,8 @@ public class ImGuiEditor : MoonTools.ECS.System
         new ("Background Tiles", ShowBackgroundTiles)
     };
 
-    static bool SnapToGrid = true;
-
     void ShowTileLayerOptions()
     {
-        // TODO: Snap to grid option? Not sure if I should support going off-grid yet.
         if (ImGui.Begin("Tile Layers"))
         {
             foreach (var tileLayer in TileLayers)
@@ -219,8 +274,25 @@ public class ImGuiEditor : MoonTools.ECS.System
     }
 
     public static bool IsInLevelEditor = false;
-
+    static bool SnapToGrid = true;
     public Vector2? HoveredOverTilePosition = null;
+
+    // Layout inspired by Elias Daler's tutorial series: https://edw.is/using-imgui-with-sfml-pt1/
+    void DrawLevelEditorMainWindow()
+    {
+        if (!ImGui.Begin("Level Editor", ref IsInLevelEditor))
+        {
+            return;
+        }
+
+        //FIXME: ImGui.Text("Level path: ");
+        //FIXME: ImGui.Text("Camera: ");
+        ImGui.Text($"Mouse world position: {Input.WorldMousePosition}");
+
+        // TODO: Snap to grid option? Not sure if I should support going off-grid yet.
+
+        ImGui.End();
+    }
 
     void HandleLevelEditor()
     {
@@ -229,12 +301,12 @@ public class ImGuiEditor : MoonTools.ECS.System
             return;
         }
 
+        DrawLevelEditorMainWindow();
         ShowTileLayerOptions();
-
+        
         var mouseHoveringOverAnyWindow = ImGui.GetIO().WantCaptureMouse;
         if (!mouseHoveringOverAnyWindow)
         {
-            // TODO: Get nearest tile to paint in
             var worldMousePosition = Input.WorldMousePosition;
             HoveredOverTilePosition = GetTilePos(worldMousePosition);
             if (HoveredOverTilePosition.HasValue)
@@ -666,26 +738,28 @@ public class ImGuiEditor : MoonTools.ECS.System
         foreach (var (windowTitle, obj) in DetachedWindows)
         {
             bool dontCloseWindow = true;
-            ImGui.Begin(windowTitle, ref dontCloseWindow);
-
-            if (obj.GetType() == typeof(Entity))
+            if (ImGui.Begin(windowTitle, ref dontCloseWindow))
             {
-                var entity = (Entity)obj;
-                var entityComponentTypes = world.Debug_GetAllComponentTypes(entity);
-                //var hasAnyComponent = false;
-                foreach (var type in entityComponentTypes)
+                if (obj.GetType() == typeof(Entity))
                 {
-                    DrawComponentInspector(world, entity, type);
-                    //hasAnyComponent = true;
+                    var entity = (Entity)obj;
+                    var entityComponentTypes = world.Debug_GetAllComponentTypes(entity);
+                    //var hasAnyComponent = false;
+                    foreach (var type in entityComponentTypes)
+                    {
+                        DrawComponentInspector(world, entity, type);
+                        //hasAnyComponent = true;
+                    }
                 }
-            }
-            else if (obj.GetType() == typeof(Action<World>))
-            {
-                var action = (Action<World>)obj;
-                action(world);
+                else if (obj.GetType() == typeof(Action<World>))
+                {
+                    var action = (Action<World>)obj;
+                    action(world);
+                }
+
+                ImGui.End();
             }
 
-            ImGui.End();
             if (!dontCloseWindow)
             {
                 DetachedWindows.Remove(windowTitle);

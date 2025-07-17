@@ -1,6 +1,7 @@
 using MoonWorks.Graphics;
 using System.Numerics;
 using RollAndCash.Data;
+using System.Drawing;
 
 namespace RollAndCash.Components;
 
@@ -13,6 +14,7 @@ public struct Sprite
 
 	public TexturePage TexturePage => TexturePage.FromID(TexturePageID);
 	public Texture Texture => TexturePage.Texture;
+	public Vector2 SliceSize => new Vector2(SliceRect.W, SliceRect.H);
 
 	public Sprite(
 		TexturePage texturePage,
