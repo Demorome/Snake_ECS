@@ -28,6 +28,7 @@ public class Renderer : MoonTools.ECS.Renderer
 #if DEBUG
 	ImGuiEditor ImGuiEditor;
 	public static bool DrawDebugColliders = false;
+	TileManipulator TileManipulator;
 #endif
 
 	Texture RenderTexture;
@@ -64,6 +65,7 @@ public class Renderer : MoonTools.ECS.Renderer
 #if DEBUG
 		ColliderFilter = FilterBuilder.Include<Rectangle>().Include<Position2D>().Build();
 		ImGuiEditor = imGuiEditor;
+		TileManipulator = new(world);
 #endif
 
 		RenderTexture = Texture.Create2D(GraphicsDevice, "Render Texture", Dimensions.GAME_W, Dimensions.GAME_H,
@@ -146,6 +148,8 @@ public class Renderer : MoonTools.ECS.Renderer
 	}
 
 #if DEBUG
+	const float DebugLineThickness = 0.5f;
+
 	public void DrawDebugRectangle(Entity entity, Rectangle rect, Color color, float depth)
 	{
 		var position = Get<Position2D>(entity);
@@ -155,47 +159,94 @@ public class Renderer : MoonTools.ECS.Renderer
 	public void DrawDebugRectangle(Position2D position, Rectangle rect, Color color, float depth)
 	{
 		var orientation = 0.0f;
+
+		// Draw a square outline sprite if we can, to reduce sprite count in-editor (may hit limit!)
+		// Can't use this for non-square dimensions, since stretching on the sides will be apparent.
+		// FIXME: Due to point sampler, the top and left corners get cut off when scaling down too much.
+		/*
+		if (rect.Height == rect.Width)
+		{
+			var sprite = SpriteAnimations.EditorTile_Outline.Frames[0];
+
+			ArtSpriteBatch.Add(
+				new Vector3(position.X + rect.X, position.Y + rect.Y, depth),
+				orientation,
+				new Vector2(rect.Width, rect.Height),
+				color,
+				sprite.UV.LeftTop,
+				sprite.UV.Dimensions
+			);
+		}
+		else*/
+		{
+			var sprite = SpriteAnimations.Pixel.Frames[0];
+
+			var horizontalLineSize = new Vector2(rect.Width, DebugLineThickness);
+			var verticalLineSize = new Vector2(DebugLineThickness, rect.Height);
+
+			// Horizontal Top
+			ArtSpriteBatch.Add(
+				new Vector3(position.X + rect.X, position.Y + rect.Y, depth),
+				orientation,
+				horizontalLineSize,
+				color,
+				sprite.UV.LeftTop,
+				sprite.UV.Dimensions
+			);
+
+			// Horizontal Bottom
+			ArtSpriteBatch.Add(
+				new Vector3(position.X + rect.X, position.Y + rect.Y + rect.Height, depth),
+				orientation,
+				horizontalLineSize,
+				color,
+				sprite.UV.LeftTop,
+				sprite.UV.Dimensions
+			);
+
+			// Vertical Left
+			ArtSpriteBatch.Add(
+				new Vector3(position.X + rect.X, position.Y + rect.Y, depth),
+				orientation,
+				verticalLineSize,
+				color,
+				sprite.UV.LeftTop,
+				sprite.UV.Dimensions
+			);
+
+			// Vertical Right
+			ArtSpriteBatch.Add(
+				new Vector3(position.X + rect.X + rect.Width, position.Y + rect.Y, depth),
+				orientation,
+				verticalLineSize,
+				color,
+				sprite.UV.LeftTop,
+				sprite.UV.Dimensions
+			);
+		}
+	}
+	
+	public void DrawDebugLine(Position2D position, float length, bool verticalOrHorizontal,
+		Color color, float depth)
+	{
+		var orientation = 0.0f;
 		var sprite = SpriteAnimations.Pixel.Frames[0];
 
-		const float lineThickness = 0.5f;
-		var horizontalLineSize = new Vector2(rect.Width, lineThickness);
-		var verticalLineSize = new Vector2(lineThickness, rect.Height);
-
+		Vector2 scale;
+		if (verticalOrHorizontal == false) // if Vertical
+		{
+			scale = new Vector2(DebugLineThickness, length);
+		}
+		else
+		{
+			scale = new Vector2(length, DebugLineThickness);
+		}
+			
 		// Horizontal Top
 		ArtSpriteBatch.Add(
-			new Vector3(position.X + rect.X, position.Y + rect.Y, depth),
+			new Vector3(position.X, position.Y, depth),
 			orientation,
-			horizontalLineSize,
-			color,
-			sprite.UV.LeftTop,
-			sprite.UV.Dimensions
-		);
-
-		// Horizontal Bottom
-		ArtSpriteBatch.Add(
-			new Vector3(position.X + rect.X, position.Y + rect.Y + rect.Height, depth),
-			orientation,
-			horizontalLineSize,
-			color,
-			sprite.UV.LeftTop,
-			sprite.UV.Dimensions
-		);
-
-		// Vertical Left
-		ArtSpriteBatch.Add(
-			new Vector3(position.X + rect.X, position.Y + rect.Y, depth),
-			orientation,
-			verticalLineSize,
-			color,
-			sprite.UV.LeftTop,
-			sprite.UV.Dimensions
-		);
-
-		// Vertical Right
-		ArtSpriteBatch.Add(
-			new Vector3(position.X + rect.X + rect.Width, position.Y + rect.Y, depth),
-			orientation,
-			verticalLineSize,
+			scale,
 			color,
 			sprite.UV.LeftTop,
 			sprite.UV.Dimensions
@@ -429,23 +480,30 @@ public class Renderer : MoonTools.ECS.Renderer
 		{
 			var color = Color.Gray with { A = 150 };
 			var depth = -50f; // draw above backgrounds, but nothing else.
-			var tileRect = new Rectangle(0, 0, Dimensions.TILE_SIZE, Dimensions.TILE_SIZE);
+			var verticalLength = Dimensions.TILE_ROW_COUNT * Dimensions.TILE_SIZE;
+			var horizontalLength = Dimensions.TILE_COLUMN_COUNT * Dimensions.TILE_SIZE;
 
-			for (int row = 0; row < Dimensions.TILE_ROW_COUNT; ++row)
+			for (int col = 0; col < Dimensions.TILE_COLUMN_COUNT + 1; ++col)
 			{
-				for (int col = 0; col < Dimensions.TILE_COLUMN_COUNT; ++col)
-				{
-					var pos = new Position2D(col * Dimensions.TILE_SIZE, row * Dimensions.TILE_SIZE);
-					DrawDebugRectangle(pos, tileRect, color, depth);
-				}
+				DrawDebugLine(TileManipulator.TilePosToWorldPos(new Vector2(col, 0)),
+					verticalLength, false, color, depth
+				);
+			}
+
+			for (int row = 0; row < Dimensions.TILE_ROW_COUNT + 1; ++row)
+			{
+				DrawDebugLine(TileManipulator.TilePosToWorldPos(new Vector2(0, row)),
+					horizontalLength, true, color, depth
+				);
 			}
 
 			if (ImGuiEditor.HoveredOverTilePosition.HasValue)
 			{
 				color = Color.White with { A = 200 };
 				var tilePos = ImGuiEditor.HoveredOverTilePosition.Value;
-				var pos = new Position2D(tilePos.X * Dimensions.TILE_SIZE, tilePos.Y * Dimensions.TILE_SIZE);
-				DrawDebugRectangle(pos, tileRect, color, depth);
+				var worldPos = TileManipulator.TilePosToWorldPos(tilePos);
+				var tileRect = new Rectangle(0, 0, Dimensions.TILE_SIZE, Dimensions.TILE_SIZE);
+				DrawDebugRectangle(worldPos, tileRect, color, depth);
 			}
 		}
 
@@ -559,7 +617,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			/*new DepthStencilTargetInfo(DepthTexture, 1, 0),*/
 			new ColorTargetInfo(swapchainTexture, LoadOp.Load)
 		);
-		
+
 		if (ArtSpriteBatch.InstanceCount > 0)
 		{
 			ArtSpriteBatch.Render(renderPass, SpriteAtlasTexture, PointSampler, viewProjectionMatrices);

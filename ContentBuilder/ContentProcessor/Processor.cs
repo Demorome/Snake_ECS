@@ -839,19 +839,14 @@ namespace RollAndCash.Content
 	public static class SpriteAnimations
 	{{
 		public static bool Loaded = false;
-		private static Dictionary<string, SpriteAnimationInfo> lookup;
+		public static Dictionary<string, SpriteAnimationInfo> NameToInfoMap {{get; private set;}}
 
-		public static SpriteAnimationInfo Lookup(string name)
-		{{
-			return lookup[name];
-		}}
-
-		public static IEnumerable<string> Names => lookup.Keys;
+		public static IEnumerable<string> Names => NameToInfoMap.Keys;
 
 		public static void LoadAll()
 		{{
 			{string.Join("\n\t\t\t", assignmentStrings)}
-			lookup = new Dictionary<string, SpriteAnimationInfo>
+			NameToInfoMap = new Dictionary<string, SpriteAnimationInfo>
 			{{
 				{string.Join(",\n\t\t\t\t", lookupStrings)}
 			}};

@@ -8,7 +8,6 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 using System.Text.Unicode;
 using ImGuiNET;
-using Microsoft.VisualBasic;
 using MoonTools.ECS;
 using MoonWorks;
 using MoonWorks.AsyncIO;
@@ -48,6 +47,8 @@ public class ImGuiEditor : MoonTools.ECS.System
     public ImGuiEditor(World world) : base(world)
     {
         PositionFilter = FilterBuilder.Include<Position2D>().Build();
+
+        TileManipulator = new(world);
     }
 
     public override void Update(TimeSpan delta)
@@ -139,68 +140,145 @@ public class ImGuiEditor : MoonTools.ECS.System
         // TODO: If spawned, add to change history.
     }
 
-    public static SpriteAnimationInfo SelectedTileSpriteToDraw = null;
-
     const int TileSpriteColumnCount = 10;
+    const string TileSpritePrefix = "Tile_";
+
+    // FIXME: Detect if a tile sprite is shared amongst different layers and report an error.
+    public static SpriteAnimationInfo SelectedTileSprite = null;
+    static int SelectedTileSpriteIndex = -1; 
+    static bool ReplacingTileSprite = false; 
+    static int TileSpriteToReplaceIndex = -1; 
+
+    unsafe static ImGuiTextFilterPtr TileSpriteSearchFilter = new(ImGuiNative.ImGuiTextFilter_ImGuiTextFilter(null));
+
+    static void DrawTileSpriteReplacementsWindow(List<string> tileSetSpriteNames)
+    {
+        if (!ReplacingTileSprite || !ImGui.Begin("Select Tile Sprite", ref ReplacingTileSprite))
+        {
+            return;
+        }
+
+        TileSpriteSearchFilter.Draw("Search");
+        
+        foreach (var spriteName in SpriteAnimations.Names)
+        {
+            if (!spriteName.StartsWith(TileSpritePrefix))
+            {
+                continue;
+            }
+
+            if (TypeSearchFilter.PassFilter(spriteName))
+            {
+                if (ImGui.Selectable(spriteName))
+                {
+                    tileSetSpriteNames[TileSpriteToReplaceIndex] = spriteName;
+                    TileSpriteToReplaceIndex = -1;
+                    ReplacingTileSprite = false;
+                }
+            }
+        }
+
+        ImGui.End();
+    }
 
     static void ShowTileSelectionMenu(List<string> tileSetSpriteNames)
     {
-        // TODO: Draw a "[+]" square image that adds a new sprite slot for the tileset.
-
         // TODO: Color blend default override option for a specific sprite in the tileset.
 
         // TODO: Color blend default override for the entire tileset.
 
         // TODO: Changing color blend overrides applies it to already placed world tiles.
 
-        //ImGui.Columns(10);
+        var imageBgColor = Color.Transparent;
+        var scalingFactor = ImGui.GetWindowViewport().Size / Dimensions.GAME_DIMENSIONS;
+
+        // Draw with 1 pixel gaps between sprites.
+        // Helpful explanation: https://github.com/ocornut/imgui/issues/4216#issuecomment-860007592
+        // FIXME: How to have gray outline but not make the background for the image gray??
+        ImGui.PushStyleColor(ImGuiCol.Button, Color.Gray.ToVector4());
+        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(1.0f, 1.0f));
+        //ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(1.0f, 1.0f));
+        ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0f, 0f));
+
         var col = 0;
-
-        //Color imageBgColor = Color.Transparent;
-
-        foreach (var tileSpriteName in tileSetSpriteNames)
+        for (int i = 0; i < tileSetSpriteNames.Count; ++i)
         {
-            SpriteAnimationInfo animInfo = SpriteAnimations.AnimNameToInfoMap.GetValueOrDefault(
-                tileSpriteName, SpriteAnimations.Tile_WhiteBlock // TODO: Show invalid tile image
+            var tileSpriteName = tileSetSpriteNames[i];
+
+            SpriteAnimationInfo animInfo = SpriteAnimations.NameToInfoMap.GetValueOrDefault(
+                tileSpriteName, SpriteAnimations.EditorTile_InvalidTile
             );
-            if (SpriteAnimations.AnimNameToInfoMap.ContainsKey(tileSpriteName))
+
+            if (animInfo.ID != SpriteAnimations.EditorTile_InvalidTile.ID)
             {
                 // FIXME: Allow sprite animations to play (simulate frame countdown?)
                 var currentFrame = animInfo.Frames[0];
 
-                // FIXME: Draw with 1 pixel gaps between sprites (grid view)
+                bool wasSelected = SelectedTileSprite != null
+                    && SelectedTileSprite.ID == animInfo.ID
+                    && SelectedTileSpriteIndex == i;
 
-                // https://github.com/ocornut/imgui/issues/4216#issuecomment-860007592
+                if (wasSelected)
+                {
+                    ImGui.PushStyleColor(ImGuiCol.Button, Color.Red.ToVector4());
+                    ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Color.Red.ToVector4());
+                }
+                else if (ReplacingTileSprite)
+                {
+                    ImGui.PushStyleColor(ImGuiCol.Button, Color.Green.ToVector4());
+                    ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Color.Green.ToVector4());
+                }
 
                 if (ImGuiExtensions.ImageButton(
-                    $"##{tileSpriteName}",
+                    i.ToString(),
                     currentFrame.Texture,
-                    currentFrame.SliceSize,
+                    currentFrame.SliceSize * scalingFactor,
                     currentFrame.UV.LeftTop,
                     currentFrame.UV.RightBottom,
-                    //imageBgColor.ToVector4(),
+                    imageBgColor.ToVector4(),
                     ImGuiBackend.SamplerType.PointClamp
                     ))
                 {
-                    if (SelectedTileSpriteToDraw != null && SelectedTileSpriteToDraw == animInfo)
+                    ReplacingTileSprite = false;
+                    if (wasSelected)
                     {
-                        SelectedTileSpriteToDraw = null;
+                        SelectedTileSprite = null;
+                        SelectedTileSpriteIndex = -1;
                     }
                     else
                     {
-                        // TODO: Highlight the currently selected tile sprite as long as it isn't unselected
-                        SelectedTileSpriteToDraw = animInfo;
+                        SelectedTileSprite = animInfo;
+                        SelectedTileSpriteIndex = i;
                     }
+                }
 
-                    // TODO: Right-clicking on a sprite opens a menu to replace the sprite with any other "Tile"-named sprite.
+                if (wasSelected || ReplacingTileSprite)
+                {
+                    ImGui.PopStyleColor(2);
                 }
             }
             else
             {
-                // TODO: Show invalid tile image
+                // FIXME: Make this not a button. Somehow, that makes this not show up??
+                var sprite = SpriteAnimations.EditorTile_InvalidTile.Frames[0];
+                ImGuiExtensions.ImageButton(
+                     i.ToString(),
+                    sprite.Texture,
+                    sprite.SliceSize * scalingFactor,
+                    sprite.UV.LeftTop,
+                    sprite.UV.RightBottom,
+                    imageBgColor.ToVector4(),
+                    ImGuiBackend.SamplerType.PointClamp
+                );
             }
 
-            //ImGui.Separator();
+            // TODO: Right-clicking on a sprite opens a menu to replace the sprite for any other "Tile"-named sprite
+            // TODO: Highlight this sprite tile as green when selected this way.
+            if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+            {
+                ReplacingTileSprite = true;
+                TileSpriteToReplaceIndex = i;
+            }
 
             ++col;
             col %= TileSpriteColumnCount;
@@ -209,6 +287,26 @@ public class ImGuiEditor : MoonTools.ECS.System
                 ImGui.SameLine();
             }
         }
+
+        // Draw a "[+]" square image that, if pressed, adds a new sprite slot for the tileset.
+        var plusSprite = SpriteAnimations.EditorTile_Plus.Frames[0];
+        if (ImGuiExtensions.ImageButton(
+            "##Plus",
+            plusSprite.Texture,
+            plusSprite.SliceSize * scalingFactor,
+            plusSprite.UV.LeftTop,
+            plusSprite.UV.RightBottom,
+            imageBgColor.ToVector4(),
+            ImGuiBackend.SamplerType.PointClamp
+            ))
+        {
+            tileSetSpriteNames.Add("Placeholder");
+        }
+
+        ImGui.PopStyleVar(2);
+        ImGui.PopStyleColor();
+
+        DrawTileSpriteReplacementsWindow(tileSetSpriteNames);
     }
 
     class TileLayer
@@ -223,10 +321,21 @@ public class ImGuiEditor : MoonTools.ECS.System
         public bool IsVisible = true;
     }
 
+    static int NumFillerTilesForNewTileset = 20;
+
+    static List<string> PlaceholderTileset = new()
+    {
+        "Placeholder"
+    };
+
     static void ShowSolidTiles(World world)
     {
         // FIXME: Get tileset from current level data.
-        ShowTileSelectionMenu(new List<string>() {"Tile_WhiteBlock", "Tile_WhiteBlock"}); 
+        for (int i = 0; i < NumFillerTilesForNewTileset - PlaceholderTileset.Count; ++i)
+        {
+            PlaceholderTileset.Add("Placeholder");
+        }
+        ShowTileSelectionMenu(PlaceholderTileset);
     }
 
     static void ShowBackgroundTiles(World world)
@@ -253,27 +362,16 @@ public class ImGuiEditor : MoonTools.ECS.System
                 ImGui.SameLine();
                 if (ImGui.Button(tileLayer.Name))
                 {
-                    DetachedWindows.Add(tileLayer.Name, tileLayer.ShowTilePicker);
+                    LevelEditorDetachedWindows.TryAdd(tileLayer.Name, tileLayer.ShowTilePicker);
                 }
             }
-        }
-    }
 
-    Vector2? GetTilePos(Position2D worldPos)
-    {
-        var tilePos = new Vector2(worldPos.X / Dimensions.TILE_SIZE, worldPos.Y / Dimensions.TILE_SIZE);
-        if (tilePos.X < 0 || tilePos.X >= Dimensions.TILE_COLUMN_COUNT)
-        {
-            return null;
+            ImGui.End();
         }
-        else if (tilePos.Y < 0 || tilePos.Y >= Dimensions.TILE_ROW_COUNT)
-        {
-            return null;
-        }
-        return tilePos;
     }
 
     public static bool IsInLevelEditor = false;
+    static Dictionary<string, Action<World>> LevelEditorDetachedWindows = new();
     static bool SnapToGrid = true;
     public Vector2? HoveredOverTilePosition = null;
 
@@ -303,20 +401,43 @@ public class ImGuiEditor : MoonTools.ECS.System
 
         DrawLevelEditorMainWindow();
         ShowTileLayerOptions();
+
+        foreach (var (windowTitle, drawAction) in LevelEditorDetachedWindows)
+        {
+            bool dontCloseWindow = true;
+            if (ImGui.Begin(windowTitle, ref dontCloseWindow))
+            {
+                drawAction(World);
+                ImGui.End();
+            }
+            if (!dontCloseWindow)
+            {
+                LevelEditorDetachedWindows.Remove(windowTitle);
+            }
+        }
         
         var mouseHoveringOverAnyWindow = ImGui.GetIO().WantCaptureMouse;
         if (!mouseHoveringOverAnyWindow)
         {
             var worldMousePosition = Input.WorldMousePosition;
-            HoveredOverTilePosition = GetTilePos(worldMousePosition);
+            HoveredOverTilePosition = TileManipulator.GetTilePos(worldMousePosition);
             if (HoveredOverTilePosition.HasValue)
             {
-                if (SelectedTileSpriteToDraw != null)
+                if (SelectedTileSprite != null)
                 {
-                    //SpriteAnimations.Tile_WhiteBlock
-                    // TODO: Painting the tiles to the world!
-                    // TODO: Don't spawn anything if tile is already painted in (at that tile depth; allow BG tiles for example??)
-                    //TileManipulator.SpawnSolidTile(TODO, SelectedTileSprite);
+                    var tileWorldPos = TileManipulator.TilePosToWorldPos_Centered(HoveredOverTilePosition.Value);
+                    if (ImGui.IsMouseDown(ImGuiMouseButton.Left))
+                    {
+                        // FIXME: What if we're drawing from background tiles etc?
+
+                        // Painting the tiles to the world!
+                        // TODO: Don't spawn anything if tile is already painted in (at that tile depth; allow BG tiles for example??)
+                        TileManipulator.SpawnSolidTile(tileWorldPos, new SpriteAnimation(SelectedTileSprite));
+                    }
+                    else if (ImGui.IsMouseDown(ImGuiMouseButton.Right))
+                    {
+                        // TODO: Delete tiles at this depth!
+                    }
                 }
             }
         }

@@ -6,6 +6,7 @@ public static class Dimensions
 {
 	public const int GAME_W = 640;
 	public const int GAME_H = 360;
+	public static Vector2 GAME_DIMENSIONS = new Vector2(GAME_W, GAME_H);
 
 	public const int TILE_SIZE = 16;
 	public static Vector2 TILE_DIMENSIONS = new Vector2(TILE_SIZE, TILE_SIZE);
