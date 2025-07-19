@@ -56,7 +56,13 @@ public class GameplayState : GameState
         World = new World();
 
         Timing = new(World);
-        Input = new Input(World, Game.Inputs);
+        Input = new Input(
+            World,
+            Game.Inputs
+#if DEBUG
+            , Game.MainWindow
+#endif
+        );
         Motion = new Motion(World);
         Audio = new Audio(World, Game.AudioDevice);
         PlayerController = new PlayerController(World);

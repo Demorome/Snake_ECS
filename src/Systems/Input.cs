@@ -37,11 +37,22 @@ public class Input : MoonTools.ECS.System
 	ControlSet PlayerTwoGamepad = new ControlSet();
 
 #if DEBUG
+	Window MainWindow;
 	public static Position2D WorldMousePosition = new Position2D();
 #endif
 
-	public Input(World world, Inputs inputs) : base(world)
+	public Input(
+		World world,
+		Inputs inputs
+#if DEBUG
+		, Window mainWindow
+#endif
+		) : base(world)
 	{
+#if DEBUG
+		MainWindow = mainWindow;
+#endif
+
 		Inputs = inputs;
 		PlayerFilter = FilterBuilder.Include<Player>().Build();
 
@@ -74,8 +85,8 @@ public class Input : MoonTools.ECS.System
 	{
 		// FIXME: Use a more accurate formula?
 		var mouseWorldPosition = new Vector2(
-			(Inputs.Mouse.X + 0.5f) / 2,
-			(Inputs.Mouse.Y + 0.5f) / 2
+			(Inputs.Mouse.X + 0.5f) * ((float)Dimensions.GAME_W / MainWindow.Width),
+			(Inputs.Mouse.Y + 0.5f) * ((float)Dimensions.GAME_H / MainWindow.Height)
 		);
 #if DEBUG
 		WorldMousePosition = new Position2D(mouseWorldPosition);

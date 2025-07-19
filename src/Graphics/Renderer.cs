@@ -269,7 +269,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			var rectangle = Get<Rectangle>(entity);
 			var orientation = Has<Angle>(entity) ? Get<Angle>(entity).Value : 0.0f;
 			var color = GetColorBlend(entity);
-			var depth = -2f;
+			var depth = -(float)DepthLayer.DefaultDepth;
 			if (Has<Depth>(entity))
 			{
 				depth = -Get<Depth>(entity).Value;
@@ -295,7 +295,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			var animation = Get<SpriteAnimation>(entity);
 			var sprite = animation.CurrentSprite;
 			var origin = animation.Origin;
-			var depth = -1f;
+			var depth = -(float)DepthLayer.DefaultDepth;
 			var orientation = Has<Angle>(entity) ? Get<Angle>(entity).Value : 0.0f;
 			var color = GetColorBlend(entity);
 

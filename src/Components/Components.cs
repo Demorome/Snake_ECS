@@ -86,8 +86,10 @@ public readonly record struct Alpha(byte Value); // 0-255, overrides the alpha i
 
 public readonly record struct ColorSpeed(float RedSpeed, float GreenSpeed, float BlueSpeed);
 
+// Deeper depth = higher value.
 public enum DepthLayer
 {
+    DefaultDepth = 1,
     Player = 5,
     Enemy = Player + 1,
     SolidTile = Enemy + 1, // draw below actors
@@ -98,12 +100,11 @@ public enum DepthLayer
     Debug_CollisionVisual = -100
 #endif
 }
-
-// Deeper depth = higher value.
 public readonly record struct Depth(float Value)
 {
-    public Depth(DepthLayer layer) : this((float)layer) {}
+    public Depth(DepthLayer layer) : this((float)layer) { }
 } 
+
 public readonly record struct DrawAsRectangle();
 
 public readonly record struct TextDropShadow(int OffsetX, int OffsetY);
