@@ -127,8 +127,8 @@ public class Renderer : MoonTools.ECS.Renderer
 		if (HasOutRelation<ColorBlendOverride>(e))
 		{
 			// Assumes there would be at most 1 ColorBlendOverride at a time.
-			var overridingE = OutRelationSingleton<ColorBlendOverride>(e);
-			color = GetRelationData<ColorBlendOverride>(e, overridingE).Color;
+			var overridingEntity = OutRelationSingleton<ColorBlendOverride>(e);
+			color = GetRelationData<ColorBlendOverride>(e, overridingEntity).Color;
 		}
 		else if (Has<ColorBlend>(e))
 		{
@@ -148,15 +148,15 @@ public class Renderer : MoonTools.ECS.Renderer
 	}
 
 #if DEBUG
-	const float DebugLineThickness = 0.5f;
+	const float DebugLineThickness = 0.3f;
 
-	public void DrawDebugRectangle(Entity entity, Rectangle rect, Color color, float depth)
+	public void DrawDebugRectangle(Entity entity, Rectangle rect, Color color, float depth, float lineThickness)
 	{
 		var position = Get<Position2D>(entity);
-		DrawDebugRectangle(position, rect, color, depth);
+		DrawDebugRectangle(position, rect, color, depth, lineThickness);
 	}
 
-	public void DrawDebugRectangle(Position2D position, Rectangle rect, Color color, float depth)
+	public void DrawDebugRectangle(Position2D position, Rectangle rect, Color color, float depth, float lineThickness)
 	{
 		var orientation = 0.0f;
 
@@ -181,8 +181,8 @@ public class Renderer : MoonTools.ECS.Renderer
 		{
 			var sprite = SpriteAnimations.Pixel.Frames[0];
 
-			var horizontalLineSize = new Vector2(rect.Width, DebugLineThickness);
-			var verticalLineSize = new Vector2(DebugLineThickness, rect.Height);
+			var horizontalLineSize = new Vector2(rect.Width, lineThickness);
+			var verticalLineSize = new Vector2(lineThickness, rect.Height);
 
 			// Horizontal Top
 			ArtSpriteBatch.Add(
@@ -196,7 +196,7 @@ public class Renderer : MoonTools.ECS.Renderer
 
 			// Horizontal Bottom
 			ArtSpriteBatch.Add(
-				new Vector3(position.X + rect.X, position.Y + rect.Y + rect.Height, depth),
+				new Vector3(position.X + rect.X, position.Y + rect.Y + rect.Height - lineThickness, depth),
 				orientation,
 				horizontalLineSize,
 				color,
@@ -216,7 +216,7 @@ public class Renderer : MoonTools.ECS.Renderer
 
 			// Vertical Right
 			ArtSpriteBatch.Add(
-				new Vector3(position.X + rect.X + rect.Width, position.Y + rect.Y, depth),
+				new Vector3(position.X + rect.X + rect.Width - lineThickness, position.Y + rect.Y, depth),
 				orientation,
 				verticalLineSize,
 				color,
@@ -226,8 +226,14 @@ public class Renderer : MoonTools.ECS.Renderer
 		}
 	}
 	
-	public void DrawDebugLine(Position2D position, float length, bool verticalOrHorizontal,
-		Color color, float depth)
+	public void DrawDebugLine(
+		Vector2 position,
+		float length,
+		float thickness,
+		bool verticalOrHorizontal,
+		Color color,
+		float depth
+		)
 	{
 		var orientation = 0.0f;
 		var sprite = SpriteAnimations.Pixel.Frames[0];
@@ -235,14 +241,13 @@ public class Renderer : MoonTools.ECS.Renderer
 		Vector2 scale;
 		if (verticalOrHorizontal == false) // if Vertical
 		{
-			scale = new Vector2(DebugLineThickness, length);
+			scale = new Vector2(thickness, length);
 		}
 		else
 		{
-			scale = new Vector2(length, DebugLineThickness);
+			scale = new Vector2(length, thickness);
 		}
 			
-		// Horizontal Top
 		ArtSpriteBatch.Add(
 			new Vector3(position.X, position.Y, depth),
 			orientation,
@@ -478,32 +483,50 @@ public class Renderer : MoonTools.ECS.Renderer
 
 		if (ImGuiEditor.IsInLevelEditor)
 		{
-			var color = Color.Gray with { A = 150 };
-			var depth = -50f; // draw above backgrounds, but nothing else.
+			var color = new Color(ImGuiEditor.GridLineColor);
+			var depth = -(float)DepthLayer.Editor_TileOutline; // draw above backgrounds, but nothing else.
 			var verticalLength = Dimensions.TILE_ROW_COUNT * Dimensions.TILE_SIZE;
 			var horizontalLength = Dimensions.TILE_COLUMN_COUNT * Dimensions.TILE_SIZE;
 
-			for (int col = 0; col < Dimensions.TILE_COLUMN_COUNT + 1; ++col)
+			// Top line
+			var worldPos = TileManipulator.TilePosToWorldPos(0, 0);
+			DrawDebugLine(worldPos.AsVector(), horizontalLength, DebugLineThickness, true, color, depth);
+
+			// Left vertical line
+			DrawDebugLine(worldPos.AsVector(), verticalLength, DebugLineThickness, false, color, depth);
+
+			// Use twice the thickness since we're technically drawing the line twice.
+			for (int col = 1; col < Dimensions.TILE_COLUMN_COUNT; ++col)
 			{
-				DrawDebugLine(TileManipulator.TilePosToWorldPos(new Vector2(col, 0)),
-					verticalLength, false, color, depth
+				worldPos = TileManipulator.TilePosToWorldPos(col, 0);
+				DrawDebugLine(new Vector2(worldPos.X - DebugLineThickness, worldPos.Y),
+					verticalLength, DebugLineThickness * 2, false, color, depth
 				);
 			}
 
-			for (int row = 0; row < Dimensions.TILE_ROW_COUNT + 1; ++row)
+			for (int row = 1; row < Dimensions.TILE_ROW_COUNT; ++row)
 			{
-				DrawDebugLine(TileManipulator.TilePosToWorldPos(new Vector2(0, row)),
-					horizontalLength, true, color, depth
+				worldPos = TileManipulator.TilePosToWorldPos(0, row);
+				DrawDebugLine(new Vector2(worldPos.X, worldPos.Y - DebugLineThickness),
+					horizontalLength, DebugLineThickness * 2, true, color, depth
 				);
 			}
+
+			// Bottom line
+			worldPos = TileManipulator.TilePosToWorldPos(0, Dimensions.TILE_ROW_COUNT);
+			DrawDebugLine(worldPos.AsVector(), horizontalLength, DebugLineThickness, true, color, depth);
+
+			// Right vertical line
+			worldPos = TileManipulator.TilePosToWorldPos(Dimensions.TILE_COLUMN_COUNT, 0);
+			DrawDebugLine(worldPos.AsVector(), verticalLength, DebugLineThickness, false, color, depth);
 
 			if (ImGuiEditor.HoveredOverTilePosition.HasValue)
 			{
 				color = Color.White with { A = 200 };
 				var tilePos = ImGuiEditor.HoveredOverTilePosition.Value;
-				var worldPos = TileManipulator.TilePosToWorldPos(tilePos);
+				worldPos = TileManipulator.TilePosToWorldPos(tilePos);
 				var tileRect = new Rectangle(0, 0, Dimensions.TILE_SIZE, Dimensions.TILE_SIZE);
-				DrawDebugRectangle(worldPos, tileRect, color, depth);
+				DrawDebugRectangle(worldPos, tileRect, color, depth, DebugLineThickness);
 			}
 		}
 
@@ -519,30 +542,25 @@ public class Renderer : MoonTools.ECS.Renderer
 					depth = -Get<Depth>(entity).Value + 1;
 				}
 				var rect = Get<Rectangle>(entity);
-				DrawDebugRectangle(entity, rect, color, depth);
+				DrawDebugRectangle(entity, rect, color, depth, DebugLineThickness);
 			}
 		}
 
 		// Draw selection mode-related stuff
 		{
-			// Render above everything (except menus).
-			var depth = 2f;
-
-			// Not fully opaque, so we can see other debug indicators.
-			// FIXME: Scale color intensity by depth?
-			var selectionColor = Color.LimeGreen /*with { A = 210 }*/;
+			
+			var depth = -(float)DepthLayer.Editor_SelectionOutline;
 
 			var selectedEntity = ImGuiEditor.GetSelectedEntity();
 			if (selectedEntity.HasValue)
 			{
 				var entity = selectedEntity.Value;
 				var rectangle = ImGuiEditor.GetEntityVisualRect(entity).Value;
-				DrawDebugRectangle(entity, rectangle, selectionColor, depth);
-
-				// Dim the color intensity for others if there's a selected entity
-				selectionColor = Color.Lerp(selectionColor, Color.Gray, 0.5f);
+				DrawDebugRectangle(entity, rectangle, Color.LimeGreen, depth, DebugLineThickness * 4);
 			}
 
+			// FIXME: Scale color intensity by depth?
+			var selectionColor = Color.LimeGreen with { A = 210 };
 
 			if (ImGuiEditor.IsInEntitySelectionMode)
 			{
@@ -556,7 +574,7 @@ public class Renderer : MoonTools.ECS.Renderer
 					var sprite = Get<SpriteAnimation>(entity);
 					var rect = sprite.CurrentSprite.FrameRect;
 					var rectangle = new Rectangle(rect.X - rect.W / 2, rect.Y - rect.H / 2, rect.W, rect.H);
-					DrawDebugRectangle(entity, rectangle, selectionColor, depth);
+					DrawDebugRectangle(entity, rectangle, selectionColor, depth, DebugLineThickness);
 				}
 
 				foreach (var entity in DrawRectFilter.Entities)
@@ -567,7 +585,7 @@ public class Renderer : MoonTools.ECS.Renderer
 					}
 
 					var rect = Get<Rectangle>(entity);
-					DrawDebugRectangle(entity, rect, selectionColor, depth);
+					DrawDebugRectangle(entity, rect, selectionColor, depth, DebugLineThickness);
 				}
 			}
 		}

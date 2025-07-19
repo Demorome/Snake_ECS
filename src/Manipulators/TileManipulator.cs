@@ -25,7 +25,7 @@ public class TileManipulator : MoonTools.ECS.Manipulator
             Dimensions.TILE_SIZE, Dimensions.TILE_SIZE));
 
         Set(entity, new Layer(CollisionLayer.Level, CollisionLayer.StaticLevelCollider_CollidesWith));
-        Set(entity, new Depth(7)); // draw below player (depth 5)
+        Set(entity, new Depth(DepthLayer.SolidTile));
 
         return entity;
     }
@@ -46,8 +46,24 @@ public class TileManipulator : MoonTools.ECS.Manipulator
 
     public Position2D TilePosToWorldPos(Vector2 tilePos)
     {
-        return new Position2D(tilePos.X * Dimensions.TILE_SIZE,
-            tilePos.Y * Dimensions.TILE_SIZE);
+        return new Position2D(TilePosXToWorldPos((int)tilePos.X),
+            TilePosYToWorldPos((int)tilePos.Y));
+    }
+
+    public Position2D TilePosToWorldPos(int x, int y)
+    {
+        return new Position2D(TilePosXToWorldPos(x),
+            TilePosYToWorldPos(y));
+    }
+
+    public float TilePosXToWorldPos(int tilePosX)
+    {
+        return tilePosX * Dimensions.TILE_SIZE;
+    }
+
+    public float TilePosYToWorldPos(int tilePosY)
+    {
+        return tilePosY * Dimensions.TILE_SIZE;
     }
     
     public Position2D TilePosToWorldPos_Centered(Vector2 tilePos)

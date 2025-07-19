@@ -374,22 +374,29 @@ public class ImGuiEditor : MoonTools.ECS.System
     static Dictionary<string, Action<World>> LevelEditorDetachedWindows = new();
     static bool SnapToGrid = true;
     public Vector2? HoveredOverTilePosition = null;
+    public static Vector4 GridLineColor = (Color.DarkTurquoise * 0.5f).ToVector4();
 
     // Layout inspired by Elias Daler's tutorial series: https://edw.is/using-imgui-with-sfml-pt1/
     void DrawLevelEditorMainWindow()
     {
-        if (!ImGui.Begin("Level Editor", ref IsInLevelEditor))
+        bool stillOpened = IsInLevelEditor;
+        if (ImGui.Begin("Level Editor", ref stillOpened))
         {
-            return;
+            //FIXME: ImGui.Text("Level path: ");
+            //FIXME: ImGui.Text("Camera: ");
+            ImGui.Text($"Mouse world position: {Input.WorldMousePosition}");
+
+            // TODO: Snap to grid option? Not sure if I should support going off-grid yet.
+
+            ImGui.ColorEdit4("Grid Line Color", ref GridLineColor);
+
+            ImGui.End();
         }
 
-        //FIXME: ImGui.Text("Level path: ");
-        //FIXME: ImGui.Text("Camera: ");
-        ImGui.Text($"Mouse world position: {Input.WorldMousePosition}");
-
-        // TODO: Snap to grid option? Not sure if I should support going off-grid yet.
-
-        ImGui.End();
+        if (!stillOpened)
+        {
+            IsInLevelEditor = false;
+        }
     }
 
     void HandleLevelEditor()

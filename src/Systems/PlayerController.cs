@@ -46,7 +46,7 @@ public class PlayerController : MoonTools.ECS.System
 		Set(player, new CanMoveThroughDespiteCollision(CollisionLayer.Bullet));
 		//Set(player, index == 0 ? Color.Green : Color.Blue);
 		Set(player, new ColorBlend(Color.Red));
-		Set(player, new Depth(5));
+		Set(player, new Depth(DepthLayer.Player));
 		Set(player, new MaxSpeed(MaxSpeedBase));
 		Set(player, new Speed(0f));
 		Set(player, new Direction2D(Vector2.Zero));
