@@ -385,6 +385,7 @@ public class ImGuiEditor : MoonTools.ECS.System
             //FIXME: ImGui.Text("Level path: ");
             //FIXME: ImGui.Text("Camera: ");
             ImGui.Text($"Mouse world position: {Input.WorldMousePosition}");
+            ImGui.Text($"Tile position: {TileManipulator.GetTilePos(Input.WorldMousePosition)}");
 
             // TODO: Snap to grid option? Not sure if I should support going off-grid yet.
 
@@ -510,6 +511,8 @@ public class ImGuiEditor : MoonTools.ECS.System
             // We'll consider this the "selected" entity.
             var hoveredOverEntity = hoveredOverEntities[0];
             maybeSelectedEntity = hoveredOverEntity;
+
+            ImGui.SetTooltip($"{EntityToString(hoveredOverEntity)}");
 
             // Exit selection mode if we confirm our selection.
             if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
