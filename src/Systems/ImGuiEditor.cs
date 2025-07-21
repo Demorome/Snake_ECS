@@ -71,8 +71,9 @@ public class ImGuiEditor : MoonTools.ECS.System
             LevelLayers[layerID.Value].CachedEntities.Add(entity);
         }
 
+        DrawWindowMenuBar(World);
         DrawHelpWindow(World);
-        HandleDebugKeybinds(World);
+        HandleEditorKeybinds(World);
         DrawDetachedWindows(World);
         DrawEntitiesWithComponentWindows(World);
 
@@ -80,15 +81,17 @@ public class ImGuiEditor : MoonTools.ECS.System
         HandleLevelEditor();
 	}
 
-    class DebugAction
+    class EditorAction
     {
-        public DebugAction(string name, Action<World> action, bool opensWindow = false)
+        public EditorAction(string name, Action<World> action,
+            bool opensWindow = false, Func<bool> isDisabledFunc = null)
         {
             WorldAction = action;
             Name = name;
             OpensWindow = opensWindow;
+            IsDisabledFunc = isDisabledFunc;
         }
-        public DebugAction(string name, Func<bool> func)
+        public EditorAction(string name, Func<bool> func)
         {
             ToggleFunc = func;
             Name = name;
@@ -97,10 +100,26 @@ public class ImGuiEditor : MoonTools.ECS.System
         public string Name;
         public Action<World> WorldAction = null;
         public Func<bool> ToggleFunc = null;
+        public Func<bool> IsDisabledFunc = null;
         public bool OpensWindow = false;
+        public bool ShowInEditWindow = false;
+
+        public bool IsDisabled()
+        {
+            if (IsDisabledFunc != null && IsDisabledFunc())
+            {
+                return true;
+            }
+            return false;
+        }
 
         public bool? Invoke(World world)
         {
+            if (IsDisabled())
+            {
+                return false;
+            }
+
             if (WorldAction == null)
             {
                 return ToggleFunc();
@@ -120,7 +139,7 @@ public class ImGuiEditor : MoonTools.ECS.System
         }
     };
 
-    static Dictionary<ImGuiKey, DebugAction> DebugKeybinds = new()
+    static Dictionary<ImGuiKey, EditorAction> EditorHelpKeybinds = new()
     {
         { ImGuiKey.F1,                   new("Search By Component", DrawComponentTypeSearch, true)},
         { ImGuiKey.ModCtrl | ImGuiKey.T, new("Show Colliders",
@@ -129,8 +148,6 @@ public class ImGuiEditor : MoonTools.ECS.System
         { ImGuiKey.F6,                   new("Toggle Freeze All",
             () => { return GameplayState.FreezeTimeForAll = !GameplayState.FreezeTimeForAll; } )
         },
-        { ImGuiKey.ModCtrl | ImGuiKey.Z, new("Undo", UndoLastComponentChange) },
-        { ImGuiKey.ModCtrl | ImGuiKey.Y, new("Redo", RedoLastComponentChange) },
         { ImGuiKey.MouseX2,              new("Toggle Selection Mode",
              () => { return IsInEntitySelectionMode = !IsInEntitySelectionMode; } )
         },
@@ -140,6 +157,39 @@ public class ImGuiEditor : MoonTools.ECS.System
         },
         { ImGuiKey.F2,                   new("Prefabs", ShowPrefabSpawnerWindow, true )},
     };
+    
+    static Dictionary<ImGuiKey, EditorAction> EditorEditKeybinds = new()
+    {
+        { ImGuiKey.ModCtrl | ImGuiKey.Z, new("Undo", UndoLastComponentChange, false, () => ChangeHistory.Count == 0) },
+        { ImGuiKey.ModCtrl | ImGuiKey.Y, new("Redo", RedoLastComponentChange, false, () => UndoHistory.Count == 0) },
+    };
+
+
+    static void DrawWindowMenuBar(World world)
+    {
+        if (ImGui.BeginMainMenuBar())
+        {
+            if (ImGui.BeginMenu("Edit"))
+            {
+                foreach (var (keybind, editorAction) in EditorEditKeybinds)
+                {
+                    var isDisabled = editorAction.IsDisabled();
+                    if (ImGui.MenuItem(editorAction.Name, KeyComboToString(keybind), false, !isDisabled))
+                    {
+                        editorAction.Invoke(world);
+                    }
+                }
+                
+                /*
+                ImGui.Separator();
+                if (ImGui::MenuItem("Cut", "CTRL+X")) { }
+                if (ImGui::MenuItem("Copy", "CTRL+C")) {}
+                if (ImGui::MenuItem("Paste", "CTRL+V")) {}*/
+                ImGui.EndMenu();
+            }
+            ImGui.EndMainMenuBar();
+        }
+    }
 
     static void ShowPrefabSpawnerWindow(World world)
     {
@@ -984,6 +1034,16 @@ public class ImGuiEditor : MoonTools.ECS.System
         UndoRedoLastComponentChange(world, UndoHistory, ChangeHistory, true);
     }
 
+    static string KeyComboToString(ImGuiKey keyChordCombo)
+    {
+        var key = keyChordCombo & ~ImGuiKey.ModMask;
+        var modKey = keyChordCombo & ImGuiKey.ModMask;
+        // Remove first 3 chars to get rid of "Mod" prefix
+        var modKeyStr = modKey != 0 ? modKey.ToString().Remove(0, 3) + "+" : "";
+
+        return modKeyStr + (key != ImGuiKey.None ? key.ToString() : "");
+    }
+
     static void DrawHelpWindow(World world)
     {
         ImGui.Begin("Help", ImGuiWindowFlags.AlwaysAutoResize);
@@ -994,16 +1054,13 @@ public class ImGuiEditor : MoonTools.ECS.System
 
         if (ImGui.BeginTable("##Help_Table", 2, tableFlags))
         {
-            foreach (var (requiredInput, namedAction) in DebugKeybinds)
+            foreach (var (requiredInput, namedAction) in EditorHelpKeybinds)
             {
                 ImGui.TableNextRow();
 
                 ImGui.TableNextColumn();
-                var key = requiredInput & ~ImGuiKey.ModMask;
-                var modKey = requiredInput & ImGuiKey.ModMask;
-                // Remove first 3 chars to get rid of "Mod" prefix
-                var modKeyStr = modKey != 0 ? modKey.ToString().Remove(0, 3) + "+" : "";
-                ImGui.Text(modKeyStr + (key != ImGuiKey.None ? key.ToString() : ""));
+
+                ImGui.Text(KeyComboToString(requiredInput));
 
                 ImGui.TableNextColumn();
                 if (ImGui.SmallButton(namedAction.Name))
@@ -1034,9 +1091,17 @@ public class ImGuiEditor : MoonTools.ECS.System
         ImGui.End();
     }
 
-    static void HandleDebugKeybinds(World world)
+    static void HandleEditorKeybinds(World world)
     {
-        foreach (var (key, debugAction) in DebugKeybinds)
+        foreach (var (key, debugAction) in EditorHelpKeybinds)
+        {
+            if (ImGui.IsKeyChordPressed(key))
+            {
+                debugAction.Invoke(world);
+            }
+        }
+
+        foreach (var (key, debugAction) in EditorEditKeybinds)
         {
             if (ImGui.IsKeyChordPressed(key))
             {
