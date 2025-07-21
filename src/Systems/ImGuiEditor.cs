@@ -39,7 +39,7 @@ public class ImGuiEditor : MoonTools.ECS.System
 
     TileManipulator TileManipulator;
 
-    MoonTools.ECS.Filter PositionFilter;
+    MoonTools.ECS.Filter PositionFilter, LevelLayerFilter;
 
     public Entity? DebugEntity = null; // So we can stick Relations on this to safely track other entities.
     static string DebugEntityTag = "EDITOR";
@@ -47,6 +47,7 @@ public class ImGuiEditor : MoonTools.ECS.System
     public ImGuiEditor(World world) : base(world)
     {
         PositionFilter = FilterBuilder.Include<Position2D>().Build();
+        LevelLayerFilter = FilterBuilder.Include<Editor_LevelLayerID>().Build();
 
         TileManipulator = new(world);
     }
@@ -56,7 +57,18 @@ public class ImGuiEditor : MoonTools.ECS.System
         if (!DebugEntity.HasValue)
         {
             DebugEntity = World.CreateEntity(DebugEntityTag);
-            Set(DebugEntity.Value, new Editor_DontShow());
+            Set(DebugEntity.Value, new Editor_DontShowInLists());
+        }
+
+        foreach (var levelLayer in LevelLayers)
+        {
+            levelLayer.CachedEntities.Clear();
+        }
+
+        foreach (var entity in LevelLayerFilter.Entities)
+        {
+            var layerID = Get<Editor_LevelLayerID>(entity);
+            LevelLayers[layerID.Value].CachedEntities.Add(entity);
         }
 
         DrawHelpWindow(World);
@@ -144,14 +156,74 @@ public class ImGuiEditor : MoonTools.ECS.System
     const string TileSpritePrefix = "Tile_";
 
     // FIXME: Detect if a tile sprite is shared amongst different layers and report an error.
-    public static SpriteAnimationInfo SelectedTileSprite = null;
+    public static SpriteAnimationInfo SelectedSpriteToPaint = null;
     static int SelectedTileSpriteIndex = -1; 
     static bool ReplacingTileSprite = false; 
-    static int TileSpriteToReplaceIndex = -1; 
+    static int TileSpriteToReplaceIndex = -1;
+
+    class LevelLayer
+    {
+        static HashSet<string> LevelLayerNames = new();
+
+        public enum LevelLayerTypes
+        {
+            Image = 0,
+            VisualTile,
+            SolidTile
+        }
+
+        public LevelLayer(LevelLayerTypes layerType, string name = "New Layer")
+        {
+            LayerType = layerType;
+            name += " ";
+            int i = 1;
+            var testName = name + i.ToString();
+
+            lock (LevelLayerNames)
+            {
+                while (!LevelLayerNames.Add(testName))
+                {
+                    ++i;
+                    testName = name + i.ToString();
+                }
+                Name = testName;
+            }
+        }
+
+        public string Name;
+        public LevelLayerTypes LayerType { get; private set; }
+        public bool IsTiled => LayerType == LevelLayerTypes.VisualTile || LayerType == LevelLayerTypes.SolidTile;
+        // Applies to all images.
+        public Color ColorBlend = Color.White;
+        public List<(SpriteAnimationInfoID, Color)> Images = new();
+        public float Depth = -9999;
+        public bool IsVisible = true;
+        public List<Entity> CachedEntities = new();
+    }
+
+    void OnLayerVisibilityChange(LevelLayer layer)
+    {
+        if (!layer.IsVisible)
+        {
+            // Hide every entity in this layer
+            foreach (var entity in layer.CachedEntities)
+            {
+                Relate(entity, DebugEntity.Value, new DontDraw());
+            }
+        }
+        else
+        {
+            // Un-hide every entity in this layer
+            foreach (var entity in layer.CachedEntities)
+            {
+                Unrelate<DontDraw>(entity, DebugEntity.Value);
+            }
+        }
+    }
 
     unsafe static ImGuiTextFilterPtr TileSpriteSearchFilter = new(ImGuiNative.ImGuiTextFilter_ImGuiTextFilter(null));
 
-    static void DrawTileSpriteReplacementsWindow(List<string> tileSetSpriteNames)
+    static void DrawTileSpriteReplacementsWindow(LevelLayer levelLayer)
     {
         if (!ReplacingTileSprite || !ImGui.Begin("Select Tile Sprite", ref ReplacingTileSprite))
         {
@@ -159,7 +231,7 @@ public class ImGuiEditor : MoonTools.ECS.System
         }
 
         TileSpriteSearchFilter.Draw("Search");
-        
+
         foreach (var spriteName in SpriteAnimations.Names)
         {
             if (!spriteName.StartsWith(TileSpritePrefix))
@@ -171,7 +243,8 @@ public class ImGuiEditor : MoonTools.ECS.System
             {
                 if (ImGui.Selectable(spriteName))
                 {
-                    tileSetSpriteNames[TileSpriteToReplaceIndex] = spriteName;
+                    var spriteID = SpriteAnimations.NameToInfoMap[spriteName].ID;
+                    levelLayer.Images[TileSpriteToReplaceIndex] = (spriteID, Color.White);
                     TileSpriteToReplaceIndex = -1;
                     ReplacingTileSprite = false;
                 }
@@ -181,7 +254,7 @@ public class ImGuiEditor : MoonTools.ECS.System
         ImGui.End();
     }
 
-    static void ShowTileSelectionMenu(List<string> tileSetSpriteNames)
+    static void ShowTileLayerMenu(LevelLayer tileLayer)
     {
         // TODO: Color blend default override option for a specific sprite in the tileset.
 
@@ -201,32 +274,32 @@ public class ImGuiEditor : MoonTools.ECS.System
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0f, 0f));
 
         var col = 0;
-        for (int i = 0; i < tileSetSpriteNames.Count; ++i)
+        for (int i = 0; i < tileLayer.Images.Count; ++i)
         {
-            var tileSpriteName = tileSetSpriteNames[i];
+            var (spriteID, colorBlend) = tileLayer.Images[i];
 
-            SpriteAnimationInfo animInfo = SpriteAnimations.NameToInfoMap.GetValueOrDefault(
-                tileSpriteName, SpriteAnimations.EditorTile_InvalidTile
-            );
+            SpriteAnimationInfo animInfo = spriteID.ID != -1 ?
+                SpriteAnimationInfo.FromID(spriteID)
+                : SpriteAnimations.EditorTile_InvalidTile;
 
             if (animInfo.ID != SpriteAnimations.EditorTile_InvalidTile.ID)
             {
                 // FIXME: Allow sprite animations to play (simulate frame countdown?)
                 var currentFrame = animInfo.Frames[0];
 
-                bool wasSelected = SelectedTileSprite != null
-                    && SelectedTileSprite.ID == animInfo.ID
+                bool wasSelected = SelectedSpriteToPaint != null
+                    && SelectedSpriteToPaint.ID == animInfo.ID
                     && SelectedTileSpriteIndex == i;
 
                 if (wasSelected)
                 {
-                    ImGui.PushStyleColor(ImGuiCol.Button, Color.Red.ToVector4());
-                    ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Color.Red.ToVector4());
+                    ImGui.PushStyleColor(ImGuiCol.Button, Color.Green.ToVector4());
+                    ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Color.Green.ToVector4());
                 }
                 else if (ReplacingTileSprite)
                 {
-                    ImGui.PushStyleColor(ImGuiCol.Button, Color.Green.ToVector4());
-                    ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Color.Green.ToVector4());
+                    ImGui.PushStyleColor(ImGuiCol.Button, Color.Red.ToVector4());
+                    ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Color.Red.ToVector4());
                 }
 
                 if (ImGuiExtensions.ImageButton(
@@ -242,12 +315,12 @@ public class ImGuiEditor : MoonTools.ECS.System
                     ReplacingTileSprite = false;
                     if (wasSelected)
                     {
-                        SelectedTileSprite = null;
+                        SelectedSpriteToPaint = null;
                         SelectedTileSpriteIndex = -1;
                     }
                     else
                     {
-                        SelectedTileSprite = animInfo;
+                        SelectedSpriteToPaint = animInfo;
                         SelectedTileSpriteIndex = i;
                     }
                 }
@@ -268,6 +341,7 @@ public class ImGuiEditor : MoonTools.ECS.System
                     sprite.UV.LeftTop,
                     sprite.UV.RightBottom,
                     imageBgColor.ToVector4(),
+                    colorBlend.ToVector4(),
                     ImGuiBackend.SamplerType.PointClamp
                 );
             }
@@ -284,7 +358,7 @@ public class ImGuiEditor : MoonTools.ECS.System
             col %= TileSpriteColumnCount;
             if (col != 0)
             {
-                ImGui.SameLine();
+                //ImGui.SameLine();
             }
         }
 
@@ -300,79 +374,95 @@ public class ImGuiEditor : MoonTools.ECS.System
             ImGuiBackend.SamplerType.PointClamp
             ))
         {
-            tileSetSpriteNames.Add("Placeholder");
+            tileLayer.Images.Add((new SpriteAnimationInfoID(-1), Color.White));
         }
 
         ImGui.PopStyleVar(2);
         ImGui.PopStyleColor();
 
-        DrawTileSpriteReplacementsWindow(tileSetSpriteNames);
+        DrawTileSpriteReplacementsWindow(tileLayer);
     }
 
-    class TileLayer
+    List<LevelLayer> LevelLayers = new(); // FIXME: Load from level data
+    int ActiveLayerID = -1;
+    void ShowLevelLayerOptions()
     {
-        public TileLayer(string layerName, Action<World> showTilePicker)
+        if (ImGui.Begin("Level Layers"))
         {
-            Name = layerName;
-            ShowTilePicker = showTilePicker;
-        }
-        public string Name;
-        public Action<World> ShowTilePicker;
-        public bool IsVisible = true;
-    }
-
-    static int NumFillerTilesForNewTileset = 20;
-
-    static List<string> PlaceholderTileset = new()
-    {
-        "Placeholder"
-    };
-
-    static void ShowSolidTiles(World world)
-    {
-        // FIXME: Get tileset from current level data.
-        for (int i = 0; i < NumFillerTilesForNewTileset - PlaceholderTileset.Count; ++i)
-        {
-            PlaceholderTileset.Add("Placeholder");
-        }
-        ShowTileSelectionMenu(PlaceholderTileset);
-    }
-
-    static void ShowBackgroundTiles(World world)
-    {
-        //ShowTileSelectionMenu(??);
-    }
-
-    List<TileLayer> TileLayers = new()
-    {
-        new ("Solid Tiles", ShowSolidTiles),
-        new ("Background Tiles", ShowBackgroundTiles)
-    };
-
-    void ShowTileLayerOptions()
-    {
-        if (ImGui.Begin("Tile Layers"))
-        {
-            foreach (var tileLayer in TileLayers)
+            for (int i = 0; i < LevelLayers.Count; ++i)
             {
-                if (ImGui.Checkbox("##" + tileLayer.Name + "Visibility", ref tileLayer.IsVisible))
+                var layer = LevelLayers[i];
+                if (ImGui.Checkbox("##" + layer.Name + "Visibility", ref layer.IsVisible))
                 {
-                    // TODO: Hide the sprites on that layer if the layer is checked off.
+                    OnLayerVisibilityChange(layer);
                 }
                 ImGui.SameLine();
-                if (ImGui.Button(tileLayer.Name))
+                if (ImGui.Selectable(layer.Name, ActiveLayerID == i))
                 {
-                    LevelEditorDetachedWindows.TryAdd(tileLayer.Name, tileLayer.ShowTilePicker);
+                    ActiveLayerID = i;
                 }
             }
 
+            if (ImGui.Button("New"))
+            {
+                ImGui.OpenPopup("ChooseLayerType");
+            }
+            if (ImGui.BeginPopup("ChooseLayerType"))
+            {
+                ImGui.SeparatorText("Layer Type");
+                foreach (var layerType in typeof(LevelLayer.LevelLayerTypes).GetEnumValues())
+                {
+                    if (ImGui.Selectable(layerType.ToString()))
+                    {
+                        LevelLayers.Add(new LevelLayer(
+                            (LevelLayer.LevelLayerTypes)layerType,
+                            layerType.ToString() + " Layer")
+                        );
+                    }
+                }
+                ImGui.EndPopup();
+            }
+            ImGui.SameLine();
+            if (ImGui.Button("Delete") && ActiveLayerID != -1)
+            {
+                LevelLayers.RemoveAt(ActiveLayerID);
+                ActiveLayerID = -1;
+            }
+        }
+        ImGui.End();
+
+
+        // Draw separate window to show the active layer options.
+        if (ActiveLayerID != -1)
+        {
+            var layer = LevelLayers[ActiveLayerID];
+
+            bool stayOpen = true;
+            if (ImGui.Begin(layer.Name, ref stayOpen))
+            {
+                switch (layer.LayerType)
+                {
+                    case LevelLayer.LevelLayerTypes.SolidTile:
+                    case LevelLayer.LevelLayerTypes.VisualTile:
+                        ShowTileLayerMenu(layer);
+                        break;
+                    default:
+                        // TODO: 
+                        break;
+                }
+            }
             ImGui.End();
+            if (!stayOpen)
+            {
+                ActiveLayerID = -1;
+            }
         }
     }
 
     public static bool IsInLevelEditor = false;
     static Dictionary<string, Action<World>> LevelEditorDetachedWindows = new();
     static bool SnapToGrid = true;
+    public static bool ShowGrid = true;
     public Vector2? HoveredOverTilePosition = null;
     public static Vector4 GridLineColor = (Color.DarkTurquoise * 0.5f).ToVector4();
 
@@ -389,10 +479,10 @@ public class ImGuiEditor : MoonTools.ECS.System
 
             // TODO: Snap to grid option? Not sure if I should support going off-grid yet.
 
+            ImGui.Checkbox("Show Grid?", ref ShowGrid);
             ImGui.ColorEdit4("Grid Line Color", ref GridLineColor);
-
-            ImGui.End();
         }
+        ImGui.End();
 
         if (!stillOpened)
         {
@@ -408,9 +498,9 @@ public class ImGuiEditor : MoonTools.ECS.System
         }
 
         DrawLevelEditorMainWindow();
-        ShowTileLayerOptions();
+        ShowLevelLayerOptions();
 
-        foreach (var (windowTitle, drawAction) in LevelEditorDetachedWindows)
+        /*foreach (var (windowTitle, drawAction) in LevelEditorDetachedWindows)
         {
             bool dontCloseWindow = true;
             if (ImGui.Begin(windowTitle, ref dontCloseWindow))
@@ -422,29 +512,110 @@ public class ImGuiEditor : MoonTools.ECS.System
             {
                 LevelEditorDetachedWindows.Remove(windowTitle);
             }
-        }
+        }*/
         
+        // Layer painting controls.
         var mouseHoveringOverAnyWindow = ImGui.GetIO().WantCaptureMouse;
-        if (!mouseHoveringOverAnyWindow)
+        if (mouseHoveringOverAnyWindow)
         {
-            var worldMousePosition = Input.WorldMousePosition;
-            HoveredOverTilePosition = TileManipulator.GetTilePos(worldMousePosition);
-            if (HoveredOverTilePosition.HasValue)
-            {
-                if (SelectedTileSprite != null)
-                {
-                    var tileWorldPos = TileManipulator.TilePosToWorldPos_Centered(HoveredOverTilePosition.Value);
-                    if (ImGui.IsMouseDown(ImGuiMouseButton.Left))
-                    {
-                        // FIXME: What if we're drawing from background tiles etc?
+            return;
+        }
+        var mouseWorldPos = Input.WorldMousePosition;
+        HoveredOverTilePosition = TileManipulator.GetTilePos(mouseWorldPos);
+        if (!HoveredOverTilePosition.HasValue)
+        {
+            return;
+        }
+        if (ActiveLayerID == -1)
+        {
+            return;
+        }
+        var activeLayer = LevelLayers[ActiveLayerID];
+        if (SelectedSpriteToPaint != null && ImGui.IsMouseDown(ImGuiMouseButton.Left))
+        {
+            Entity? paintedEntity = null;
 
-                        // Painting the tiles to the world!
-                        // TODO: Don't spawn anything if tile is already painted in (at that tile depth; allow BG tiles for example??)
-                        TileManipulator.SpawnSolidTile(tileWorldPos, new SpriteAnimation(SelectedTileSprite));
-                    }
-                    else if (ImGui.IsMouseDown(ImGuiMouseButton.Right))
+            // Painting sprites to the world!
+            if (activeLayer.IsTiled)
+            {
+                var tileWorldPos = TileManipulator.TilePosToWorldPos_Centered(HoveredOverTilePosition.Value);
+
+                // Don't spawn anything if tile is already painted in at this level layer.
+                bool spawn = true;
+                foreach (var entity in activeLayer.CachedEntities)
+                {
+                    if (Get<Position2D>(entity) == tileWorldPos)
                     {
-                        // TODO: Delete tiles at this depth!
+                        spawn = false;
+                        break;
+                    }
+                }
+
+                if (spawn)
+                {
+                    if (activeLayer.LayerType == LevelLayer.LevelLayerTypes.SolidTile)
+                    {
+                        paintedEntity = TileManipulator.SpawnSolidTile(tileWorldPos, new SpriteAnimation(SelectedSpriteToPaint));
+                    }
+                    else
+                    {
+                        paintedEntity = CreateEntity("Visual Tile");
+                        Set(paintedEntity.Value, tileWorldPos);
+                        Set(paintedEntity.Value, new SpriteAnimation(SelectedSpriteToPaint));
+                    }
+
+                    if (SelectedTileSpriteIndex < 0)
+                    {
+                        throw new Exception("Tile sprite index should be valid here!");
+                    }
+                    Set(paintedEntity.Value, new Editor_TileSpriteIndex(SelectedTileSpriteIndex));
+                }
+            }
+            else if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+            {
+                // Assume it's an image layer.
+                paintedEntity = CreateEntity("Image");
+                Set(paintedEntity.Value, mouseWorldPos);
+                Set(paintedEntity.Value, new SpriteAnimation(SelectedSpriteToPaint));
+            }
+
+            if (paintedEntity.HasValue)
+            {
+                Set(paintedEntity.Value, new Editor_LevelLayerID(ActiveLayerID));
+
+                if (activeLayer.LayerType != LevelLayer.LevelLayerTypes.SolidTile)
+                {
+                    // FIXME: Account for depth from ActiveLayer
+                }
+
+                // FIXME: Account for color blends from ActiveLayer + selected tile blend override
+
+                // FIXME: Group together multiple entities created in a single paintbrush stroke for Undo.
+                StoreEntityCreateHistory(paintedEntity.Value, World);
+
+                //Set(paintedEntity, new Depth());
+                //Set(paintedEntity, new ColorBlend());
+            }
+        }
+        else if (ImGui.IsMouseDown(ImGuiMouseButton.Right))
+        {
+            // Delete tiles on this level layer!
+            if (activeLayer.IsTiled || ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+            {
+                var mouseHitboxRect = new Rectangle(0, 0, 1, 1);
+                var mouseWorldPosRect = mouseHitboxRect.GetWorldRect(mouseWorldPos);
+
+                // Hopefully won't need an acceleration structure for this...
+                foreach (var entity in activeLayer.CachedEntities)
+                {
+                    var rect = GetEntityVisualRect(entity);
+                    var worldRect = rect.Value.GetWorldRect(Get<Position2D>(entity));
+
+                    if (worldRect.Intersects(mouseWorldPosRect))
+                    {
+                        // FIXME: Group together deletions done while holding the mouse down
+                        StoreEntityDestroyHistory(entity, World);
+                        Destroy(entity);
                     }
                 }
             }
@@ -580,7 +751,7 @@ public class ImGuiEditor : MoonTools.ECS.System
                 if (ImGui.IsKeyDown(ImGuiKey.Delete))
                 {
                     Logger.LogInfo($"Deleted {EntityToString(selectedEntity)}");
-                    StoreEntityComponentsBeforeDestroy(selectedEntity, World, ComponentChangeHistory);
+                    StoreEntityDestroyHistory(selectedEntity, World);
                     Destroy(selectedEntity);
                     ClearRedoList();
                 }
@@ -657,13 +828,25 @@ public class ImGuiEditor : MoonTools.ECS.System
     public static bool IsInEntitySelectionMode = false;
 
     // For Ctrl+Z 'Undo' feature.
-    static Stack<(Entity, dynamic, bool)> ComponentChangeHistory = new();
+    static Stack<(Entity, dynamic, bool)> ChangeHistory = new();
+    // For Ctrl+Y 'Redo' feature.
     static Stack<(Entity, dynamic, bool)> UndoHistory = new();
 
-    static void StoreEntityComponentsBeforeDestroy(
+    static void StoreEntityDestroyHistory(Entity entity, World world)
+    {
+        StoreEntityComponents(entity, world, ChangeHistory, true);
+    }
+    static void StoreEntityCreateHistory(Entity entity, World world)
+    {
+        StoreEntityComponents(entity, world, ChangeHistory, false);
+    }
+
+    static void StoreEntityComponents(
         Entity entity,
         World world,
-        Stack<(Entity, dynamic, bool)> ToSaveComponents)
+        Stack<(Entity, dynamic, bool)> ToSaveComponents,
+        bool willBeDestroyed // else, wasCreated
+        )
     {
         var components = new List<dynamic>();
 
@@ -678,7 +861,7 @@ public class ImGuiEditor : MoonTools.ECS.System
         // Also store the tag
         components.Add(world.GetTag(entity));
 
-        ToSaveComponents.Push((entity, components, true));
+        ToSaveComponents.Push((entity, components, willBeDestroyed));
     }
 
     // For some reason, can't directly pass a `dynamic` value to an "in" param, so we use this.
@@ -753,7 +936,7 @@ public class ImGuiEditor : MoonTools.ECS.System
                 entityString = EntityToString(world, entity);
 
                 // Entity was un-deleted; re-delete it.
-                StoreEntityComponentsBeforeDestroy(entity, world, ToRememberRestore);
+                StoreEntityComponents(entity, world, ToRememberRestore, true);
                 world.Destroy(entity);
             }
 
@@ -793,12 +976,12 @@ public class ImGuiEditor : MoonTools.ECS.System
 
     static void UndoLastComponentChange(World world)
     {
-        UndoRedoLastComponentChange(world, ComponentChangeHistory, UndoHistory, false);
+        UndoRedoLastComponentChange(world, ChangeHistory, UndoHistory, false);
     }
 
     static void RedoLastComponentChange(World world)
     {
-        UndoRedoLastComponentChange(world, UndoHistory, ComponentChangeHistory, true);
+        UndoRedoLastComponentChange(world, UndoHistory, ChangeHistory, true);
     }
 
     static void DrawHelpWindow(World world)
@@ -809,7 +992,7 @@ public class ImGuiEditor : MoonTools.ECS.System
             | ImGuiTableFlags.NoHostExtendX
             | ImGuiTableFlags.SizingFixedFit;
 
-        if (ImGui.BeginTable("##Help", 2, tableFlags))
+        if (ImGui.BeginTable("##Help_Table", 2, tableFlags))
         {
             foreach (var (requiredInput, namedAction) in DebugKeybinds)
             {
@@ -833,7 +1016,8 @@ public class ImGuiEditor : MoonTools.ECS.System
                     namedAction.ToggleFunc(); // toggle it again to reset it to what it was (hacky, I know).
                     ImGui.SameLine();
 
-                    // Style manipulation is so we can shrink the checkbox; PushStyleVar would force us to change X padding too.
+                    // Style manipulation is so we can shrink the checkbox; 
+                    // PushStyleVar would force us to change X padding too.
                     var style = ImGui.GetStyle();
                     var oldYFramePadding = style.FramePadding.Y;
                     style.FramePadding.Y = 0.0f;
@@ -930,7 +1114,7 @@ public class ImGuiEditor : MoonTools.ECS.System
             foreach (var entity in world.Debug_GetEntities(componentType))
             {
                 // Don't want to spam debugger with boring/irrelevant entities.
-                if (world.Has<Editor_DontShow>(entity))
+                if (world.Has<Editor_DontShowInLists>(entity))
                 {
                     continue;
                 }
@@ -1019,7 +1203,7 @@ public class ImGuiEditor : MoonTools.ECS.System
                 }
                 else if (!doingChanges && !ImGui.IsAnyItemActive())
                 {
-                    ComponentChangeHistory.Push((entity, ComponentPriorToChange_Cached, true));
+                    ChangeHistory.Push((entity, ComponentPriorToChange_Cached, true));
                     Logger.LogInfo($"Stored prior state for {EntityToString(world, entity)}'s {ComponentPriorToChange_Cached.GetType()}: {ComponentPriorToChange_Cached}");
                     ComponentPriorToChange_Cached = null;
                 }

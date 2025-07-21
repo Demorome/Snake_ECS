@@ -25,7 +25,7 @@ public class TileManipulator : MoonTools.ECS.Manipulator
             Dimensions.TILE_SIZE, Dimensions.TILE_SIZE));
 
         Set(entity, new Layer(CollisionLayer.Level, CollisionLayer.StaticLevelCollider_CollidesWith));
-        Set(entity, new Depth(DepthLayer.SolidTile));
+        Set(entity, new Depth(DepthLayer.Tile_Solid));
 
         return entity;
     }

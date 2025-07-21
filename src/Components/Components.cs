@@ -3,6 +3,7 @@ using RollAndCash.Systems;
 using RollAndCash.Data;
 using RollAndCash.Messages;
 using System.Numerics;
+using System;
 
 namespace RollAndCash.Components;
 
@@ -92,7 +93,7 @@ public enum DepthLayer
     DefaultDepth = 1,
     Player = 5,
     Enemy = Player + 1,
-    SolidTile = Enemy + 1, // draw below actors
+    Tile_Solid = Enemy + 1, // draw below actors
 
 #if DEBUG
     Editor_TileOutline = -50,
@@ -205,5 +206,10 @@ public readonly record struct MaxMovementDistance(float Value);
 public readonly record struct CursorPosition(Vector2 Value);
 
 #if DEBUG
-    public readonly record struct Editor_DontShow();
+    public readonly record struct Editor_DontShowInLists();
+
+    // Used to track tiles entities in-editor, to auto-refresh their appearance if the tileset changes etc.
+    public readonly record struct Editor_TileSpriteIndex(int PositionInTileset);
+
+    public readonly record struct Editor_LevelLayerID(int Value);
 #endif

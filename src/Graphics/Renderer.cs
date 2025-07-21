@@ -481,7 +481,7 @@ public class Renderer : MoonTools.ECS.Renderer
 #if DEBUG
 		ArtSpriteBatch.Start();
 
-		if (ImGuiEditor.IsInLevelEditor)
+		if (ImGuiEditor.IsInLevelEditor && ImGuiEditor.ShowGrid)
 		{
 			var color = new Color(ImGuiEditor.GridLineColor);
 			var depth = -(float)DepthLayer.Editor_TileOutline; // draw above backgrounds, but nothing else.
