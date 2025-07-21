@@ -164,7 +164,6 @@ public class ImGuiEditor : MoonTools.ECS.System
         { ImGuiKey.ModCtrl | ImGuiKey.Y, new("Redo", RedoLastComponentChange, false, () => UndoHistory.Count == 0) },
     };
 
-
     static void DrawWindowMenuBar(World world)
     {
         if (ImGui.BeginMainMenuBar())
@@ -213,31 +212,49 @@ public class ImGuiEditor : MoonTools.ECS.System
 
     class LevelLayer
     {
-        static HashSet<string> LevelLayerNames = new();
+        public static HashSet<string> LevelLayerNames = new();
 
-        public enum LevelLayerTypes
+        public static void ValidateLayerName(ref string name)
         {
-            Image = 0,
-            VisualTile,
-            SolidTile
-        }
-
-        public LevelLayer(LevelLayerTypes layerType, string name = "New Layer")
-        {
-            LayerType = layerType;
             name += " ";
             int i = 1;
             var testName = name + i.ToString();
 
             lock (LevelLayerNames)
             {
-                while (!LevelLayerNames.Add(testName))
+                while (LevelLayerNames.Contains(testName))
                 {
                     ++i;
                     testName = name + i.ToString();
                 }
-                Name = testName;
+                LevelLayerNames.Add(testName);
             }
+            name = testName;
+        }
+
+        public enum LevelLayerTypes
+        {
+            Image = 0,
+            VisualTile,
+            SolidTile,
+            COUNT
+        }
+        public static string LayerTypeToString(LevelLayerTypes layerType)
+        {
+            return layerType switch 
+            {
+                LevelLayerTypes.Image => "Image",
+                LevelLayerTypes.VisualTile => "Visual Tile",
+                LevelLayerTypes.SolidTile => "Solid Tile",
+                _ => "Invalid level layer type"
+            };
+        }
+
+        public LevelLayer(LevelLayerTypes layerType, string name = "New Layer")
+        {
+            LayerType = layerType;
+            ValidateLayerName(ref name);
+            Name = name;
         }
 
         public string Name;
@@ -435,6 +452,7 @@ public class ImGuiEditor : MoonTools.ECS.System
 
     List<LevelLayer> LevelLayers = new(); // FIXME: Load from level data
     int ActiveLayerID = -1;
+    int SelectedLayerID = -1;
     void ShowLevelLayerOptions()
     {
         if (ImGui.Begin("Level Layers"))
@@ -447,9 +465,37 @@ public class ImGuiEditor : MoonTools.ECS.System
                     OnLayerVisibilityChange(layer);
                 }
                 ImGui.SameLine();
-                if (ImGui.Selectable(layer.Name, ActiveLayerID == i))
+
+                if (ImGui.Selectable(layer.Name, SelectedLayerID == i, ImGuiSelectableFlags.AllowDoubleClick))
                 {
-                    ActiveLayerID = i;
+                    SelectedLayerID = i;
+                    if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
+                    {
+                        ActiveLayerID = i;
+                    }
+                }
+
+                if (ImGui.BeginPopup($"RenameLayer{i}"))
+                {
+                    string newName = layer.Name;
+                    for (int c = newName.Length - 1; c >= 0; --c)
+                    {
+                        if (char.IsAsciiDigit(newName[c]) || char.IsWhiteSpace(newName[c]))
+                        {
+                            newName = newName.Remove(c, 1);
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                    if (ImGui.InputText("##RenameLayerText", ref newName, 100, ImGuiInputTextFlags.EnterReturnsTrue))
+                    {
+                        LevelLayer.LevelLayerNames.Remove(layer.Name);
+                        LevelLayer.ValidateLayerName(ref newName);
+                        layer.Name = newName;
+                    }
+                    ImGui.EndPopup();
                 }
             }
 
@@ -460,23 +506,30 @@ public class ImGuiEditor : MoonTools.ECS.System
             if (ImGui.BeginPopup("ChooseLayerType"))
             {
                 ImGui.SeparatorText("Layer Type");
-                foreach (var layerType in typeof(LevelLayer.LevelLayerTypes).GetEnumValues())
+                for (int i = 0; i < (int)LevelLayer.LevelLayerTypes.COUNT; ++i)
                 {
-                    if (ImGui.Selectable(layerType.ToString()))
+                    var layerType = (LevelLayer.LevelLayerTypes)i;
+                    var layerTypeStr = LevelLayer.LayerTypeToString(layerType);
+                    if (ImGui.Selectable(layerTypeStr))
                     {
-                        LevelLayers.Add(new LevelLayer(
-                            (LevelLayer.LevelLayerTypes)layerType,
-                            layerType.ToString() + " Layer")
+                        LevelLayers.Add(new LevelLayer(layerType, layerTypeStr + " Layer")
                         );
                     }
                 }
                 ImGui.EndPopup();
             }
+
             ImGui.SameLine();
-            if (ImGui.Button("Delete") && ActiveLayerID != -1)
+            if (ImGui.Button("Delete") && SelectedLayerID != -1)
             {
-                LevelLayers.RemoveAt(ActiveLayerID);
-                ActiveLayerID = -1;
+                LevelLayers.RemoveAt(SelectedLayerID);
+                SelectedLayerID = -1;
+            }
+
+            ImGui.SameLine();
+            if (ImGui.Button("Rename") && SelectedLayerID != -1)
+            {
+                ImGui.OpenPopup($"RenameLayer{SelectedLayerID}");
             }
         }
         ImGui.End();
