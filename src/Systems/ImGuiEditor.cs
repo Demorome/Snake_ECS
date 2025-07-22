@@ -153,7 +153,6 @@ public class ImGuiEditor : MoonTools.ECS.System
         },
         { ImGuiKey.None,                 new("Toggle Level Editor",
             () => { return IsInLevelEditor = !IsInLevelEditor; } )
-            // FIXME: Once had a startup where ImGui was unresponsive and this was flickering back and forth (undefined behavior somewhere??)
         },
         { ImGuiKey.F2,                   new("Prefabs", ShowPrefabSpawnerWindow, true )},
     };
@@ -201,13 +200,11 @@ public class ImGuiEditor : MoonTools.ECS.System
         // TODO: If spawned, add to change history.
     }
 
-    const int TileSpriteColumnCount = 10;
     const string TileSpritePrefix = "Tile_";
 
     // FIXME: Detect if a tile sprite is shared amongst different layers and report an error.
     public static SpriteAnimationInfo SelectedSpriteToPaint = null;
     static int SelectedTileSpriteIndex = -1; 
-    static bool ReplacingTileSprite = false; 
     static int TileSpriteToReplaceIndex = -1;
 
     class LevelLayer
@@ -263,6 +260,7 @@ public class ImGuiEditor : MoonTools.ECS.System
         // Applies to all images.
         public Color ColorBlend = Color.White;
         public List<(SpriteAnimationInfoID, Color)> Images = new();
+        public int ImagesPerRow = 8;
         public float Depth = -9999;
         public bool IsVisible = true;
         public List<Entity> CachedEntities = new();
@@ -292,33 +290,36 @@ public class ImGuiEditor : MoonTools.ECS.System
 
     static void DrawTileSpriteReplacementsWindow(LevelLayer levelLayer)
     {
-        if (!ReplacingTileSprite || !ImGui.Begin("Select Tile Sprite", ref ReplacingTileSprite))
+        bool replacingTileSprite = TileSpriteToReplaceIndex != -1;
+        if (ImGui.Begin("Select Tile Sprite", ref replacingTileSprite))
         {
-            return;
-        }
+            TileSpriteSearchFilter.Draw("Search");
 
-        TileSpriteSearchFilter.Draw("Search");
-
-        foreach (var spriteName in SpriteAnimations.Names)
-        {
-            if (!spriteName.StartsWith(TileSpritePrefix))
+            foreach (var spriteName in SpriteAnimations.Names)
             {
-                continue;
-            }
-
-            if (TypeSearchFilter.PassFilter(spriteName))
-            {
-                if (ImGui.Selectable(spriteName))
+                if (!spriteName.StartsWith(TileSpritePrefix))
                 {
-                    var spriteID = SpriteAnimations.NameToInfoMap[spriteName].ID;
-                    levelLayer.Images[TileSpriteToReplaceIndex] = (spriteID, Color.White);
-                    TileSpriteToReplaceIndex = -1;
-                    ReplacingTileSprite = false;
+                    continue;
+                }
+
+                if (TypeSearchFilter.PassFilter(spriteName))
+                {
+                    if (ImGui.Selectable(spriteName))
+                    {
+                        var spriteID = SpriteAnimations.NameToInfoMap[spriteName].ID;
+                        levelLayer.Images[TileSpriteToReplaceIndex] = (spriteID, Color.White);
+                        TileSpriteToReplaceIndex = -1;
+                        break;
+                    }
                 }
             }
         }
-
         ImGui.End();
+
+        if (!replacingTileSprite)
+        {
+            TileSpriteToReplaceIndex = -1;
+        }
     }
 
     static void ShowTileLayerMenu(LevelLayer tileLayer)
@@ -330,17 +331,19 @@ public class ImGuiEditor : MoonTools.ECS.System
         // TODO: Changing color blend overrides applies it to already placed world tiles.
 
         var imageBgColor = Color.Transparent;
-        var scalingFactor = ImGui.GetWindowViewport().Size / Dimensions.GAME_DIMENSIONS;
+        var layerColorBlend = tileLayer.ColorBlend;
 
+        var scalingFactor = ImGui.GetWindowViewport().Size / Dimensions.GAME_DIMENSIONS;
+        var tileSizeScaled = Dimensions.TILE_DIMENSIONS * scalingFactor;
+        
         // Draw with 1 pixel gaps between sprites.
         // Helpful explanation: https://github.com/ocornut/imgui/issues/4216#issuecomment-860007592
         // FIXME: How to have gray outline but not make the background for the image gray??
         ImGui.PushStyleColor(ImGuiCol.Button, Color.Gray.ToVector4());
-        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(1.0f, 1.0f));
+        ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(2.0f, 2.0f));
         //ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(1.0f, 1.0f));
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0f, 0f));
 
-        var col = 0;
         for (int i = 0; i < tileLayer.Images.Count; ++i)
         {
             var (spriteID, colorBlend) = tileLayer.Images[i];
@@ -349,37 +352,44 @@ public class ImGuiEditor : MoonTools.ECS.System
                 SpriteAnimationInfo.FromID(spriteID)
                 : SpriteAnimations.EditorTile_InvalidTile;
 
-            if (animInfo.ID != SpriteAnimations.EditorTile_InvalidTile.ID)
+            bool invalid = animInfo.ID == SpriteAnimations.EditorTile_InvalidTile.ID;
+
+            // FIXME: Allow sprite animations to play (simulate frame countdown?)
+            var currentFrame = animInfo.Frames[0];
+
+            bool wasSelected = SelectedSpriteToPaint != null
+                && SelectedSpriteToPaint.ID == animInfo.ID
+                && SelectedTileSpriteIndex == i;
+
+            if (i == TileSpriteToReplaceIndex)
             {
-                // FIXME: Allow sprite animations to play (simulate frame countdown?)
-                var currentFrame = animInfo.Frames[0];
+                ImGui.PushStyleColor(ImGuiCol.Button, Color.Red.ToVector4());
+                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Color.Red.ToVector4());
+            }
+            else if (wasSelected)
+            {
+                ImGui.PushStyleColor(ImGuiCol.Button, Color.Purple.ToVector4());
+                ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Color.Purple.ToVector4());
+            }
 
-                bool wasSelected = SelectedSpriteToPaint != null
-                    && SelectedSpriteToPaint.ID == animInfo.ID
-                    && SelectedTileSpriteIndex == i;
-
-                if (wasSelected)
+            if (ImGuiExtensions.ImageButton(
+                i.ToString(),
+                currentFrame.Texture,
+                tileSizeScaled,
+                currentFrame.UV.LeftTop,
+                currentFrame.UV.RightBottom,
+                invalid ? Color.White.ToVector4() : imageBgColor.ToVector4(),
+                Color.Lerp(layerColorBlend, colorBlend, 0.5f).ToVector4(),
+                ImGuiBackend.SamplerType.PointClamp
+                ))
+            {
+                if (invalid)
                 {
-                    ImGui.PushStyleColor(ImGuiCol.Button, Color.Green.ToVector4());
-                    ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Color.Green.ToVector4());
+                    TileSpriteToReplaceIndex = i;
                 }
-                else if (ReplacingTileSprite)
+                else
                 {
-                    ImGui.PushStyleColor(ImGuiCol.Button, Color.Red.ToVector4());
-                    ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Color.Red.ToVector4());
-                }
-
-                if (ImGuiExtensions.ImageButton(
-                    i.ToString(),
-                    currentFrame.Texture,
-                    currentFrame.SliceSize * scalingFactor,
-                    currentFrame.UV.LeftTop,
-                    currentFrame.UV.RightBottom,
-                    imageBgColor.ToVector4(),
-                    ImGuiBackend.SamplerType.PointClamp
-                    ))
-                {
-                    ReplacingTileSprite = false;
+                    TileSpriteToReplaceIndex = -1;
                     if (wasSelected)
                     {
                         SelectedSpriteToPaint = null;
@@ -391,43 +401,31 @@ public class ImGuiEditor : MoonTools.ECS.System
                         SelectedTileSpriteIndex = i;
                     }
                 }
-
-                if (wasSelected || ReplacingTileSprite)
-                {
-                    ImGui.PopStyleColor(2);
-                }
             }
-            else
+
+            if (wasSelected || i == TileSpriteToReplaceIndex)
             {
-                // FIXME: Make this not a button. Somehow, that makes this not show up??
-                var sprite = SpriteAnimations.EditorTile_InvalidTile.Frames[0];
-                ImGuiExtensions.ImageButton(
-                     i.ToString(),
-                    sprite.Texture,
-                    sprite.SliceSize * scalingFactor,
-                    sprite.UV.LeftTop,
-                    sprite.UV.RightBottom,
-                    imageBgColor.ToVector4(),
-                    colorBlend.ToVector4(),
-                    ImGuiBackend.SamplerType.PointClamp
-                );
+                ImGui.PopStyleColor(2);
             }
 
             // TODO: Right-clicking on a sprite opens a menu to replace the sprite for any other "Tile"-named sprite
             // TODO: Highlight this sprite tile as green when selected this way.
             if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
             {
-                ReplacingTileSprite = true;
                 TileSpriteToReplaceIndex = i;
             }
 
-            ++col;
-            col %= TileSpriteColumnCount;
-            if (col != 0)
+            if (i == 0 || (i % (tileLayer.ImagesPerRow - 1)) != 0)
             {
-                //ImGui.SameLine();
+                ImGui.SameLine();
             }
         }
+
+        ImGui.PopStyleVar(2);
+        ImGui.PopStyleColor();
+
+        ImGui.NewLine();
+        ImGui.Separator();
 
         // Draw a "[+]" square image that, if pressed, adds a new sprite slot for the tileset.
         var plusSprite = SpriteAnimations.EditorTile_Plus.Frames[0];
@@ -443,11 +441,40 @@ public class ImGuiEditor : MoonTools.ECS.System
         {
             tileLayer.Images.Add((new SpriteAnimationInfoID(-1), Color.White));
         }
+        ImGui.SameLine();
+        ImGui.TextWrapped("Add new tiles");
 
-        ImGui.PopStyleVar(2);
-        ImGui.PopStyleColor();
+        var colorBlendVec = layerColorBlend.ToVector4();
+        if (ImGui.ColorEdit4("Layer Color Blend", ref colorBlendVec))
+        {
+            tileLayer.ColorBlend = new Color(colorBlendVec);
+        }
 
-        DrawTileSpriteReplacementsWindow(tileLayer);
+        var tileColor = Color.White.ToVector4();
+        if (SelectedTileSpriteIndex == -1)
+        {
+            ImGui.BeginDisabled();
+        }
+        else
+        {
+            tileColor = tileLayer.Images[SelectedTileSpriteIndex].Item2.ToVector4();
+        }
+        if (ImGui.ColorEdit4("Tile Color Blend", ref tileColor))
+        {
+            var (spriteID, color) = tileLayer.Images[SelectedTileSpriteIndex];
+            tileLayer.Images[SelectedTileSpriteIndex] = (spriteID, new Color(tileColor));
+        }
+        if (SelectedTileSpriteIndex == -1)
+        {
+            ImGui.EndDisabled();
+        }
+
+        ImGui.InputInt("Tiles per row", ref tileLayer.ImagesPerRow);
+
+        if (TileSpriteToReplaceIndex != -1)
+        {
+            DrawTileSpriteReplacementsWindow(tileLayer);
+        }
     }
 
     List<LevelLayer> LevelLayers = new(); // FIXME: Load from level data
@@ -489,6 +516,7 @@ public class ImGuiEditor : MoonTools.ECS.System
                             break;
                         }
                     }
+                    // FIXME: Would be nice if we could prevent numbers from being input here...
                     if (ImGui.InputText("##RenameLayerText", ref newName, 100, ImGuiInputTextFlags.EnterReturnsTrue))
                     {
                         LevelLayer.LevelLayerNames.Remove(layer.Name);
@@ -794,6 +822,7 @@ public class ImGuiEditor : MoonTools.ECS.System
                 IsInEntitySelectionMode = false;
                 Logger.LogInfo($"Selected {EntityToString(hoveredOverEntity)}");
             }
+
             // Switch selection to one of greater/lower depth at the same mouse position.
             else if (ImGui.IsKeyPressed(ImGuiKey.UpArrow))
             {
@@ -1107,13 +1136,12 @@ public class ImGuiEditor : MoonTools.ECS.System
 
         if (ImGui.BeginTable("##Help_Table", 2, tableFlags))
         {
-            foreach (var (requiredInput, namedAction) in EditorHelpKeybinds)
+            foreach (var (keybind, namedAction) in EditorHelpKeybinds)
             {
                 ImGui.TableNextRow();
 
                 ImGui.TableNextColumn();
-
-                ImGui.Text(KeyComboToString(requiredInput));
+                ImGui.Text(KeyComboToString(keybind));
 
                 ImGui.TableNextColumn();
                 if (ImGui.SmallButton(namedAction.Name))
@@ -1148,7 +1176,7 @@ public class ImGuiEditor : MoonTools.ECS.System
     {
         foreach (var (key, debugAction) in EditorHelpKeybinds)
         {
-            if (ImGui.IsKeyChordPressed(key))
+            if (key != ImGuiKey.None && ImGui.IsKeyChordPressed(key))
             {
                 debugAction.Invoke(world);
             }
@@ -1156,7 +1184,7 @@ public class ImGuiEditor : MoonTools.ECS.System
 
         foreach (var (key, debugAction) in EditorEditKeybinds)
         {
-            if (ImGui.IsKeyChordPressed(key))
+            if (key != ImGuiKey.None && ImGui.IsKeyChordPressed(key))
             {
                 debugAction.Invoke(world);
             }
