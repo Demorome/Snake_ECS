@@ -1,15 +1,18 @@
 #if DEBUG
 using System.Collections.Generic;
 using MoonTools.ECS;
+using MoonWorks;
 using MoonWorks.Graphics;
+using RollAndCash.Components;
 using RollAndCash.Data;
+using RollAndCash.Relations;
+using RollAndCash.Systems;
 
 namespace RollAndCash.Editor;
 
 public class LevelLayer
 {
     public static HashSet<string> LevelLayerNames = new();
-
     public static void ValidateLayerName(ref string name)
     {
         name += " ";
@@ -35,6 +38,138 @@ public class LevelLayer
         SolidTile,
         COUNT
     }
+
+    public LevelLayer(LevelLayerTypes layerType, string name = "New Layer")
+    {
+        LayerType = layerType;
+        ValidateLayerName(ref name);
+        Name = name;
+
+        if (layerType == LevelLayerTypes.SolidTile)
+        {
+            Depth = (float)DepthLayer.Tile_Solid;
+        }
+    }
+
+    public string Name;
+    public LevelLayerTypes LayerType { get; private set; }
+    public bool IsTiled => LayerType == LevelLayerTypes.VisualTile || LayerType == LevelLayerTypes.SolidTile;
+    // Applies to all images.
+    public Color ColorBlend { get; private set; } = Color.White;
+    public List<(SpriteAnimationInfoID, Color)> Images { get; private set; } = new();
+    public int ImagesPerRow = 8;
+    public float Depth { get; private set; } = -2;
+    public bool IsDepthLocked => LayerType == LevelLayerTypes.SolidTile;
+    public bool IsVisible { get; private set; } = true;
+    public List<Entity> CachedEntities = new();
+
+    public void ReplaceImage(int tileSpriteID, SpriteAnimationInfoID newImageID, World world)
+    {
+        Images[tileSpriteID] = (newImageID, Color.White);
+        var spriteAnimInfo = SpriteAnimationInfo.FromID(newImageID);
+
+        // Update the image for every entity in this layer that was using the old one.
+        foreach (var entity in CachedEntities)
+        {
+            if (!world.Has<Editor_TileSpriteID>(entity))
+            {
+                Logger.LogError("Entity should have a Editor_TileSpriteIndex component here!");
+                continue;
+            }
+            var entityTileSpriteID = world.Get<Editor_TileSpriteID>(entity);
+            if (tileSpriteID == entityTileSpriteID.ID)
+            {
+                world.Set(entity, new SpriteAnimation(spriteAnimInfo));
+                world.Set(entity, new ColorBlend(MixLayerColorWithTileColor(Color.White)));
+            }
+        }
+    }
+
+    public void ToggleVisibility(World world, Entity debugEntity)
+    {
+        IsVisible = !IsVisible;
+        if (!IsVisible)
+        {
+            // Hide every entity in this layer
+            foreach (var entity in CachedEntities)
+            {
+                world.Relate(entity, debugEntity, new DontDraw());
+            }
+        }
+        else
+        {
+            // Un-hide every entity in this layer
+            foreach (var entity in CachedEntities)
+            {
+                world.Unrelate<DontDraw>(entity, debugEntity);
+            }
+        }
+    }
+
+    public Color MixLayerColorWithTileColor(Color tileColorBlend)
+    {
+        return Color.Lerp(ColorBlend, tileColorBlend, 0.5f);
+    }
+
+    public void ChangeLayerColorBlend(Color newColor, World world)
+    {
+        ColorBlend = newColor;
+
+        // Recalculate the color blend for each entity in this layer.
+        foreach (var entity in CachedEntities)
+        {
+            if (!world.Has<Editor_TileSpriteID>(entity))
+            {
+                Logger.LogError("Entity should have a Editor_TileSpriteIndex component here!");
+                continue;
+            }
+            var tileSpriteIndex = world.Get<Editor_TileSpriteID>(entity).ID;
+            var tileColorBlend = Images[tileSpriteIndex].Item2;
+
+            world.Set(entity, new ColorBlend(MixLayerColorWithTileColor(tileColorBlend)));
+        }
+    }
+
+    public void ChangeTileColorBlend(Editor_TileSpriteID tileSpriteID, Color newColor, World world)
+    {
+        var (spriteID, oldTileColorBlend) = Images[tileSpriteID.ID];
+        Images[tileSpriteID.ID] = (spriteID, newColor);
+
+        // Recalculate the color blend for each entity in this layer that uses this tile sprite.
+        foreach (var entity in CachedEntities)
+        {
+            if (!world.Has<Editor_TileSpriteID>(entity))
+            {
+                Logger.LogError("Entity should have a Editor_TileSpriteIndex component here!");
+                continue;
+            }
+
+            if (world.Get<Editor_TileSpriteID>(entity).ID == tileSpriteID.ID)
+            {
+                world.Set(entity, new ColorBlend(MixLayerColorWithTileColor(newColor)));
+            }
+        }
+    }
+
+    public void OnDepthChange(World world)
+    {
+        // FIXME: 
+    }
+
+    public void DeleteLayerCleanup(World world)
+    {
+        // Deleting a layer deletes all entities in it.
+        // FIXME: Undo support!
+        // FIXME: If undone, need to re-apply relationship data too.
+        // Ex: DebugEntiy DontDraw relation, if the layer was made invisible.
+        foreach (var entity in CachedEntities)
+        {
+            world.Destroy(entity);
+        }
+
+        // FIXME: Update Editor_LevelLayerID components for entities in other layers!!!!
+    }
+    
     public static string LayerTypeToString(LevelLayerTypes layerType)
     {
         return layerType switch
@@ -45,24 +180,6 @@ public class LevelLayer
             _ => "Invalid level layer type"
         };
     }
-
-    public LevelLayer(LevelLayerTypes layerType, string name = "New Layer")
-    {
-        LayerType = layerType;
-        ValidateLayerName(ref name);
-        Name = name;
-    }
-
-    public string Name;
-    public LevelLayerTypes LayerType { get; private set; }
-    public bool IsTiled => LayerType == LevelLayerTypes.VisualTile || LayerType == LevelLayerTypes.SolidTile;
-    // Applies to all images.
-    public Color ColorBlend = Color.White;
-    public List<(SpriteAnimationInfoID, Color)> Images = new();
-    public int ImagesPerRow = 8;
-    public float Depth = -9999;
-    public bool IsVisible = true;
-    public List<Entity> CachedEntities = new();
 }
 
 #endif

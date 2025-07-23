@@ -102,44 +102,21 @@ public class EditorSystem : MoonTools.ECS.System
     const string TileSpritePrefix = "Tile_";
     static int TileSpriteToReplaceIndex = -1;
     static int SelectedTileSpriteIndex = -1;
-    public SpriteAnimationInfo GetSelectedSpriteToPaint()
+    public (SpriteAnimationInfo, Color) GetSelectedSpriteToPaint()
     {
         if (SelectedTileSpriteIndex == -1 || ActiveLayerID == -1)
         {
-            return null;
+            return (null, Color.Transparent);
         }
-        return SpriteAnimationInfo.FromID(LevelLayers[ActiveLayerID].Images[SelectedTileSpriteIndex].Item1);
-    }
-    public Color GetSelectedSpriteColor()
-    {
-        var tileSetColor = LevelLayers[ActiveLayerID].ColorBlend;
-        var tileColor = LevelLayers[ActiveLayerID].Images[SelectedTileSpriteIndex].Item2;
-        return Color.Lerp(tileSetColor, tileColor, 0.5f);
-    }
-
-    void OnLayerVisibilityChange(LevelLayer layer)
-    {
-        if (!layer.IsVisible)
-        {
-            // Hide every entity in this layer
-            foreach (var entity in layer.CachedEntities)
-            {
-                Relate(entity, DebugEntity.Value, new DontDraw());
-            }
-        }
-        else
-        {
-            // Un-hide every entity in this layer
-            foreach (var entity in layer.CachedEntities)
-            {
-                Unrelate<DontDraw>(entity, DebugEntity.Value);
-            }
-        }
+        var activeLayer = LevelLayers[ActiveLayerID];
+        var (spriteID, color) = activeLayer.Images[SelectedTileSpriteIndex];
+        color = activeLayer.MixLayerColorWithTileColor(color);
+        return (SpriteAnimationInfo.FromID(spriteID), color);
     }
 
     unsafe static ImGuiTextFilterPtr TileSpriteSearchFilter = new(ImGuiNative.ImGuiTextFilter_ImGuiTextFilter(null));
 
-    static void DrawTileSpriteReplacementsPopup(LevelLayer levelLayer)
+    void DrawTileSpriteReplacementsPopup(LevelLayer levelLayer)
     {
         if (ImGui.BeginPopup("##SelectTileSprite"))
         {
@@ -159,7 +136,7 @@ public class EditorSystem : MoonTools.ECS.System
                     if (ImGui.Selectable(spriteName))
                     {
                         var spriteID = SpriteAnimations.NameToInfoMap[spriteName].ID;
-                        levelLayer.Images[TileSpriteToReplaceIndex] = (spriteID, Color.White);
+                        levelLayer.ReplaceImage(TileSpriteToReplaceIndex, spriteID, World);
                         TileSpriteToReplaceIndex = -1;
                         break;
                     }
@@ -182,7 +159,6 @@ public class EditorSystem : MoonTools.ECS.System
         // TODO: Changing color blend overrides applies it to already placed world tiles.
 
         var imageBgColor = Color.Transparent;
-        var layerColorBlend = tileLayer.ColorBlend;
 
         var scalingFactor = ImGui.GetWindowViewport().Size / Dimensions.GAME_DIMENSIONS;
         var tileSizeScaled = Dimensions.TILE_DIMENSIONS * scalingFactor;
@@ -208,7 +184,7 @@ public class EditorSystem : MoonTools.ECS.System
             // FIXME: Allow sprite animations to play (simulate frame countdown?)
             var currentFrame = animInfo.Frames[0];
 
-            bool selected = GetSelectedSpriteToPaint() != null;
+            bool selected = i == SelectedTileSpriteIndex;
 
             if (i == TileSpriteToReplaceIndex)
             {
@@ -228,7 +204,7 @@ public class EditorSystem : MoonTools.ECS.System
                 currentFrame.UV.LeftTop,
                 currentFrame.UV.RightBottom,
                 invalid ? Color.White.ToVector4() : imageBgColor.ToVector4(),
-                Color.Lerp(layerColorBlend, colorBlend, 0.5f).ToVector4(),
+                tileLayer.MixLayerColorWithTileColor(colorBlend).ToVector4(),
                 ImGuiBackend.SamplerType.PointClamp
                 ))
             {
@@ -262,7 +238,7 @@ public class EditorSystem : MoonTools.ECS.System
                 TileSpriteToReplaceIndex = i;
             }
 
-            if (i == 0 || (i % (tileLayer.ImagesPerRow - 1)) != 0)
+            if (((i + 1) % tileLayer.ImagesPerRow) != 0)
             {
                 ImGui.SameLine();
             }
@@ -291,10 +267,10 @@ public class EditorSystem : MoonTools.ECS.System
         ImGui.SameLine();
         ImGui.TextWrapped("Add new tiles");
 
-        var colorBlendVec = layerColorBlend.ToVector4();
+        var colorBlendVec = tileLayer.ColorBlend.ToVector4();
         if (ImGui.ColorEdit4("Layer Color Blend", ref colorBlendVec))
         {
-            tileLayer.ColorBlend = new Color(colorBlendVec);
+            tileLayer.ChangeLayerColorBlend(new Color(colorBlendVec), World);
         }
 
         var tileColor = Color.White.ToVector4();
@@ -308,8 +284,8 @@ public class EditorSystem : MoonTools.ECS.System
         }
         if (ImGui.ColorEdit4("Tile Color Blend", ref tileColor))
         {
-            var (spriteID, color) = tileLayer.Images[SelectedTileSpriteIndex];
-            tileLayer.Images[SelectedTileSpriteIndex] = (spriteID, new Color(tileColor));
+            tileLayer.ChangeTileColorBlend(new Editor_TileSpriteID(SelectedTileSpriteIndex),
+                new Color(tileColor), World);
         }
         if (SelectedTileSpriteIndex == -1)
         {
@@ -317,6 +293,7 @@ public class EditorSystem : MoonTools.ECS.System
         }
 
         ImGui.InputInt("Tiles per row", ref tileLayer.ImagesPerRow);
+        tileLayer.ImagesPerRow = int.Max(1, tileLayer.ImagesPerRow);
 
         if (TileSpriteToReplaceIndex != -1)
         {
@@ -324,16 +301,22 @@ public class EditorSystem : MoonTools.ECS.System
         }
     }
 
+    public int HoveredOverLayerID = -1;
+    public LevelLayer HoveredOverLayer => HoveredOverLayerID == -1 ? null : LevelLayers[HoveredOverLayerID];
+
     void ShowLevelLayerOptions()
     {
+        HoveredOverLayerID = -1;
+
         if (ImGui.Begin("Level Layers"))
         {
             for (int i = 0; i < LevelLayers.Count; ++i)
             {
                 var layer = LevelLayers[i];
-                if (ImGui.Checkbox("##" + layer.Name + "Visibility", ref layer.IsVisible))
+                var isVisible = layer.IsVisible;
+                if (ImGui.Checkbox("##" + layer.Name + "Visibility", ref isVisible))
                 {
-                    OnLayerVisibilityChange(layer);
+                    layer.ToggleVisibility(World, DebugEntity.Value);
                 }
                 ImGui.SameLine();
 
@@ -343,8 +326,17 @@ public class EditorSystem : MoonTools.ECS.System
                     if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
                     {
                         ActiveLayerID = i;
+                        SelectedTileSpriteIndex = -1;
                     }
                 }
+                if (ImGui.IsItemHovered())
+                {
+                    HoveredOverLayerID = i;
+                }
+
+                ImGui.SameLine();
+                ImGui.TextColored(Color.Green.ToVector4(),
+                    $"\tDepth: {layer.Depth}" + (layer.IsDepthLocked ? " (Locked)" : ""));
 
                 if (ImGui.BeginPopup($"RenameLayer{i}"))
                 {
@@ -393,6 +385,18 @@ public class EditorSystem : MoonTools.ECS.System
             ImGui.SameLine();
             if (ImGui.Button("Delete") && SelectedLayerID != -1)
             {
+                if (ActiveLayerID == SelectedLayerID)
+                {
+                    ActiveLayerID = -1;
+                    SelectedTileSpriteIndex = -1; // Just in case
+                }
+                if (HoveredOverLayerID == SelectedLayerID)
+                {
+                    HoveredOverLayerID = -1;
+                }
+
+                // Deleting a layer deletes all entities in it.
+                LevelLayers[SelectedLayerID].DeleteLayerCleanup(World);
                 LevelLayers.RemoveAt(SelectedLayerID);
                 SelectedLayerID = -1;
             }
@@ -505,7 +509,7 @@ public class EditorSystem : MoonTools.ECS.System
             return;
         }
         var activeLayer = LevelLayers[ActiveLayerID];
-        var selectedSprite = GetSelectedSpriteToPaint();
+        var (selectedSprite, selectedColor) = GetSelectedSpriteToPaint();
         if (selectedSprite != null && ImGui.IsMouseDown(ImGuiMouseButton.Left))
         {
             Entity? paintedEntity = null;
@@ -543,7 +547,7 @@ public class EditorSystem : MoonTools.ECS.System
                     {
                         throw new Exception("Tile sprite index should be valid here!");
                     }
-                    Set(paintedEntity.Value, new Editor_TileSpriteIndex(SelectedTileSpriteIndex));
+                    Set(paintedEntity.Value, new Editor_TileSpriteID(SelectedTileSpriteIndex));
                 }
             }
             else if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
@@ -558,12 +562,8 @@ public class EditorSystem : MoonTools.ECS.System
             {
                 Set(paintedEntity.Value, new Editor_LevelLayerID(ActiveLayerID));
 
-                if (activeLayer.LayerType != LevelLayer.LevelLayerTypes.SolidTile)
-                {
-                    // FIXME: Account for depth from ActiveLayer
-                }
-
-                // FIXME: Account for color blends from ActiveLayer + selected tile blend override
+                // Account for color blends from ActiveLayer + selected tile blend override
+                Set(paintedEntity.Value, new ColorBlend(activeLayer.MixLayerColorWithTileColor(selectedColor)));
 
                 // FIXME: Group together multiple entities created in a single paintbrush stroke for Undo.
                 UndoRedo.StoreEntityCreateHistory(paintedEntity.Value, World);

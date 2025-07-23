@@ -27,7 +27,7 @@ public class Renderer : MoonTools.ECS.Renderer
 
 	SpriteBatch ArtSpriteBatch;
 #if DEBUG
-	EditorSystem ImGuiEditor;
+	EditorSystem EditorSystem;
 	public static bool DrawDebugColliders = false;
 	TileManipulator TileManipulator;
 #endif
@@ -53,7 +53,7 @@ public class Renderer : MoonTools.ECS.Renderer
 		TitleStorage titleStorage,
 		TextureFormat swapchainFormat,
 #if DEBUG
-		EditorSystem imGuiEditor
+		EditorSystem editorSystem
 #endif
 		) : base(world)
 	{
@@ -65,7 +65,7 @@ public class Renderer : MoonTools.ECS.Renderer
 		DetectionConeFilter = FilterBuilder.Include<CanDetect>().Include<Position2D>().Include<DrawDetectionCone>().Build();
 #if DEBUG
 		ColliderFilter = FilterBuilder.Include<Rectangle>().Include<Position2D>().Build();
-		ImGuiEditor = imGuiEditor;
+		EditorSystem = editorSystem;
 		TileManipulator = new(world);
 #endif
 
@@ -145,120 +145,23 @@ public class Renderer : MoonTools.ECS.Renderer
 			}
 		}
 
+#if DEBUG
+		if (EditorSystem.IsInLevelEditor)
+		{
+			var hoveredOverLayer = EditorSystem.HoveredOverLayer;
+			if (hoveredOverLayer != null)
+			{
+				if (!Has<Editor_LevelLayerID>(e)
+					|| Get<Editor_LevelLayerID>(e).Value != EditorSystem.HoveredOverLayerID)
+				{
+					color = Color.Lerp(color, Color.Transparent, 0.75f);
+				}
+			}
+		}
+#endif
+
 		return color;
 	}
-
-#if DEBUG
-	const float DebugLineThickness = 0.3f;
-
-	public void DrawDebugRectangle(Entity entity, Rectangle rect, Color color, float depth, float lineThickness)
-	{
-		var position = Get<Position2D>(entity);
-		DrawDebugRectangle(position, rect, color, depth, lineThickness);
-	}
-
-	public void DrawDebugRectangle(Position2D position, Rectangle rect, Color color, float depth, float lineThickness)
-	{
-		var orientation = 0.0f;
-
-		// Draw a square outline sprite if we can, to reduce sprite count in-editor (may hit limit!)
-		// Can't use this for non-square dimensions, since stretching on the sides will be apparent.
-		// FIXME: Due to point sampler, the top and left corners get cut off when scaling down too much.
-		/*
-		if (rect.Height == rect.Width)
-		{
-			var sprite = SpriteAnimations.EditorTile_Outline.Frames[0];
-
-			ArtSpriteBatch.Add(
-				new Vector3(position.X + rect.X, position.Y + rect.Y, depth),
-				orientation,
-				new Vector2(rect.Width, rect.Height),
-				color,
-				sprite.UV.LeftTop,
-				sprite.UV.Dimensions
-			);
-		}
-		else*/
-		{
-			var sprite = SpriteAnimations.Pixel.Frames[0];
-
-			var horizontalLineSize = new Vector2(rect.Width, lineThickness);
-			var verticalLineSize = new Vector2(lineThickness, rect.Height);
-
-			// Horizontal Top
-			ArtSpriteBatch.Add(
-				new Vector3(position.X + rect.X, position.Y + rect.Y, depth),
-				orientation,
-				horizontalLineSize,
-				color,
-				sprite.UV.LeftTop,
-				sprite.UV.Dimensions
-			);
-
-			// Horizontal Bottom
-			ArtSpriteBatch.Add(
-				new Vector3(position.X + rect.X, position.Y + rect.Y + rect.Height - lineThickness, depth),
-				orientation,
-				horizontalLineSize,
-				color,
-				sprite.UV.LeftTop,
-				sprite.UV.Dimensions
-			);
-
-			// Vertical Left
-			ArtSpriteBatch.Add(
-				new Vector3(position.X + rect.X, position.Y + rect.Y, depth),
-				orientation,
-				verticalLineSize,
-				color,
-				sprite.UV.LeftTop,
-				sprite.UV.Dimensions
-			);
-
-			// Vertical Right
-			ArtSpriteBatch.Add(
-				new Vector3(position.X + rect.X + rect.Width - lineThickness, position.Y + rect.Y, depth),
-				orientation,
-				verticalLineSize,
-				color,
-				sprite.UV.LeftTop,
-				sprite.UV.Dimensions
-			);
-		}
-	}
-	
-	public void DrawDebugLine(
-		Vector2 position,
-		float length,
-		float thickness,
-		bool verticalOrHorizontal,
-		Color color,
-		float depth
-		)
-	{
-		var orientation = 0.0f;
-		var sprite = SpriteAnimations.Pixel.Frames[0];
-
-		Vector2 scale;
-		if (verticalOrHorizontal == false) // if Vertical
-		{
-			scale = new Vector2(thickness, length);
-		}
-		else
-		{
-			scale = new Vector2(length, thickness);
-		}
-			
-		ArtSpriteBatch.Add(
-			new Vector3(position.X, position.Y, depth),
-			orientation,
-			scale,
-			color,
-			sprite.UV.LeftTop,
-			sprite.UV.Dimensions
-		);
-	}
-#endif
 
 	public void Render(CommandBuffer commandBuffer, Texture swapchainTexture, Window window, double alpha)
 	{
@@ -521,10 +424,10 @@ public class Renderer : MoonTools.ECS.Renderer
 			worldPos = TileManipulator.TilePosToWorldPos(Dimensions.TILE_COLUMN_COUNT, 0);
 			DrawDebugLine(worldPos.AsVector(), verticalLength, DebugLineThickness, false, color, depth);
 
-			if (ImGuiEditor.HoveredOverTilePosition.HasValue)
+			if (EditorSystem.HoveredOverTilePosition.HasValue)
 			{
 				color = Color.White with { A = 200 };
-				var tilePos = ImGuiEditor.HoveredOverTilePosition.Value;
+				var tilePos = EditorSystem.HoveredOverTilePosition.Value;
 				worldPos = TileManipulator.TilePosToWorldPos(tilePos);
 				var tileRect = new Rectangle(0, 0, Dimensions.TILE_SIZE, Dimensions.TILE_SIZE);
 				DrawDebugRectangle(worldPos, tileRect, color, depth, DebugLineThickness);
@@ -549,14 +452,14 @@ public class Renderer : MoonTools.ECS.Renderer
 
 		// Draw selection mode-related stuff
 		{
-			
+
 			var depth = -(float)DepthLayer.Editor_SelectionOutline;
 
-			var selectedEntity = ImGuiEditor.GetSelectedEntity();
+			var selectedEntity = EditorSystem.GetSelectedEntity();
 			if (selectedEntity.HasValue)
 			{
 				var entity = selectedEntity.Value;
-				var rectangle = ImGuiEditor.GetEntityVisualRect(entity).Value;
+				var rectangle = EditorSystem.GetEntityVisualRect(entity).Value;
 				DrawDebugRectangle(entity, rectangle, Color.LimeGreen, depth, DebugLineThickness * 4);
 			}
 
@@ -591,25 +494,25 @@ public class Renderer : MoonTools.ECS.Renderer
 			}
 		}
 
-		var selectedSprite = ImGuiEditor.GetSelectedSpriteToPaint();
+		var (selectedSprite, selectedColor) = EditorSystem.GetSelectedSpriteToPaint();
 		if (selectedSprite != null)
 		{
 			// Draw a transparent version of the sprite that would be painted, as a preview.
 			Position2D drawPos = Input.WorldMousePosition;
-			if (!ImGuiEditor.IsActiveLayerTiled || ImGuiEditor.HoveredOverTilePosition.HasValue)
+			if (!EditorSystem.IsActiveLayerTiled || EditorSystem.HoveredOverTilePosition.HasValue)
 			{
-				if (ImGuiEditor.IsActiveLayerTiled)
+				if (EditorSystem.IsActiveLayerTiled)
 				{
-					drawPos = TileManipulator.TilePosToWorldPos(ImGuiEditor.HoveredOverTilePosition.Value);
+					drawPos = TileManipulator.TilePosToWorldPos(EditorSystem.HoveredOverTilePosition.Value);
 				}
 
-				var depth = ImGuiEditor.ActiveLayerDepth;
+				var depth = -EditorSystem.ActiveLayerDepth;
 				var sprite = selectedSprite.Frames[0];
 				ArtSpriteBatch.Add(
 					new Vector3(drawPos.X, drawPos.Y, depth),
 					0.0f,
 					new Vector2(sprite.SliceRect.W, sprite.SliceRect.H),
-					Color.Lerp(ImGuiEditor.GetSelectedSpriteColor(), Color.Transparent, 0.25f),
+					Color.Lerp(selectedColor, Color.Transparent, 0.25f),
 					sprite.UV.LeftTop,
 					sprite.UV.Dimensions
 				);
@@ -653,4 +556,117 @@ public class Renderer : MoonTools.ECS.Renderer
 			1000
 		);
 	}
+	
+	
+#if DEBUG
+	const float DebugLineThickness = 0.3f;
+
+	public void DrawDebugRectangle(Entity entity, Rectangle rect, Color color, float depth, float lineThickness)
+	{
+		var position = Get<Position2D>(entity);
+		DrawDebugRectangle(position, rect, color, depth, lineThickness);
+	}
+
+	public void DrawDebugRectangle(Position2D position, Rectangle rect, Color color, float depth, float lineThickness)
+	{
+		var orientation = 0.0f;
+
+		// Draw a square outline sprite if we can, to reduce sprite count in-editor (may hit limit!)
+		// Can't use this for non-square dimensions, since stretching on the sides will be apparent.
+		// FIXME: Due to point sampler, the top and left corners get cut off when scaling down too much.
+		/*
+		if (rect.Height == rect.Width)
+		{
+			var sprite = SpriteAnimations.EditorTile_Outline.Frames[0];
+
+			ArtSpriteBatch.Add(
+				new Vector3(position.X + rect.X, position.Y + rect.Y, depth),
+				orientation,
+				new Vector2(rect.Width, rect.Height),
+				color,
+				sprite.UV.LeftTop,
+				sprite.UV.Dimensions
+			);
+		}
+		else*/
+		{
+			var sprite = SpriteAnimations.Pixel.Frames[0];
+
+			var horizontalLineSize = new Vector2(rect.Width, lineThickness);
+			var verticalLineSize = new Vector2(lineThickness, rect.Height);
+
+			// Horizontal Top
+			ArtSpriteBatch.Add(
+				new Vector3(position.X + rect.X, position.Y + rect.Y, depth),
+				orientation,
+				horizontalLineSize,
+				color,
+				sprite.UV.LeftTop,
+				sprite.UV.Dimensions
+			);
+
+			// Horizontal Bottom
+			ArtSpriteBatch.Add(
+				new Vector3(position.X + rect.X, position.Y + rect.Y + rect.Height - lineThickness, depth),
+				orientation,
+				horizontalLineSize,
+				color,
+				sprite.UV.LeftTop,
+				sprite.UV.Dimensions
+			);
+
+			// Vertical Left
+			ArtSpriteBatch.Add(
+				new Vector3(position.X + rect.X, position.Y + rect.Y, depth),
+				orientation,
+				verticalLineSize,
+				color,
+				sprite.UV.LeftTop,
+				sprite.UV.Dimensions
+			);
+
+			// Vertical Right
+			ArtSpriteBatch.Add(
+				new Vector3(position.X + rect.X + rect.Width - lineThickness, position.Y + rect.Y, depth),
+				orientation,
+				verticalLineSize,
+				color,
+				sprite.UV.LeftTop,
+				sprite.UV.Dimensions
+			);
+		}
+	}
+	
+	public void DrawDebugLine(
+		Vector2 position,
+		float length,
+		float thickness,
+		bool verticalOrHorizontal,
+		Color color,
+		float depth
+		)
+	{
+		var orientation = 0.0f;
+		var sprite = SpriteAnimations.Pixel.Frames[0];
+
+		Vector2 scale;
+		if (verticalOrHorizontal == false) // if Vertical
+		{
+			scale = new Vector2(thickness, length);
+		}
+		else
+		{
+			scale = new Vector2(length, thickness);
+		}
+			
+		ArtSpriteBatch.Add(
+			new Vector3(position.X, position.Y, depth),
+			orientation,
+			scale,
+			color,
+			sprite.UV.LeftTop,
+			sprite.UV.Dimensions
+		);
+	}
+#endif
 }
