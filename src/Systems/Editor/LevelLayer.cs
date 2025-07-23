@@ -156,18 +156,33 @@ public class LevelLayer
         // FIXME: 
     }
 
-    public void DeleteLayerCleanup(World world)
+    public static void DeleteLayerCleanup(Editor_LevelLayerID levelLayerToRemove,
+        List<LevelLayer> levelLayers, World world)
     {
-        // Deleting a layer deletes all entities in it.
         // FIXME: Undo support!
         // FIXME: If undone, need to re-apply relationship data too.
         // Ex: DebugEntiy DontDraw relation, if the layer was made invisible.
-        foreach (var entity in CachedEntities)
+
+        // Deleting a layer deletes all entities in it.
+        foreach (var entity in levelLayers[levelLayerToRemove.ID].CachedEntities)
         {
             world.Destroy(entity);
         }
+        LevelLayerNames.Remove(levelLayers[levelLayerToRemove.ID].Name);
+        levelLayers.RemoveAt(levelLayerToRemove.ID);
 
-        // FIXME: Update Editor_LevelLayerID components for entities in other layers!!!!
+        // Update Editor_LevelLayerID components for entities in other layers, if they had a greater ID.
+        for (int i = 0; i < levelLayers.Count; ++i)
+        {
+            foreach (var entity in levelLayers[i].CachedEntities)
+            {
+                var entityLevelLayer = world.Get<Editor_LevelLayerID>(entity);
+                if (entityLevelLayer.ID > levelLayerToRemove.ID)
+                {
+                    world.Set(entity, new Editor_LevelLayerID(entityLevelLayer.ID - 1));
+                }
+            }
+        }
     }
     
     public static string LayerTypeToString(LevelLayerTypes layerType)

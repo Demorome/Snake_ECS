@@ -211,5 +211,5 @@ public readonly record struct CursorPosition(Vector2 Value);
     // Used to track tiles entities in-editor, to auto-refresh their appearance if the tileset changes etc.
     public readonly record struct Editor_TileSpriteID(int ID);
 
-    public readonly record struct Editor_LevelLayerID(int Value);
+    public readonly record struct Editor_LevelLayerID(int ID);
 #endif

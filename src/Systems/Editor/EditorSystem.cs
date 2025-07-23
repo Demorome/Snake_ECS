@@ -68,7 +68,7 @@ public class EditorSystem : MoonTools.ECS.System
         foreach (var entity in LevelLayerFilter.Entities)
         {
             var layerID = Get<Editor_LevelLayerID>(entity);
-            LevelLayers[layerID.Value].CachedEntities.Add(entity);
+            LevelLayers[layerID.ID].CachedEntities.Add(entity);
         }
 
         EditorHelpActions.DrawWindowMenuBar(World);
@@ -390,14 +390,22 @@ public class EditorSystem : MoonTools.ECS.System
                     ActiveLayerID = -1;
                     SelectedTileSpriteIndex = -1; // Just in case
                 }
+                else if (ActiveLayerID > SelectedLayerID)
+                {
+                    ActiveLayerID -= 1;
+                }
+
                 if (HoveredOverLayerID == SelectedLayerID)
                 {
                     HoveredOverLayerID = -1;
                 }
+                else if (HoveredOverLayerID > SelectedLayerID)
+                {
+                    HoveredOverLayerID -= 1;
+                }
 
                 // Deleting a layer deletes all entities in it.
-                LevelLayers[SelectedLayerID].DeleteLayerCleanup(World);
-                LevelLayers.RemoveAt(SelectedLayerID);
+                LevelLayer.DeleteLayerCleanup(new Editor_LevelLayerID(SelectedLayerID), LevelLayers, World);
                 SelectedLayerID = -1;
             }
 

@@ -152,7 +152,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			if (hoveredOverLayer != null)
 			{
 				if (!Has<Editor_LevelLayerID>(e)
-					|| Get<Editor_LevelLayerID>(e).Value != EditorSystem.HoveredOverLayerID)
+					|| Get<Editor_LevelLayerID>(e).ID != EditorSystem.HoveredOverLayerID)
 				{
 					color = Color.Lerp(color, Color.Transparent, 0.75f);
 				}
