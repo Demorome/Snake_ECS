@@ -32,7 +32,7 @@ namespace RollAndCash
 		{
 #if UseDebugGUI
 			ImGuiBackend = new ImGuiBackend(this);
-			Systems.ImGuiEditor.StaticInit();
+			Systems.EditorSystem.StaticInit();
 #else
 			Inputs.Mouse.Hide();
 #endif

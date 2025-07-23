@@ -40,7 +40,7 @@ public class GameplayState : GameState
     TrailVisualSystem TrailVisualSystem;
 
 #if DEBUG
-    ImGuiEditor ImGuiEditor;
+    EditorSystem ImGuiEditor;
 
     public static bool FreezeTimeForAll = false;
 #endif
@@ -132,7 +132,7 @@ public class GameplayState : GameState
     public override void Update(TimeSpan dt)
     {
 #if DEBUG
-        if (!FreezeTimeForAll || ImGuiEditor.IsInLevelEditor)
+        if (!FreezeTimeForAll || EditorSystem.IsInLevelEditor)
         {
 #endif
             Timing.Update(dt);

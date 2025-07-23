@@ -14,6 +14,7 @@ using MoonWorks.Math;
 using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
 using MoonWorks.Input;
 using RollAndCash.Systems;
+using ImGuiNET;
 
 namespace RollAndCash;
 
@@ -26,7 +27,7 @@ public class Renderer : MoonTools.ECS.Renderer
 
 	SpriteBatch ArtSpriteBatch;
 #if DEBUG
-	ImGuiEditor ImGuiEditor;
+	EditorSystem ImGuiEditor;
 	public static bool DrawDebugColliders = false;
 	TileManipulator TileManipulator;
 #endif
@@ -52,7 +53,7 @@ public class Renderer : MoonTools.ECS.Renderer
 		TitleStorage titleStorage,
 		TextureFormat swapchainFormat,
 #if DEBUG
-		ImGuiEditor imGuiEditor
+		EditorSystem imGuiEditor
 #endif
 		) : base(world)
 	{
@@ -481,9 +482,9 @@ public class Renderer : MoonTools.ECS.Renderer
 #if DEBUG
 		ArtSpriteBatch.Start();
 
-		if (ImGuiEditor.IsInLevelEditor && ImGuiEditor.ShowGrid)
+		if (EditorSystem.IsInLevelEditor && EditorSystem.ShowGrid)
 		{
-			var color = new Color(ImGuiEditor.GridLineColor);
+			var color = new Color(EditorSystem.GridLineColor);
 			var depth = -(float)DepthLayer.Editor_TileOutline; // draw above backgrounds, but nothing else.
 			var verticalLength = Dimensions.TILE_ROW_COUNT * Dimensions.TILE_SIZE;
 			var horizontalLength = Dimensions.TILE_COLUMN_COUNT * Dimensions.TILE_SIZE;
@@ -562,7 +563,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			// FIXME: Scale color intensity by depth?
 			var selectionColor = Color.LimeGreen with { A = 210 };
 
-			if (ImGuiEditor.IsInEntitySelectionMode)
+			if (EditorSystem.IsInEntitySelectionMode)
 			{
 				foreach (var entity in SpriteAnimationFilter.Entities)
 				{
@@ -590,42 +591,30 @@ public class Renderer : MoonTools.ECS.Renderer
 			}
 		}
 
-		{/*
-
-			// Show cursor position
-			var player = GetSingletonEntity<Player>();
-			var cursorPos = Get<CursorPosition>(player).Value;
-			var animation = new SpriteAnimation(SpriteAnimations.Pixel);
-			var sprite = animation.CurrentSprite;
-			var depth = 3;
-
-			if (cursorPos != Vector2.Zero)
+		var selectedSprite = ImGuiEditor.GetSelectedSpriteToPaint();
+		if (selectedSprite != null)
+		{
+			// Draw a transparent version of the sprite that would be painted, as a preview.
+			Position2D drawPos = Input.WorldMousePosition;
+			if (!ImGuiEditor.IsActiveLayerTiled || ImGuiEditor.HoveredOverTilePosition.HasValue)
 			{
-				Matrix4x4 viewToClipSpace = GetProjectionMatrix();
-				Matrix4x4 clipToView; // Clip-space to View space
-				var success = Matrix4x4.Invert(viewToClipSpace, out clipToView);
-				var cursorPosDeviceCoords = new Vector2(
-					cursorPos.X / (Dimensions.GAME_W / 2) - 1.0f,
-					-1 * (cursorPos.Y / (Dimensions.GAME_H / 2) - 1.0f)
+				if (ImGuiEditor.IsActiveLayerTiled)
+				{
+					drawPos = TileManipulator.TilePosToWorldPos(ImGuiEditor.HoveredOverTilePosition.Value);
+				}
+
+				var depth = ImGuiEditor.ActiveLayerDepth;
+				var sprite = selectedSprite.Frames[0];
+				ArtSpriteBatch.Add(
+					new Vector3(drawPos.X, drawPos.Y, depth),
+					0.0f,
+					new Vector2(sprite.SliceRect.W, sprite.SliceRect.H),
+					Color.Lerp(ImGuiEditor.GetSelectedSpriteColor(), Color.Transparent, 0.25f),
+					sprite.UV.LeftTop,
+					sprite.UV.Dimensions
 				);
-				// var screenSpacePosition = new Vector4(cursorPos, depth, 1);
-				// screenSpacePosition = Vector4.Transform(cursorPos, projInv);
-				var screenSpacePosition = Vector2.Transform(cursorPosDeviceCoords, clipToView);
+			}
 
-				Matrix4x4 worldToScreen = GetCameraMatrix();
-				Matrix4x4 screenToWorld;
-				success = Matrix4x4.Invert(worldToScreen, out screenToWorld);
-				var worldPosition = Vector2.Transform(screenSpacePosition, screenToWorld);*/
-
-			/*ArtSpriteBatch.Add(
-				new Vector3(cursorPos.X, cursorPos.Y, depth),
-				0f,
-				new Vector2(sprite.SliceRect.W, sprite.SliceRect.H) * new Vector2(10, 10),
-				Color.Red,
-				sprite.UV.LeftTop,
-				sprite.UV.Dimensions
-			);
-		}*/
 		}
 
 		ArtSpriteBatch.Upload(commandBuffer);
