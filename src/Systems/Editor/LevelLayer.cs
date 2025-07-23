@@ -56,17 +56,16 @@ public class LevelLayer
     public bool IsTiled => LayerType == LevelLayerTypes.VisualTile || LayerType == LevelLayerTypes.SolidTile;
     // Applies to all images.
     public Color ColorBlend { get; private set; } = Color.White;
-    public List<(SpriteAnimationInfoID, Color)> Images { get; private set; } = new();
+    public List<(SpriteAnimation, Color)> Images { get; private set; } = new();
     public int ImagesPerRow = 8;
     public float Depth { get; private set; } = -2;
     public bool IsDepthLocked => LayerType == LevelLayerTypes.SolidTile;
     public bool IsVisible { get; private set; } = true;
     public List<Entity> CachedEntities = new();
 
-    public void ReplaceImage(int tileSpriteID, SpriteAnimationInfoID newImageID, World world)
+    public void ReplaceImage(int tileSpriteID, SpriteAnimation newImage, World world)
     {
-        Images[tileSpriteID] = (newImageID, Color.White);
-        var spriteAnimInfo = SpriteAnimationInfo.FromID(newImageID);
+        Images[tileSpriteID] = (newImage, Color.White);
 
         // Update the image for every entity in this layer that was using the old one.
         foreach (var entity in CachedEntities)
@@ -79,7 +78,7 @@ public class LevelLayer
             var entityTileSpriteID = world.Get<Editor_TileSpriteID>(entity);
             if (tileSpriteID == entityTileSpriteID.ID)
             {
-                world.Set(entity, new SpriteAnimation(spriteAnimInfo));
+                world.Set(entity, newImage);
                 world.Set(entity, new ColorBlend(MixLayerColorWithTileColor(Color.White)));
             }
         }

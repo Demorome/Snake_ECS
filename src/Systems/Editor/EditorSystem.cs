@@ -102,16 +102,16 @@ public class EditorSystem : MoonTools.ECS.System
     const string TileSpritePrefix = "Tile_";
     static int TileSpriteToReplaceIndex = -1;
     static int SelectedTileSpriteIndex = -1;
-    public (SpriteAnimationInfo, Color) GetSelectedSpriteToPaint()
+    public (SpriteAnimation, Color)? GetSelectedSpriteToPaint()
     {
         if (SelectedTileSpriteIndex == -1 || ActiveLayerID == -1)
         {
-            return (null, Color.Transparent);
+            return null;
         }
         var activeLayer = LevelLayers[ActiveLayerID];
-        var (spriteID, color) = activeLayer.Images[SelectedTileSpriteIndex];
+        var (sprite, color) = activeLayer.Images[SelectedTileSpriteIndex];
         color = activeLayer.MixLayerColorWithTileColor(color);
-        return (SpriteAnimationInfo.FromID(spriteID), color);
+        return (sprite, color);
     }
 
     unsafe static ImGuiTextFilterPtr TileSpriteSearchFilter = new(ImGuiNative.ImGuiTextFilter_ImGuiTextFilter(null));
@@ -136,7 +136,9 @@ public class EditorSystem : MoonTools.ECS.System
                     if (ImGui.Selectable(spriteName))
                     {
                         var spriteID = SpriteAnimations.NameToInfoMap[spriteName].ID;
-                        levelLayer.ReplaceImage(TileSpriteToReplaceIndex, spriteID, World);
+                        var spriteAnimInfo = SpriteAnimationInfo.FromID(spriteID);
+                        var sprite = new SpriteAnimation(spriteAnimInfo);
+                        levelLayer.ReplaceImage(TileSpriteToReplaceIndex, sprite, World);
                         TileSpriteToReplaceIndex = -1;
                         break;
                     }
@@ -173,16 +175,12 @@ public class EditorSystem : MoonTools.ECS.System
 
         for (int i = 0; i < tileLayer.Images.Count; ++i)
         {
-            var (spriteID, colorBlend) = tileLayer.Images[i];
+            var (sprite, colorBlend) = tileLayer.Images[i];
 
-            SpriteAnimationInfo animInfo = spriteID.ID != -1 ?
-                SpriteAnimationInfo.FromID(spriteID)
-                : SpriteAnimations.EditorTile_InvalidTile;
-
-            bool invalid = animInfo.ID == SpriteAnimations.EditorTile_InvalidTile.ID;
+            bool invalid = sprite.SpriteAnimationInfoID == SpriteAnimations.EditorTile_InvalidTile.ID;
 
             // FIXME: Allow sprite animations to play (simulate frame countdown?)
-            var currentFrame = animInfo.Frames[0];
+            var currentFrame = sprite.CurrentSprite;
 
             bool selected = i == SelectedTileSpriteIndex;
 
@@ -262,7 +260,7 @@ public class EditorSystem : MoonTools.ECS.System
             ImGuiBackend.SamplerType.PointClamp
             ))
         {
-            tileLayer.Images.Add((new SpriteAnimationInfoID(-1), Color.White));
+            tileLayer.Images.Add((new SpriteAnimation(SpriteAnimations.EditorTile_InvalidTile), Color.White));
         }
         ImGui.SameLine();
         ImGui.TextWrapped("Add new tiles");
@@ -547,9 +545,10 @@ public class EditorSystem : MoonTools.ECS.System
             return;
         }
         var activeLayer = LevelLayers[ActiveLayerID];
-        var (selectedSprite, selectedColor) = GetSelectedSpriteToPaint();
-        if (selectedSprite != null && ImGui.IsMouseDown(ImGuiMouseButton.Left))
+        var spriteToPaintInfo = GetSelectedSpriteToPaint();
+        if (spriteToPaintInfo.HasValue && ImGui.IsMouseDown(ImGuiMouseButton.Left))
         {
+            var (selectedSprite, selectedColor) = spriteToPaintInfo.Value;
             Entity? paintedEntity = null;
 
             // Painting sprites to the world!
@@ -572,13 +571,13 @@ public class EditorSystem : MoonTools.ECS.System
                 {
                     if (activeLayer.LayerType == LevelLayer.LevelLayerTypes.SolidTile)
                     {
-                        paintedEntity = TileManipulator.SpawnSolidTile(tileWorldPos, new SpriteAnimation(selectedSprite));
+                        paintedEntity = TileManipulator.SpawnSolidTile(tileWorldPos, selectedSprite);
                     }
                     else
                     {
                         paintedEntity = CreateEntity("Visual Tile");
                         Set(paintedEntity.Value, tileWorldPos);
-                        Set(paintedEntity.Value, new SpriteAnimation(selectedSprite));
+                        Set(paintedEntity.Value, selectedSprite);
                     }
 
                     if (SelectedTileSpriteIndex < 0)
@@ -593,7 +592,7 @@ public class EditorSystem : MoonTools.ECS.System
                 // Assume it's an image layer.
                 paintedEntity = CreateEntity("Image");
                 Set(paintedEntity.Value, mouseWorldPos);
-                Set(paintedEntity.Value, new SpriteAnimation(selectedSprite));
+                Set(paintedEntity.Value, selectedSprite);
             }
 
             if (paintedEntity.HasValue)

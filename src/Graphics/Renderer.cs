@@ -494,9 +494,11 @@ public class Renderer : MoonTools.ECS.Renderer
 			}
 		}
 
-		var (selectedSprite, selectedColor) = EditorSystem.GetSelectedSpriteToPaint();
-		if (selectedSprite != null)
+		var selectedSpriteInfo = EditorSystem.GetSelectedSpriteToPaint();
+		if (selectedSpriteInfo.HasValue)
 		{
+			var (selectedSprite, selectedColor) = selectedSpriteInfo.Value;
+
 			// Draw a transparent version of the sprite that would be painted, as a preview.
 			Position2D drawPos = Input.WorldMousePosition;
 			if (!EditorSystem.IsActiveLayerTiled || EditorSystem.HoveredOverTilePosition.HasValue)
@@ -507,7 +509,7 @@ public class Renderer : MoonTools.ECS.Renderer
 				}
 
 				var depth = -EditorSystem.ActiveLayerDepth;
-				var sprite = selectedSprite.Frames[0];
+				var sprite = selectedSprite.CurrentSprite;
 				ArtSpriteBatch.Add(
 					new Vector3(drawPos.X, drawPos.Y, depth),
 					0.0f,
