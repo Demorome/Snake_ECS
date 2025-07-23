@@ -383,7 +383,13 @@ public class EditorSystem : MoonTools.ECS.System
             }
 
             ImGui.SameLine();
-            if (ImGui.Button("Delete") && SelectedLayerID != -1)
+            bool disabled = false;
+            if (SelectedLayerID == -1)
+            {
+                ImGui.BeginDisabled();
+                disabled = true;
+            }
+            if (ImGui.Button("Delete"))
             {
                 if (ActiveLayerID == SelectedLayerID)
                 {
@@ -410,9 +416,33 @@ public class EditorSystem : MoonTools.ECS.System
             }
 
             ImGui.SameLine();
-            if (ImGui.Button("Rename") && SelectedLayerID != -1)
+            if (ImGui.Button("Rename"))
             {
                 ImGui.OpenPopup($"RenameLayer{SelectedLayerID}");
+            }
+
+            ImGui.SameLine();
+            if (SelectedLayerID != -1 && LevelLayers[SelectedLayerID].IsDepthLocked)
+            {
+                ImGui.BeginDisabled();
+                disabled = true;
+            }
+            if (ImGui.Button("Change Depth"))
+            {
+                ImGui.OpenPopup($"ChangeLayerDepth");
+            }
+            if (ImGui.BeginPopup($"ChangeLayerDepth"))
+            {
+                var depth = LevelLayers[SelectedLayerID].Depth;
+                if (ImGui.InputFloat("Depth", ref depth))
+                {
+                    LevelLayers[SelectedLayerID].ChangeLayerDepth(depth, World);
+                }
+                ImGui.EndPopup();
+            }
+            if (disabled)
+            {
+                ImGui.EndDisabled();
             }
         }
         ImGui.End();

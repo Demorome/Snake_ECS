@@ -151,9 +151,13 @@ public class LevelLayer
         }
     }
 
-    public void OnDepthChange(World world)
+    public void ChangeLayerDepth(float newDepth, World world)
     {
-        // FIXME: 
+        Depth = newDepth;
+        foreach (var entity in CachedEntities)
+        {
+            world.Set(entity, new Depth(newDepth));
+        }
     }
 
     public static void DeleteLayerCleanup(Editor_LevelLayerID levelLayerToRemove,
