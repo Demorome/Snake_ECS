@@ -99,7 +99,6 @@ public class EditorSystem : MoonTools.ECS.System
     public bool IsActiveLayerTiled => LevelLayers[ActiveLayerID].IsTiled;
     public float ActiveLayerDepth => LevelLayers[ActiveLayerID].Depth;
 
-    const string TileSpritePrefix = "Tile_";
     static int TileSpriteToReplaceIndex = -1;
     static int SelectedTileSpriteIndex = -1;
     public (SpriteAnimation, Color)? GetSelectedSpriteToPaint()
@@ -114,7 +113,48 @@ public class EditorSystem : MoonTools.ECS.System
         return (sprite, color);
     }
 
-    unsafe static ImGuiTextFilterPtr TileSpriteSearchFilter = new(ImGuiNative.ImGuiTextFilter_ImGuiTextFilter(null));
+    const string TileSpritePrefix = "Tile_";
+    const string TileSetPrefix = "TileSet_";
+    unsafe static ImGuiTextFilterPtr TileSearchFilter = new(ImGuiNative.ImGuiTextFilter_ImGuiTextFilter(null));
+
+    void DrawTileSetSelectionPopup(LevelLayer levelLayer)
+    {
+        if (ImGui.BeginPopup("##AddTileset"))
+        {
+            ImGui.Text("Select TileSet");
+            ImGui.Separator();
+            TileSearchFilter.Draw("Search");
+
+            foreach (var spriteName in SpriteAnimations.Names)
+            {
+                if (!spriteName.StartsWith(TileSetPrefix))
+                {
+                    continue;
+                }
+
+                if (TileSearchFilter.PassFilter(spriteName))
+                {
+                    if (ImGui.Selectable(spriteName))
+                    {
+                        var tileSetSpriteID = SpriteAnimations.NameToInfoMap[spriteName].ID;
+                        var tileSetSpriteAnimInfo = SpriteAnimationInfo.FromID(tileSetSpriteID);
+                        var defaultColor = Color.White;
+
+                        // Add a bunch of SpriteAnimation based on each frame of the tileset
+                        for (int i = 0; i < tileSetSpriteAnimInfo.Frames.Length; ++i)
+                        {
+                            levelLayer.Images.Add(
+                                (SpriteAnimation.ForceFrame(tileSetSpriteAnimInfo, i), defaultColor)
+                            );
+                        }
+                        break;
+                    }
+                }
+            }
+
+            ImGui.EndPopup();
+        }
+    }
 
     void DrawTileSpriteReplacementsPopup(LevelLayer levelLayer)
     {
@@ -122,7 +162,7 @@ public class EditorSystem : MoonTools.ECS.System
         {
             ImGui.Text("Select Tile Sprite Replacement");
             ImGui.Separator();
-            TileSpriteSearchFilter.Draw("Search");
+            TileSearchFilter.Draw("Search");
 
             foreach (var spriteName in SpriteAnimations.Names)
             {
@@ -131,7 +171,7 @@ public class EditorSystem : MoonTools.ECS.System
                     continue;
                 }
 
-                if (TileSpriteSearchFilter.PassFilter(spriteName))
+                if (TileSearchFilter.PassFilter(spriteName))
                 {
                     if (ImGui.Selectable(spriteName))
                     {
@@ -248,22 +288,22 @@ public class EditorSystem : MoonTools.ECS.System
         ImGui.NewLine();
         ImGui.Separator();
 
-        // Draw a "[+]" square image that, if pressed, adds a new sprite slot for the tileset.
-        var plusSprite = SpriteAnimations.EditorTile_Plus.Frames[0];
-        if (ImGuiExtensions.ImageButton(
-            "##Plus",
-            plusSprite.Texture,
-            plusSprite.SliceSize * scalingFactor,
-            plusSprite.UV.LeftTop,
-            plusSprite.UV.RightBottom,
-            imageBgColor.ToVector4(),
-            ImGuiBackend.SamplerType.PointClamp
-            ))
+        // FIXME: Undo/Redo support!
+        if (ImGui.Button("Add Tile"))
         {
             tileLayer.Images.Add((new SpriteAnimation(SpriteAnimations.EditorTile_InvalidTile), Color.White));
         }
         ImGui.SameLine();
-        ImGui.TextWrapped("Add new tiles");
+        if (ImGui.Button("Add TileSet"))
+        {
+            ImGui.OpenPopup("##AddTileset");
+        }
+        DrawTileSetSelectionPopup(tileLayer);
+        ImGui.SameLine();
+        if (ImGui.Button("Delete"))
+        {
+            // FIXME: Implement!
+        }
 
         var colorBlendVec = tileLayer.ColorBlend.ToVector4();
         if (ImGui.ColorEdit4("Layer Color Blend", ref colorBlendVec))
