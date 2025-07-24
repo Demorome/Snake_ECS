@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -538,6 +539,28 @@ namespace ContentProcessor
 
 			return (width, height);
 		}
+		
+		static StringComparer NumericOrderingComparer = StringComparer.Create(CultureInfo.CurrentCulture, CompareOptions.NumericOrdering);
+		class FileNameComparer : IComparer<FileInfo>
+		{
+			public int Compare(FileInfo? x, FileInfo? y)
+			{
+				if (x == null && y == null)
+				{
+					return 0;
+				}
+				if (x == null)
+				{
+					return -1;
+				}
+				if (y == null)
+				{
+					return 1;
+				}
+				return NumericOrderingComparer.Compare(x.Name, y.Name);
+			}
+		}
+		static FileNameComparer NumericOrderFileNameComparer = new();
 
 		public static void ProcessTexturePage(DirectoryInfo texturePageDir, DirectoryInfo textureOutputDir)
 		{
@@ -551,8 +574,15 @@ namespace ContentProcessor
 #endif
 
 			var textureAtlasOptionsFile = new FileInfo(Path.Combine(texturePageDir.FullName, texturePageDir.Name + ".json"));
-			var textureAtlasOptionsSerializerOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true, IncludeFields = true };
-			var textureAtlasOptions = JsonSerializer.Deserialize<TextureAtlasOptions>(File.ReadAllText(textureAtlasOptionsFile.FullName), textureAtlasOptionsSerializerOptions);
+			var textureAtlasOptionsSerializerOptions = new JsonSerializerOptions
+			{
+				PropertyNameCaseInsensitive = true,
+				IncludeFields = true
+			};
+			var textureAtlasOptions = JsonSerializer.Deserialize<TextureAtlasOptions>(
+				File.ReadAllText(textureAtlasOptionsFile.FullName),
+				textureAtlasOptionsSerializerOptions
+			);
 
 			var textureOutputName = Path.Combine(textureOutputDir.FullName, texturePageDir.Name);
 
@@ -583,7 +613,10 @@ namespace ContentProcessor
 
 			var textureAtlasMetadataFile = new FileInfo(textureOutputName + ".json");
 			var jsonSerializerOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-			var textureAtlasData = JsonSerializer.Deserialize<CramTextureAtlasData>(File.ReadAllText(textureAtlasMetadataFile.FullName), jsonSerializerOptions);
+			var textureAtlasData = JsonSerializer.Deserialize<CramTextureAtlasData>(
+				File.ReadAllText(textureAtlasMetadataFile.FullName),
+				jsonSerializerOptions
+			);
 
 			var animations = new Dictionary<string, CramTextureAtlasAnimationData>();
 
@@ -591,7 +624,9 @@ namespace ContentProcessor
 			{
 				var frameList = new List<string>();
 
-				foreach (var imageFile in directory.EnumerateFiles("*.png").OrderBy(f => f.Name))
+				var imageFiles = directory.GetFiles("*.png");
+				Array.Sort(imageFiles, NumericOrderFileNameComparer);
+				foreach (var imageFile in imageFiles)
 				{
 					var spritePath = directory.Name + "/" + imageFile.Name;
 					frameList.Add(spritePath);
@@ -618,7 +653,7 @@ namespace ContentProcessor
 
 					ExportResource(new CramTextureAtlasAnimationData_ToCreateDefault(animationMetadata),
 						new FileInfo(Path.Combine(directory.FullName, "data.json")));
-						
+
 					Logger.LogWarn($"Auto-generated a missing metadata file at {directory.Name}; verify it suits your needs.");
 				}
 				else if (jsonFiles.Length > 1)
@@ -631,9 +666,9 @@ namespace ContentProcessor
 					animationMetadata = JsonSerializer.Deserialize<CramTextureAtlasAnimationData>(
 						File.ReadAllText(animationMetadataPath),
 						jsonSerializerOptions
-					);	
+					);
 				}
-				
+
 				var newAnimationMetaData = new CramTextureAtlasAnimationData
 				{
 					Frames = frameList.ToArray(),

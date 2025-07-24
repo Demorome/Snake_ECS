@@ -127,7 +127,7 @@ public class EditorSystem : MoonTools.ECS.System
 
             foreach (var spriteName in SpriteAnimations.Names)
             {
-                if (!spriteName.StartsWith(TileSetPrefix))
+                if (!spriteName.ToLower().StartsWith(TileSetPrefix.ToLower()))
                 {
                     continue;
                 }
@@ -166,7 +166,7 @@ public class EditorSystem : MoonTools.ECS.System
 
             foreach (var spriteName in SpriteAnimations.Names)
             {
-                if (!spriteName.StartsWith(TileSpritePrefix))
+                if (!spriteName.ToLower().StartsWith(TileSpritePrefix.ToLower()))
                 {
                     continue;
                 }
@@ -194,12 +194,6 @@ public class EditorSystem : MoonTools.ECS.System
 
     void ShowTileLayerMenu(LevelLayer tileLayer)
     {
-        // TODO: Color blend default override option for a specific sprite in the tileset.
-
-        // TODO: Color blend default override for the entire tileset.
-
-        // TODO: Changing color blend overrides applies it to already placed world tiles.
-
         var imageBgColor = Color.Transparent;
 
         var scalingFactor = ImGui.GetWindowViewport().Size / Dimensions.GAME_DIMENSIONS;
@@ -208,7 +202,7 @@ public class EditorSystem : MoonTools.ECS.System
         // Draw with 1 pixel gaps between sprites.
         // Helpful explanation: https://github.com/ocornut/imgui/issues/4216#issuecomment-860007592
         // FIXME: How to have gray outline but not make the background for the image gray??
-        ImGui.PushStyleColor(ImGuiCol.Button, Color.Gray.ToVector4());
+        ImGui.PushStyleColor(ImGuiCol.Button, Color.Transparent.ToVector4());
         ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(2.0f, 2.0f));
         //ImGui.PushStyleVar(ImGuiStyleVar.CellPadding, new Vector2(1.0f, 1.0f));
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0f, 0f));
@@ -268,8 +262,7 @@ public class EditorSystem : MoonTools.ECS.System
                 ImGui.PopStyleColor(2);
             }
 
-            // TODO: Right-clicking on a sprite opens a menu to replace the sprite for any other "Tile"-named sprite
-            // TODO: Highlight this sprite tile as green when selected this way.
+            // Right-clicking on a sprite opens a menu to replace the sprite for any other "Tile"-named sprite
             if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
             {
                 ImGui.OpenPopup("##SelectTileSprite");
@@ -300,6 +293,7 @@ public class EditorSystem : MoonTools.ECS.System
         }
         DrawTileSetSelectionPopup(tileLayer);
         ImGui.SameLine();
+        // FIXME: Delete if no tile is selected!
         if (ImGui.Button("Delete"))
         {
             // FIXME: Implement!
@@ -514,7 +508,6 @@ public class EditorSystem : MoonTools.ECS.System
     }
 
     public static bool IsInLevelEditor = false;
-    static Dictionary<string, Action<World>> LevelEditorDetachedWindows = new();
     static bool SnapToGrid = true;
     public static bool ShowGrid = true;
     public Vector2? HoveredOverTilePosition = null;

@@ -510,8 +510,11 @@ public class Renderer : MoonTools.ECS.Renderer
 
 				var depth = -EditorSystem.ActiveLayerDepth;
 				var sprite = selectedSprite.CurrentSprite;
+				var origin = selectedSprite.Origin;
+				var offset = -origin - new Vector2(sprite.FrameRect.X, sprite.FrameRect.Y);
+
 				ArtSpriteBatch.Add(
-					new Vector3(drawPos.X, drawPos.Y, depth),
+					new Vector3(drawPos.X , drawPos.Y, depth),
 					0.0f,
 					new Vector2(sprite.SliceRect.W, sprite.SliceRect.H),
 					Color.Lerp(selectedColor, Color.Transparent, 0.25f),
