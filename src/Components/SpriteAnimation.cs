@@ -64,6 +64,33 @@ public struct SpriteAnimation
 			RawFrameIndex,
 			Origin);
 	}
+	public SpriteAnimation ChangeLoops(bool loops)
+	{
+		return new SpriteAnimation(
+			SpriteAnimationInfo,
+			FrameRate,
+			loops,
+			RawFrameIndex,
+			Origin);
+	}
+	public SpriteAnimation ChangeOrigin(Vector2 origin)
+	{
+		return new SpriteAnimation(
+			SpriteAnimationInfo,
+			FrameRate,
+			Loop,
+			RawFrameIndex,
+			origin);
+	}
+	public SpriteAnimation ChangeRawFrameIndex(float rawFrameIndex)
+	{
+		return new SpriteAnimation(
+			SpriteAnimationInfo,
+			FrameRate,
+			Loop,
+			rawFrameIndex,
+			Origin);
+	}
 
 	public SpriteAnimation(
 		SpriteAnimationInfo spriteAnimationInfo

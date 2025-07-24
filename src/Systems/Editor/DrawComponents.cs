@@ -8,6 +8,8 @@ using MoonTools.ECS;
 using MoonWorks;
 using MoonWorks.Graphics;
 using RollAndCash.Components;
+using RollAndCash.Content;
+using RollAndCash.Data;
 using RollAndCash.Systems;
 using RollAndCash.Utility;
 
@@ -93,7 +95,7 @@ public static class DrawComponents
         { typeof(Direction2D), DrawDirection2D },
         { typeof(Speed), DrawSpeed },
         //{ typeof(LevelBoundaries), DrawLevelBoundariesParameters },
-        //{ typeof(SpriteAnimation), DrawSpriteAnimation },
+        { typeof(SpriteAnimation), DrawSpriteAnimation },
         //{ typeof(Text), DrawText },
         { typeof(Angle), DrawAngle },
         { typeof(HasHealth), DrawHealth },
@@ -104,7 +106,6 @@ public static class DrawComponents
 
     static Dictionary<Type, Func<Entity, string>> ComponentTypeToInspectorString = new()
     {
-
     };
 
     static dynamic ComponentPriorToChange_Cached = null;
@@ -149,6 +150,79 @@ public static class DrawComponents
         {
             ImGui.Text(type.ToString());
         }
+    }
+
+    unsafe static ImGuiTextFilterPtr SpriteSearchFilter = new(ImGuiNative.ImGuiTextFilter_ImGuiTextFilter(null));
+    static string RectToString(Rect rect)
+    {
+        return $"W: {rect.W}, H: {rect.H}, X: {rect.X}, Y: {rect.Y}";
+    }
+
+    private static void DrawSpriteAnimation(World world, Entity entity, ref bool changed)
+    {
+        var sprite = world.Get<SpriteAnimation>(entity);
+        var spriteInfo = sprite.SpriteAnimationInfo;
+
+        ImGui.Text($"Sprite: ");
+        ImGui.SameLine();
+        if (ImGui.Selectable(spriteInfo.Name))
+        {
+            ImGui.OpenPopup("##ChangeSprite");
+        }
+        if (ImGui.BeginPopup("##ChangeSprite"))
+        {
+            foreach (var spriteName in SpriteAnimations.Names)
+            {
+                if (SpriteSearchFilter.PassFilter(spriteName))
+                {
+                    if (ImGui.Selectable(spriteName))
+                    {
+                        var tileSetSpriteID = SpriteAnimations.NameToInfoMap[spriteName].ID;
+                        var tileSetSpriteAnimInfo = SpriteAnimationInfo.FromID(tileSetSpriteID);
+                        world.Set(entity, new SpriteAnimation(tileSetSpriteAnimInfo));
+                        changed = true;
+                    }
+                }
+            }
+        }
+
+        ImGui.Separator();
+
+        var frameRate = sprite.FrameRate;
+        if (ImGui.InputInt("Framerate", ref frameRate))
+        {
+            world.Set(entity, sprite.ChangeFramerate(frameRate));
+            changed = true;
+        }
+
+        bool loops = sprite.Loop;
+        if (ImGui.Checkbox("Loops", ref loops))
+        {
+            world.Set(entity, sprite.ChangeLoops(loops));
+            changed = true;
+        }
+
+        Vector2 origin = sprite.Origin;
+        if (ImGui.InputFloat2("Origin", ref origin))
+        {
+            world.Set(entity, sprite.ChangeOrigin(origin));
+            changed = true;
+        }
+
+        ImGui.Text($"Frame Index: {sprite.FrameIndex}");
+        var rawSpriteIndex = sprite.RawFrameIndex;
+        if (ImGui.InputFloat("Raw Frame Index", ref rawSpriteIndex))
+        {
+            world.Set(entity, sprite.ChangeRawFrameIndex(rawSpriteIndex));
+            changed = true;
+        }
+
+        ImGui.SeparatorText("Current Sprite Info");
+        var currentSprite = sprite.CurrentSprite;
+        ImGui.Text($"UV: {currentSprite.UV.Rect}");
+        ImGui.Text($"Slice Rect: {RectToString(currentSprite.SliceRect)}");
+        ImGui.Text($"Frame Rect: {RectToString(currentSprite.FrameRect)}");
+        ImGui.Text($"Texture page ID: {currentSprite.TexturePageID.ID}");
     }
 
     private static void DrawSpeed(World world, Entity entity, ref bool changed)
