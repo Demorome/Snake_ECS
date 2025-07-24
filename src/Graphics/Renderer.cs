@@ -505,7 +505,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			{
 				if (EditorSystem.IsActiveLayerTiled)
 				{
-					drawPos = TileManipulator.TilePosToWorldPos(EditorSystem.HoveredOverTilePosition.Value);
+					drawPos = TileManipulator.TilePosToWorldPos_Centered(EditorSystem.HoveredOverTilePosition.Value);
 				}
 
 				var depth = -EditorSystem.ActiveLayerDepth;
@@ -514,7 +514,7 @@ public class Renderer : MoonTools.ECS.Renderer
 				var offset = -origin - new Vector2(sprite.FrameRect.X, sprite.FrameRect.Y);
 
 				ArtSpriteBatch.Add(
-					new Vector3(drawPos.X , drawPos.Y, depth),
+					new Vector3(drawPos.X + offset.X, drawPos.Y + offset.Y, depth),
 					0.0f,
 					new Vector2(sprite.SliceRect.W, sprite.SliceRect.H),
 					Color.Lerp(selectedColor, Color.Transparent, 0.25f),
