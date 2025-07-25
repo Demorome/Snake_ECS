@@ -33,35 +33,44 @@ public class TileManipulator : MoonTools.ECS.Manipulator
     public Vector2? GetTilePos(Position2D worldPos)
     {
         var tilePos = new Vector2(worldPos.X / Dimensions.TILE_SIZE, worldPos.Y / Dimensions.TILE_SIZE);
-        if (tilePos.X < 0 || tilePos.X >= Dimensions.TILE_COLUMN_COUNT)
-        {
-            return null;
-        }
-        else if (tilePos.Y < 0 || tilePos.Y >= Dimensions.TILE_ROW_COUNT)
+        if (!IsTilePosValid(tilePos))
         {
             return null;
         }
         return tilePos;
     }
 
-    public Position2D TilePosToWorldPos(Vector2 tilePos)
+    public static bool IsTilePosValid(Vector2 tilePos)
     {
-        return new Position2D(TilePosXToWorldPos((int)tilePos.X),
-            TilePosYToWorldPos((int)tilePos.Y));
+        if (tilePos.X < 0 || tilePos.X >= Dimensions.TILE_COLUMN_COUNT)
+        {
+            return false;
+        }
+        else if (tilePos.Y < 0 || tilePos.Y >= Dimensions.TILE_ROW_COUNT)
+        {
+            return false;
+        }
+        return true;
     }
 
-    public Position2D TilePosToWorldPos(int x, int y)
+    public Position2D TilePosToWorldPos_TopLeft(Vector2 tilePos)
     {
-        return new Position2D(TilePosXToWorldPos(x),
-            TilePosYToWorldPos(y));
+        return new Position2D(TilePosXToWorldPos_TopLeft((int)tilePos.X),
+            TilePosYToWorldPos_TopLeft((int)tilePos.Y));
     }
 
-    public float TilePosXToWorldPos(int tilePosX)
+    public Position2D TilePosToWorldPos_TopLeft(int x, int y)
+    {
+        return new Position2D(TilePosXToWorldPos_TopLeft(x),
+            TilePosYToWorldPos_TopLeft(y));
+    }
+
+    float TilePosXToWorldPos_TopLeft(int tilePosX)
     {
         return tilePosX * Dimensions.TILE_SIZE;
     }
 
-    public float TilePosYToWorldPos(int tilePosY)
+    float TilePosYToWorldPos_TopLeft(int tilePosY)
     {
         return tilePosY * Dimensions.TILE_SIZE;
     }

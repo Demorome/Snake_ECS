@@ -99,18 +99,96 @@ public class EditorSystem : MoonTools.ECS.System
     public bool IsActiveLayerTiled => LevelLayers[ActiveLayerID].IsTiled;
     public float ActiveLayerDepth => LevelLayers[ActiveLayerID].Depth;
 
-    static int TileSpriteToReplaceIndex = -1;
-    static int SelectedTileSpriteIndex = -1;
-    public (SpriteAnimation, Color)? GetSelectedSpriteToPaint()
+    static int LayerImageToReplaceID = -1;
+    // NOTE: This is a flat 2D array. See NumColumnsToPaint for the column count.
+    static List<(int, bool)> LayerImageIDsToPaint = new(); // FIXME: Make flat 2D arrays with this!
+    static int? FirstValidLayerImageID
     {
-        if (SelectedTileSpriteIndex == -1 || ActiveLayerID == -1)
+        get
         {
-            return null;
+            int? result = null;
+            foreach (var (layerImageID, isValid) in LayerImageIDsToPaint)
+            {
+                if (isValid)
+                {
+                    return layerImageID;
+                }
+            }
+            return result;
         }
+    }
+    
+    static int NumColumnsToPaint = -1;
+    public List<(SpriteAnimation, Color, Position2D, Editor_LayerImageID)> GetLayerImagesToPaint()
+    {
+        if (!IsInLevelEditor || ActiveLayerID == -1 || LayerImageIDsToPaint.Count == 0)
+        {
+            return new();
+        }
+        var result = new List<(SpriteAnimation, Color, Position2D, Editor_LayerImageID)>();
+
         var activeLayer = LevelLayers[ActiveLayerID];
-        var (sprite, color) = activeLayer.Images[SelectedTileSpriteIndex];
-        color = activeLayer.MixLayerColorWithTileColor(color);
-        return (sprite, color);
+        var mouseWorldPos = Input.WorldMousePosition;
+        var maybeHoveredOverTile = TileManipulator.GetTilePos(mouseWorldPos);
+        if (activeLayer.IsTiled && !maybeHoveredOverTile.HasValue)
+        {
+            return new();
+        }
+
+        var startingTile = maybeHoveredOverTile.Value;
+        var nextTile = startingTile;
+        int column = 0;
+        foreach (var (layerImageID, isValid) in LayerImageIDsToPaint)
+        {
+            Position2D worldPos = mouseWorldPos;
+
+            var currentTile = nextTile;
+
+            if (activeLayer.IsTiled)
+            {
+                nextTile.X += 1;
+                column += 1;
+                column %= NumColumnsToPaint;
+                if (column == 0)
+                {
+                    nextTile.X = startingTile.X;
+                    nextTile.Y += 1;
+                }
+
+                if (!TileManipulator.IsTilePosValid(currentTile))
+                {
+                    continue;
+                }
+
+                worldPos = TileManipulator.TilePosToWorldPos_Centered(currentTile);
+
+                // Tile may be invalid here, for odd selection schemes.
+                // Ex: picking 2 sprites that are diagonal from each other.
+                // This would produce a 2x2 selection scheme, with 2 tiles being 'invalid' (empty).
+                // Or, the tile may actually be an empty filler tile, with a valid LayerImageID.
+                if (!isValid || IsEmptyTile(activeLayer.Images[layerImageID].Item1))
+                {
+                    continue;
+                }
+            }
+
+            var (sprite, imageColor) = activeLayer.Images[layerImageID];
+            imageColor = activeLayer.MixLayerColorWithImageColor(imageColor);
+            result.Add((sprite, imageColor, worldPos, new Editor_LayerImageID(layerImageID)));
+        }
+
+        if (result.Count > 1 && !activeLayer.IsTiled)
+        {
+            throw new Exception("Should only be creating 1 image here...");
+        }
+
+        return result;
+    }
+
+    static bool IsEmptyTile(SpriteAnimation sprite)
+    {
+        return sprite.SpriteAnimationInfoID == SpriteAnimations.EditorTile_EmptyTile.ID
+            || sprite.CurrentSprite.UV == SpriteAnimations.EditorTile_EmptyTile.Frames[0].UV;
     }
 
     const string TileSpritePrefix = "Tile_";
@@ -140,7 +218,7 @@ public class EditorSystem : MoonTools.ECS.System
                         var tileSetSpriteAnimInfo = SpriteAnimationInfo.FromID(tileSetSpriteID);
                         var defaultColor = Color.White;
 
-                        // Add a bunch of SpriteAnimation based on each frame of the tileset
+                        // Add a bunch of SpriteAnimation-s based on each frame of the tileset
                         for (int i = 0; i < tileSetSpriteAnimInfo.Frames.Length; ++i)
                         {
                             levelLayer.Images.Add(
@@ -178,8 +256,8 @@ public class EditorSystem : MoonTools.ECS.System
                         var spriteID = SpriteAnimations.NameToInfoMap[spriteName].ID;
                         var spriteAnimInfo = SpriteAnimationInfo.FromID(spriteID);
                         var sprite = new SpriteAnimation(spriteAnimInfo);
-                        levelLayer.ReplaceImage(TileSpriteToReplaceIndex, sprite, World);
-                        TileSpriteToReplaceIndex = -1;
+                        levelLayer.ReplaceImage(LayerImageToReplaceID, sprite, World);
+                        LayerImageToReplaceID = -1;
                         break;
                     }
                 }
@@ -187,9 +265,69 @@ public class EditorSystem : MoonTools.ECS.System
         }
         else
         {
-            TileSpriteToReplaceIndex = -1;
+            LayerImageToReplaceID = -1;
         }
         ImGui.EndPopup();
+    }
+
+    void UpdateMultiImagePaintSelection(LevelLayer levelLayer, int? toAddIndex = null)
+    {
+        // LayerImageIDs may be invalid here, for odd selection schemes.
+        // Ex: picking 2 sprites that are diagonal from each other.
+        // This would produce a 2x2 selection scheme, with 2 tiles being 'invalid' (empty).
+        List<int> validLayerImageIDs = new();
+        foreach (var (layerImageID, isValid) in LayerImageIDsToPaint)
+        {
+            if (isValid)
+            {
+                validLayerImageIDs.Add(layerImageID);
+            }
+        }
+        LayerImageIDsToPaint.Clear();
+
+        if (validLayerImageIDs.Count == 0)
+        {
+            NumColumnsToPaint = -1;
+            return;
+        }
+
+        // Assumes the list was ordered.
+        var firstIndex = validLayerImageIDs[0];
+        var lastIndex = validLayerImageIDs[validLayerImageIDs.Count - 1];
+
+        var left = firstIndex % levelLayer.ImagesPerRow;
+        var top = firstIndex / levelLayer.ImagesPerRow;
+        var right = lastIndex % levelLayer.ImagesPerRow;
+        var bottom = lastIndex / levelLayer.ImagesPerRow;
+
+        if (toAddIndex.HasValue)
+        {
+            validLayerImageIDs.Add(toAddIndex.Value);
+
+            left = int.Min(left, toAddIndex.Value % levelLayer.ImagesPerRow);
+            top = int.Min(top, toAddIndex.Value / levelLayer.ImagesPerRow);
+            right = int.Max(right, toAddIndex.Value % levelLayer.ImagesPerRow);
+            bottom = int.Max(bottom, toAddIndex.Value / levelLayer.ImagesPerRow);
+        }
+
+        var numColumns = right - left + 1;
+        NumColumnsToPaint = numColumns;
+
+        for (int row = top; row <= bottom; ++row)
+        {
+            for (int col = left; col <= right; ++col)
+            {
+                var currentImageLayerPos = row * levelLayer.ImagesPerRow + col;
+                if (validLayerImageIDs.Contains(currentImageLayerPos))
+                {
+                    LayerImageIDsToPaint.Add((currentImageLayerPos, true));
+                }
+                else
+                {
+                    LayerImageIDsToPaint.Add((currentImageLayerPos, false));
+                }
+            }
+        }
     }
 
     void ShowTileLayerMenu(LevelLayer tileLayer)
@@ -216,14 +354,14 @@ public class EditorSystem : MoonTools.ECS.System
             // FIXME: Allow sprite animations to play (simulate frame countdown?)
             var currentFrame = sprite.CurrentSprite;
 
-            bool selected = i == SelectedTileSpriteIndex;
+            bool wasSelected = LayerImageIDsToPaint.Contains((i, true));
 
-            if (i == TileSpriteToReplaceIndex)
+            if (i == LayerImageToReplaceID)
             {
                 ImGui.PushStyleColor(ImGuiCol.Button, Color.Red.ToVector4());
                 ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Color.Red.ToVector4());
             }
-            else if (selected)
+            else if (wasSelected)
             {
                 ImGui.PushStyleColor(ImGuiCol.Button, Color.Purple.ToVector4());
                 ImGui.PushStyleColor(ImGuiCol.ButtonHovered, Color.Purple.ToVector4());
@@ -236,28 +374,41 @@ public class EditorSystem : MoonTools.ECS.System
                 currentFrame.UV.LeftTop,
                 currentFrame.UV.RightBottom,
                 invalid ? Color.White.ToVector4() : imageBgColor.ToVector4(),
-                tileLayer.MixLayerColorWithTileColor(colorBlend).ToVector4(),
+                tileLayer.MixLayerColorWithImageColor(colorBlend).ToVector4(),
                 ImGuiBackend.SamplerType.PointClamp
                 ))
             {
-                if (invalid)
+                if (!invalid)
                 {
-                    TileSpriteToReplaceIndex = i;
-                }
-                else
-                {
-                    if (selected)
+                    if (wasSelected)
                     {
-                        SelectedTileSpriteIndex = -1;
+                        LayerImageIDsToPaint.Remove((i, true));
+                        if (LayerImageIDsToPaint.Count == 0)
+                        {
+                            NumColumnsToPaint = -1;
+                        }
+                        else
+                        {
+                            UpdateMultiImagePaintSelection(tileLayer);
+                        }
                     }
                     else
                     {
-                        SelectedTileSpriteIndex = i;
+                        if (LayerImageIDsToPaint.Count >= 1 && ImGui.IsKeyDown(ImGuiKey.ModCtrl))
+                        {
+                            UpdateMultiImagePaintSelection(tileLayer, i);
+                        }
+                        else
+                        {
+                            LayerImageIDsToPaint.Clear();
+                            LayerImageIDsToPaint.Add((i, true));
+                            NumColumnsToPaint = 1;
+                        }
                     }
                 }
             }
 
-            if (selected || i == TileSpriteToReplaceIndex)
+            if (wasSelected || i == LayerImageToReplaceID)
             {
                 ImGui.PopStyleColor(2);
             }
@@ -266,7 +417,7 @@ public class EditorSystem : MoonTools.ECS.System
             if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
             {
                 ImGui.OpenPopup("##SelectTileSprite");
-                TileSpriteToReplaceIndex = i;
+                LayerImageToReplaceID = i;
             }
 
             if (((i + 1) % tileLayer.ImagesPerRow) != 0)
@@ -284,7 +435,7 @@ public class EditorSystem : MoonTools.ECS.System
         // FIXME: Undo/Redo support!
         if (ImGui.Button("Add Tile"))
         {
-            tileLayer.Images.Add((new SpriteAnimation(SpriteAnimations.EditorTile_InvalidTile), Color.White));
+            tileLayer.Images.Add((new SpriteAnimation(SpriteAnimations.EditorTile_EmptyTile), Color.White));
         }
         ImGui.SameLine();
         if (ImGui.Button("Add TileSet"))
@@ -293,10 +444,22 @@ public class EditorSystem : MoonTools.ECS.System
         }
         DrawTileSetSelectionPopup(tileLayer);
         ImGui.SameLine();
-        // FIXME: Delete if no tile is selected!
+        bool noSelectedImages = LayerImageIDsToPaint.Count <= 0;
+        if (noSelectedImages)
+        {
+            ImGui.BeginDisabled();
+        }
         if (ImGui.Button("Delete"))
         {
             // FIXME: Implement!
+
+            // Reset selections.
+            NumColumnsToPaint = -1;
+            LayerImageIDsToPaint.Clear();
+        }
+        if (noSelectedImages)
+        {
+            ImGui.EndDisabled();
         }
 
         var colorBlendVec = tileLayer.ColorBlend.ToVector4();
@@ -306,28 +469,42 @@ public class EditorSystem : MoonTools.ECS.System
         }
 
         var tileColor = Color.White.ToVector4();
-        if (SelectedTileSpriteIndex == -1)
+        var firstValidLayerImageID = FirstValidLayerImageID;
+        noSelectedImages = firstValidLayerImageID == null;
+        if (noSelectedImages)
         {
             ImGui.BeginDisabled();
         }
         else
         {
-            tileColor = tileLayer.Images[SelectedTileSpriteIndex].Item2.ToVector4();
+            tileColor = tileLayer.Images[firstValidLayerImageID.Value].Item2.ToVector4();
         }
         if (ImGui.ColorEdit4("Tile Color Blend", ref tileColor))
         {
-            tileLayer.ChangeTileColorBlend(new Editor_TileSpriteID(SelectedTileSpriteIndex),
-                new Color(tileColor), World);
+            foreach (var (layerImageID, isValid) in LayerImageIDsToPaint)
+            {
+                if (isValid)
+                {
+                    tileLayer.ChangeTileColorBlend(new Editor_LayerImageID(layerImageID),
+                        new Color(tileColor), World);
+                }
+            }
         }
-        if (SelectedTileSpriteIndex == -1)
+        if (noSelectedImages)
         {
             ImGui.EndDisabled();
         }
 
-        ImGui.InputInt("Tiles per row", ref tileLayer.ImagesPerRow);
-        tileLayer.ImagesPerRow = int.Max(1, tileLayer.ImagesPerRow);
+        if (ImGui.InputInt("Tiles per row", ref tileLayer.ImagesPerRow))
+        {
+            tileLayer.ImagesPerRow = int.Max(1, tileLayer.ImagesPerRow);
+            // Reset the selected tiles since if multiple were selected, the selection would change in a bizarre way.
+            NumColumnsToPaint = -1;
+            LayerImageIDsToPaint.Clear();
+        }
+        
 
-        if (TileSpriteToReplaceIndex != -1)
+        if (LayerImageToReplaceID != -1)
         {
             DrawTileSpriteReplacementsPopup(tileLayer);
         }
@@ -358,7 +535,7 @@ public class EditorSystem : MoonTools.ECS.System
                     if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
                     {
                         ActiveLayerID = i;
-                        SelectedTileSpriteIndex = -1;
+                        LayerImageIDsToPaint.Clear();
                     }
                 }
                 if (ImGui.IsItemHovered())
@@ -426,7 +603,7 @@ public class EditorSystem : MoonTools.ECS.System
                 if (ActiveLayerID == SelectedLayerID)
                 {
                     ActiveLayerID = -1;
-                    SelectedTileSpriteIndex = -1; // Just in case
+                    LayerImageIDsToPaint.Clear();
                 }
                 else if (ActiveLayerID > SelectedLayerID)
                 {
@@ -578,68 +755,77 @@ public class EditorSystem : MoonTools.ECS.System
             return;
         }
         var activeLayer = LevelLayers[ActiveLayerID];
-        var spriteToPaintInfo = GetSelectedSpriteToPaint();
-        if (spriteToPaintInfo.HasValue && ImGui.IsMouseDown(ImGuiMouseButton.Left))
+        var imagesToPaint = GetLayerImagesToPaint();
+        if (imagesToPaint != null && ImGui.IsMouseDown(ImGuiMouseButton.Left))
         {
-            var (selectedSprite, selectedColor) = spriteToPaintInfo.Value;
-            Entity? paintedEntity = null;
+            List<Entity> paintedEntities = new();
 
-            // Painting sprites to the world!
-            if (activeLayer.IsTiled)
+            switch (activeLayer.LayerType)
             {
-                var tileWorldPos = TileManipulator.TilePosToWorldPos_Centered(HoveredOverTilePosition.Value);
+                case LevelLayer.LevelLayerTypes.VisualTile:
+                case LevelLayer.LevelLayerTypes.SolidTile:
+                    if (imagesToPaint.Count == 1 || ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+                    {
+                        foreach (var (imageSprite, imageColor, imagePos, layerImageID) in imagesToPaint)
+                        {
+                            var tileWorldPos = TileManipulator.TilePosToWorldPos_Centered(HoveredOverTilePosition.Value);
 
-                // Don't spawn anything if tile is already painted in at this level layer.
-                bool spawn = true;
-                foreach (var entity in activeLayer.CachedEntities)
-                {
-                    if (Get<Position2D>(entity) == tileWorldPos)
-                    {
-                        spawn = false;
-                        break;
-                    }
-                }
+                            // Don't spawn anything if tile is already painted in at this level layer.
+                            bool spawn = true;
+                            foreach (var entity in activeLayer.CachedEntities)
+                            {
+                                if (Get<Position2D>(entity) == tileWorldPos
+                                    && Get<Editor_LayerImageID>(entity) == layerImageID)
+                                {
+                                    spawn = false;
+                                    break;
+                                }
+                            }
 
-                if (spawn)
-                {
-                    if (activeLayer.LayerType == LevelLayer.LevelLayerTypes.SolidTile)
-                    {
-                        paintedEntity = TileManipulator.SpawnSolidTile(tileWorldPos, selectedSprite);
-                    }
-                    else
-                    {
-                        paintedEntity = CreateEntity("Visual Tile");
-                        Set(paintedEntity.Value, tileWorldPos);
-                        Set(paintedEntity.Value, selectedSprite);
-                    }
+                            if (spawn)
+                            {
+                                Entity newEntity;
+                                if (activeLayer.LayerType == LevelLayer.LevelLayerTypes.SolidTile)
+                                {
+                                    newEntity = TileManipulator.SpawnSolidTile(tileWorldPos, imageSprite);
+                                }
+                                else
+                                {
+                                    newEntity = CreateEntity("Visual Tile");
+                                    Set(newEntity, tileWorldPos);
+                                    Set(newEntity, imageSprite);
+                                }
 
-                    if (SelectedTileSpriteIndex < 0)
-                    {
-                        throw new Exception("Tile sprite index should be valid here!");
+                                Set(newEntity, new ColorBlend(imageColor));
+                                Set(newEntity, imagePos);
+                                Set(newEntity, layerImageID);
+
+                                paintedEntities.Add(newEntity);
+                            }
+                        }
                     }
-                    Set(paintedEntity.Value, new Editor_TileSpriteID(SelectedTileSpriteIndex));
-                }
+                    break;
+                case LevelLayer.LevelLayerTypes.Image:
+                    if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+                    {
+                        var (spriteAnim, color, position, layerImageID) = imagesToPaint[0];
+
+                        Entity newEntity = CreateEntity("Image");
+                        Set(newEntity, spriteAnim);
+                        Set(newEntity, new ColorBlend(color));
+                        Set(newEntity, position);
+                        Set(newEntity, layerImageID);
+                    }
+                    break;
             }
-            else if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
-            {
-                // Assume it's an image layer.
-                paintedEntity = CreateEntity("Image");
-                Set(paintedEntity.Value, mouseWorldPos);
-                Set(paintedEntity.Value, selectedSprite);
-            }
 
-            if (paintedEntity.HasValue)
+            foreach (var entity in paintedEntities)
             {
-                Set(paintedEntity.Value, new Editor_LevelLayerID(ActiveLayerID));
-
-                // Account for color blends from ActiveLayer + selected tile blend override
-                Set(paintedEntity.Value, new ColorBlend(activeLayer.MixLayerColorWithTileColor(selectedColor)));
+                Set(entity, new Editor_LevelLayerID(ActiveLayerID));
+                Set(entity, new Depth(activeLayer.Depth));
 
                 // FIXME: Group together multiple entities created in a single paintbrush stroke for Undo.
-                UndoRedo.StoreEntityCreateHistory(paintedEntity.Value, World);
-
-                //Set(paintedEntity, new Depth());
-                //Set(paintedEntity, new ColorBlend());
+                UndoRedo.StoreEntityCreateHistory(entity, World);
             }
         }
         else if (ImGui.IsMouseDown(ImGuiMouseButton.Right))
@@ -658,7 +844,7 @@ public class EditorSystem : MoonTools.ECS.System
 
                     if (worldRect.Intersects(mouseWorldPosRect))
                     {
-                        // FIXME: Group together deletions done while holding the mouse down
+                        // FIXME: Group together deletions done while holding the mouse down!
                         UndoRedo.StoreEntityDestroyHistory(entity, World);
                         Destroy(entity);
                     }
@@ -828,8 +1014,18 @@ public class EditorSystem : MoonTools.ECS.System
         else if (Has<SpriteAnimation>(entity))
         {
             var spriteAnim = Get<SpriteAnimation>(entity);
-            var rect = spriteAnim.CurrentSprite.FrameRect;
-			return new Rectangle(rect.X - rect.W / 2, rect.Y - rect.H / 2, rect.W, rect.H);
+            var currentSprite = spriteAnim.CurrentSprite;
+            var rect = currentSprite.FrameRect;
+            var origin = spriteAnim.Origin;
+            
+            // FIXME: Account for rotation and scale?
+            var offset = -origin - new Vector2(currentSprite.FrameRect.X, currentSprite.FrameRect.Y);
+            return new Rectangle(
+                (int)(rect.X + offset.X),
+                (int)(rect.Y + offset.Y),
+                rect.W,
+                rect.H
+            );
         }
         return null;
     }

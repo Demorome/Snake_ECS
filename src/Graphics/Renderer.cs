@@ -393,7 +393,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			var horizontalLength = Dimensions.TILE_COLUMN_COUNT * Dimensions.TILE_SIZE;
 
 			// Top line
-			var worldPos = TileManipulator.TilePosToWorldPos(0, 0);
+			var worldPos = TileManipulator.TilePosToWorldPos_TopLeft(0, 0);
 			DrawDebugLine(worldPos.AsVector(), horizontalLength, DebugLineThickness, true, color, depth);
 
 			// Left vertical line
@@ -402,7 +402,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			// Use twice the thickness since we're technically drawing the line twice.
 			for (int col = 1; col < Dimensions.TILE_COLUMN_COUNT; ++col)
 			{
-				worldPos = TileManipulator.TilePosToWorldPos(col, 0);
+				worldPos = TileManipulator.TilePosToWorldPos_TopLeft(col, 0);
 				DrawDebugLine(new Vector2(worldPos.X - DebugLineThickness, worldPos.Y),
 					verticalLength, DebugLineThickness * 2, false, color, depth
 				);
@@ -410,25 +410,25 @@ public class Renderer : MoonTools.ECS.Renderer
 
 			for (int row = 1; row < Dimensions.TILE_ROW_COUNT; ++row)
 			{
-				worldPos = TileManipulator.TilePosToWorldPos(0, row);
+				worldPos = TileManipulator.TilePosToWorldPos_TopLeft(0, row);
 				DrawDebugLine(new Vector2(worldPos.X, worldPos.Y - DebugLineThickness),
 					horizontalLength, DebugLineThickness * 2, true, color, depth
 				);
 			}
 
 			// Bottom line
-			worldPos = TileManipulator.TilePosToWorldPos(0, Dimensions.TILE_ROW_COUNT);
+			worldPos = TileManipulator.TilePosToWorldPos_TopLeft(0, Dimensions.TILE_ROW_COUNT);
 			DrawDebugLine(worldPos.AsVector(), horizontalLength, DebugLineThickness, true, color, depth);
 
 			// Right vertical line
-			worldPos = TileManipulator.TilePosToWorldPos(Dimensions.TILE_COLUMN_COUNT, 0);
+			worldPos = TileManipulator.TilePosToWorldPos_TopLeft(Dimensions.TILE_COLUMN_COUNT, 0);
 			DrawDebugLine(worldPos.AsVector(), verticalLength, DebugLineThickness, false, color, depth);
 
 			if (EditorSystem.HoveredOverTilePosition.HasValue)
 			{
 				color = Color.White with { A = 200 };
 				var tilePos = EditorSystem.HoveredOverTilePosition.Value;
-				worldPos = TileManipulator.TilePosToWorldPos(tilePos);
+				worldPos = TileManipulator.TilePosToWorldPos_TopLeft(tilePos);
 				var tileRect = new Rectangle(0, 0, Dimensions.TILE_SIZE, Dimensions.TILE_SIZE);
 				DrawDebugRectangle(worldPos, tileRect, color, depth, DebugLineThickness);
 			}
@@ -475,9 +475,8 @@ public class Renderer : MoonTools.ECS.Renderer
 						continue;
 					}
 
-					var sprite = Get<SpriteAnimation>(entity);
-					var rect = sprite.CurrentSprite.FrameRect;
-					var rectangle = new Rectangle(rect.X - rect.W / 2, rect.Y - rect.H / 2, rect.W, rect.H);
+					var spriteAnim = Get<SpriteAnimation>(entity);
+					var rectangle = EditorSystem.GetEntityVisualRect(entity).Value;
 					DrawDebugRectangle(entity, rectangle, selectionColor, depth, DebugLineThickness);
 				}
 
@@ -494,34 +493,23 @@ public class Renderer : MoonTools.ECS.Renderer
 			}
 		}
 
-		var selectedSpriteInfo = EditorSystem.GetSelectedSpriteToPaint();
-		if (selectedSpriteInfo.HasValue)
+		var selectedSpritesToPaint = EditorSystem.GetLayerImagesToPaint();
+		foreach (var (selectedSprite, selectedColor, drawPos, _) in selectedSpritesToPaint)
 		{
-			var (selectedSprite, selectedColor) = selectedSpriteInfo.Value;
-
 			// Draw a transparent version of the sprite that would be painted, as a preview.
-			Position2D drawPos = Input.WorldMousePosition;
-			if (!EditorSystem.IsActiveLayerTiled || EditorSystem.HoveredOverTilePosition.HasValue)
-			{
-				if (EditorSystem.IsActiveLayerTiled)
-				{
-					drawPos = TileManipulator.TilePosToWorldPos_Centered(EditorSystem.HoveredOverTilePosition.Value);
-				}
+			var depth = -EditorSystem.ActiveLayerDepth;
+			var sprite = selectedSprite.CurrentSprite;
+			var origin = selectedSprite.Origin;
+			var offset = -origin - new Vector2(sprite.FrameRect.X, sprite.FrameRect.Y);
 
-				var depth = -EditorSystem.ActiveLayerDepth;
-				var sprite = selectedSprite.CurrentSprite;
-				var origin = selectedSprite.Origin;
-				var offset = -origin - new Vector2(sprite.FrameRect.X, sprite.FrameRect.Y);
-
-				ArtSpriteBatch.Add(
-					new Vector3(drawPos.X + offset.X, drawPos.Y + offset.Y, depth),
-					0.0f,
-					new Vector2(sprite.SliceRect.W, sprite.SliceRect.H),
-					Color.Lerp(selectedColor, Color.Transparent, 0.25f),
-					sprite.UV.LeftTop,
-					sprite.UV.Dimensions
-				);
-			}
+			ArtSpriteBatch.Add(
+				new Vector3(drawPos.X + offset.X, drawPos.Y + offset.Y, depth),
+				0.0f,
+				new Vector2(sprite.SliceRect.W, sprite.SliceRect.H),
+				Color.Lerp(selectedColor, Color.Transparent, 0.25f),
+				sprite.UV.LeftTop,
+				sprite.UV.Dimensions
+			);
 
 		}
 

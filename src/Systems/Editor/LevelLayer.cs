@@ -70,16 +70,16 @@ public class LevelLayer
         // Update the image for every entity in this layer that was using the old one.
         foreach (var entity in CachedEntities)
         {
-            if (!world.Has<Editor_TileSpriteID>(entity))
+            if (!world.Has<Editor_LayerImageID>(entity))
             {
                 Logger.LogError("Entity should have a Editor_TileSpriteIndex component here!");
                 continue;
             }
-            var entityTileSpriteID = world.Get<Editor_TileSpriteID>(entity);
+            var entityTileSpriteID = world.Get<Editor_LayerImageID>(entity);
             if (tileSpriteID == entityTileSpriteID.ID)
             {
                 world.Set(entity, newImage);
-                world.Set(entity, new ColorBlend(MixLayerColorWithTileColor(Color.White)));
+                world.Set(entity, new ColorBlend(MixLayerColorWithImageColor(Color.White)));
             }
         }
     }
@@ -105,7 +105,7 @@ public class LevelLayer
         }
     }
 
-    public Color MixLayerColorWithTileColor(Color tileColorBlend)
+    public Color MixLayerColorWithImageColor(Color tileColorBlend)
     {
         return Color.Lerp(ColorBlend, tileColorBlend, 0.5f);
     }
@@ -117,19 +117,19 @@ public class LevelLayer
         // Recalculate the color blend for each entity in this layer.
         foreach (var entity in CachedEntities)
         {
-            if (!world.Has<Editor_TileSpriteID>(entity))
+            if (!world.Has<Editor_LayerImageID>(entity))
             {
-                Logger.LogError("Entity should have a Editor_TileSpriteIndex component here!");
+                Logger.LogError("Entity should have a Editor_LayerImageID component here!");
                 continue;
             }
-            var tileSpriteIndex = world.Get<Editor_TileSpriteID>(entity).ID;
+            var tileSpriteIndex = world.Get<Editor_LayerImageID>(entity).ID;
             var tileColorBlend = Images[tileSpriteIndex].Item2;
 
-            world.Set(entity, new ColorBlend(MixLayerColorWithTileColor(tileColorBlend)));
+            world.Set(entity, new ColorBlend(MixLayerColorWithImageColor(tileColorBlend)));
         }
     }
 
-    public void ChangeTileColorBlend(Editor_TileSpriteID tileSpriteID, Color newColor, World world)
+    public void ChangeTileColorBlend(Editor_LayerImageID tileSpriteID, Color newColor, World world)
     {
         var (spriteID, oldTileColorBlend) = Images[tileSpriteID.ID];
         Images[tileSpriteID.ID] = (spriteID, newColor);
@@ -137,15 +137,15 @@ public class LevelLayer
         // Recalculate the color blend for each entity in this layer that uses this tile sprite.
         foreach (var entity in CachedEntities)
         {
-            if (!world.Has<Editor_TileSpriteID>(entity))
+            if (!world.Has<Editor_LayerImageID>(entity))
             {
-                Logger.LogError("Entity should have a Editor_TileSpriteIndex component here!");
+                Logger.LogError("Entity should have a Editor_LayerImageID component here!");
                 continue;
             }
 
-            if (world.Get<Editor_TileSpriteID>(entity).ID == tileSpriteID.ID)
+            if (world.Get<Editor_LayerImageID>(entity).ID == tileSpriteID.ID)
             {
-                world.Set(entity, new ColorBlend(MixLayerColorWithTileColor(newColor)));
+                world.Set(entity, new ColorBlend(MixLayerColorWithImageColor(newColor)));
             }
         }
     }
