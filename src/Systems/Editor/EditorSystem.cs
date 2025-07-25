@@ -100,28 +100,34 @@ public class EditorSystem : MoonTools.ECS.System
     public float ActiveLayerDepth => LevelLayers[ActiveLayerID].Depth;
 
     static int LayerImageToReplaceID = -1;
-    // NOTE: This is a flat 2D array. See NumColumnsToPaint for the column count.
-    static List<(int, bool)> LayerImageIDsToPaint = new(); // FIXME: Make flat 2D arrays with this!
-    static int? FirstValidLayerImageID
+
+    class SelectedImagesToPaint
     {
-        get
+        // NOTE: This is a flat 2D array. See NumColumns for the column count.
+        // The `bool` is for "IsValid"; some may be invalid to represent filler in an non-square selection scheme.
+        public List<(int, bool)> LayerImageIDs = new();
+        public int? FirstValidLayerImageID
         {
-            int? result = null;
-            foreach (var (layerImageID, isValid) in LayerImageIDsToPaint)
+            get
             {
-                if (isValid)
+                int? result = null;
+                foreach (var (layerImageID, isValid) in LayerImageIDs)
                 {
-                    return layerImageID;
+                    if (isValid)
+                    {
+                        return layerImageID;
+                    }
                 }
+                return result;
             }
-            return result;
         }
+        public int NumColumns = -1;
     }
-    
-    static int NumColumnsToPaint = -1;
+    static SelectedImagesToPaint ImagesToPaint = null;
+
     public List<(SpriteAnimation, Color, Position2D, Editor_LayerImageID)> GetLayerImagesToPaint()
     {
-        if (!IsInLevelEditor || ActiveLayerID == -1 || LayerImageIDsToPaint.Count == 0)
+        if (!IsInLevelEditor || ActiveLayerID == -1 || ImagesToPaint == null)
         {
             return new();
         }
@@ -138,7 +144,7 @@ public class EditorSystem : MoonTools.ECS.System
         var startingTile = maybeHoveredOverTile.Value;
         var nextTile = startingTile;
         int column = 0;
-        foreach (var (layerImageID, isValid) in LayerImageIDsToPaint)
+        foreach (var (layerImageID, isValid) in ImagesToPaint.LayerImageIDs)
         {
             Position2D worldPos = mouseWorldPos;
 
@@ -148,7 +154,7 @@ public class EditorSystem : MoonTools.ECS.System
             {
                 nextTile.X += 1;
                 column += 1;
-                column %= NumColumnsToPaint;
+                column %= ImagesToPaint.NumColumns;
                 if (column == 0)
                 {
                     nextTile.X = startingTile.X;
@@ -276,18 +282,18 @@ public class EditorSystem : MoonTools.ECS.System
         // Ex: picking 2 sprites that are diagonal from each other.
         // This would produce a 2x2 selection scheme, with 2 tiles being 'invalid' (empty).
         List<int> validLayerImageIDs = new();
-        foreach (var (layerImageID, isValid) in LayerImageIDsToPaint)
+        foreach (var (layerImageID, isValid) in ImagesToPaint.LayerImageIDs)
         {
             if (isValid)
             {
                 validLayerImageIDs.Add(layerImageID);
             }
         }
-        LayerImageIDsToPaint.Clear();
+        ImagesToPaint.LayerImageIDs.Clear();
 
         if (validLayerImageIDs.Count == 0)
         {
-            NumColumnsToPaint = -1;
+            ImagesToPaint = null;
             return;
         }
 
@@ -311,7 +317,7 @@ public class EditorSystem : MoonTools.ECS.System
         }
 
         var numColumns = right - left + 1;
-        NumColumnsToPaint = numColumns;
+        ImagesToPaint.NumColumns = numColumns;
 
         for (int row = top; row <= bottom; ++row)
         {
@@ -320,11 +326,11 @@ public class EditorSystem : MoonTools.ECS.System
                 var currentImageLayerPos = row * levelLayer.ImagesPerRow + col;
                 if (validLayerImageIDs.Contains(currentImageLayerPos))
                 {
-                    LayerImageIDsToPaint.Add((currentImageLayerPos, true));
+                    ImagesToPaint.LayerImageIDs.Add((currentImageLayerPos, true));
                 }
                 else
                 {
-                    LayerImageIDsToPaint.Add((currentImageLayerPos, false));
+                    ImagesToPaint.LayerImageIDs.Add((currentImageLayerPos, false));
                 }
             }
         }
@@ -354,7 +360,7 @@ public class EditorSystem : MoonTools.ECS.System
             // FIXME: Allow sprite animations to play (simulate frame countdown?)
             var currentFrame = sprite.CurrentSprite;
 
-            bool wasSelected = LayerImageIDsToPaint.Contains((i, true));
+            bool wasSelected = ImagesToPaint != null && ImagesToPaint.LayerImageIDs.Contains((i, true));
 
             if (i == LayerImageToReplaceID)
             {
@@ -382,10 +388,10 @@ public class EditorSystem : MoonTools.ECS.System
                 {
                     if (wasSelected)
                     {
-                        LayerImageIDsToPaint.Remove((i, true));
-                        if (LayerImageIDsToPaint.Count == 0)
+                        ImagesToPaint.LayerImageIDs.Remove((i, true));
+                        if (ImagesToPaint.LayerImageIDs.Count == 0)
                         {
-                            NumColumnsToPaint = -1;
+                            ImagesToPaint = null;
                         }
                         else
                         {
@@ -394,15 +400,22 @@ public class EditorSystem : MoonTools.ECS.System
                     }
                     else
                     {
-                        if (LayerImageIDsToPaint.Count >= 1 && ImGui.IsKeyDown(ImGuiKey.ModCtrl))
+                        if (ImagesToPaint != null && ImGui.IsKeyDown(ImGuiKey.ModCtrl))
                         {
                             UpdateMultiImagePaintSelection(tileLayer, i);
                         }
                         else
                         {
-                            LayerImageIDsToPaint.Clear();
-                            LayerImageIDsToPaint.Add((i, true));
-                            NumColumnsToPaint = 1;
+                            if (ImagesToPaint == null)
+                            {
+                                ImagesToPaint = new();
+                            }
+                            else
+                            {
+                                ImagesToPaint.LayerImageIDs.Clear();
+                            }
+                            ImagesToPaint.NumColumns = 1;
+                            ImagesToPaint.LayerImageIDs.Add((i, true));
                         }
                     }
                 }
@@ -444,7 +457,7 @@ public class EditorSystem : MoonTools.ECS.System
         }
         DrawTileSetSelectionPopup(tileLayer);
         ImGui.SameLine();
-        bool noSelectedImages = LayerImageIDsToPaint.Count <= 0;
+        bool noSelectedImages = ImagesToPaint == null || ImagesToPaint.LayerImageIDs.Count <= 0;
         if (noSelectedImages)
         {
             ImGui.BeginDisabled();
@@ -454,8 +467,7 @@ public class EditorSystem : MoonTools.ECS.System
             // FIXME: Implement!
 
             // Reset selections.
-            NumColumnsToPaint = -1;
-            LayerImageIDsToPaint.Clear();
+            ImagesToPaint = null;
         }
         if (noSelectedImages)
         {
@@ -469,7 +481,7 @@ public class EditorSystem : MoonTools.ECS.System
         }
 
         var tileColor = Color.White.ToVector4();
-        var firstValidLayerImageID = FirstValidLayerImageID;
+        var firstValidLayerImageID = ImagesToPaint == null ? null : ImagesToPaint.FirstValidLayerImageID;
         noSelectedImages = firstValidLayerImageID == null;
         if (noSelectedImages)
         {
@@ -481,12 +493,15 @@ public class EditorSystem : MoonTools.ECS.System
         }
         if (ImGui.ColorEdit4("Tile Color Blend", ref tileColor))
         {
-            foreach (var (layerImageID, isValid) in LayerImageIDsToPaint)
+            if (ImagesToPaint != null)
             {
-                if (isValid)
+                foreach (var (layerImageID, isValid) in ImagesToPaint.LayerImageIDs)
                 {
-                    tileLayer.ChangeTileColorBlend(new Editor_LayerImageID(layerImageID),
-                        new Color(tileColor), World);
+                    if (isValid)
+                    {
+                        tileLayer.ChangeTileColorBlend(new Editor_LayerImageID(layerImageID),
+                            new Color(tileColor), World);
+                    }
                 }
             }
         }
@@ -499,8 +514,7 @@ public class EditorSystem : MoonTools.ECS.System
         {
             tileLayer.ImagesPerRow = int.Max(1, tileLayer.ImagesPerRow);
             // Reset the selected tiles since if multiple were selected, the selection would change in a bizarre way.
-            NumColumnsToPaint = -1;
-            LayerImageIDsToPaint.Clear();
+            ImagesToPaint = null;
         }
         
 
@@ -535,7 +549,7 @@ public class EditorSystem : MoonTools.ECS.System
                     if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
                     {
                         ActiveLayerID = i;
-                        LayerImageIDsToPaint.Clear();
+                        ImagesToPaint = null;
                     }
                 }
                 if (ImGui.IsItemHovered())
@@ -603,7 +617,7 @@ public class EditorSystem : MoonTools.ECS.System
                 if (ActiveLayerID == SelectedLayerID)
                 {
                     ActiveLayerID = -1;
-                    LayerImageIDsToPaint.Clear();
+                    ImagesToPaint = null;
                 }
                 else if (ActiveLayerID > SelectedLayerID)
                 {
@@ -723,20 +737,6 @@ public class EditorSystem : MoonTools.ECS.System
 
         DrawLevelEditorMainWindow();
         ShowLevelLayerOptions();
-
-        /*foreach (var (windowTitle, drawAction) in LevelEditorDetachedWindows)
-        {
-            bool dontCloseWindow = true;
-            if (ImGui.Begin(windowTitle, ref dontCloseWindow))
-            {
-                drawAction(World);
-                ImGui.End();
-            }
-            if (!dontCloseWindow)
-            {
-                LevelEditorDetachedWindows.Remove(windowTitle);
-            }
-        }*/
         
         // Layer painting controls.
         var mouseHoveringOverAnyWindow = ImGui.GetIO().WantCaptureMouse;
