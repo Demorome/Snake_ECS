@@ -418,7 +418,7 @@ public class EditorSystem : MoonTools.ECS.System
                     }
                     else if (wasSelected)
                     {
-                        gridColorVec = Color.NavajoWhite.ToVector4();
+                        gridColorVec = Color.Chocolate.ToVector4();
                     }
                     else if (ShowTileLayerMenuGrid)
                     {
