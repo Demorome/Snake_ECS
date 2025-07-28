@@ -58,6 +58,7 @@ public class LevelLayer
     public Color ColorBlend { get; private set; } = Color.White;
     public List<(SpriteAnimation, Color)> Images { get; private set; } = new();
     public int ImagesPerRow = 8;
+    public int PreviewScaleMult = 2;
     public float Depth { get; private set; } = -2;
     public bool IsDepthLocked => LayerType == LevelLayerTypes.SolidTile;
     public bool IsVisible { get; private set; } = true;
