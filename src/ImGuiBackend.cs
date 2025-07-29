@@ -127,11 +127,8 @@ public class ImGuiBackend : IDisposable
 
         ImGuiPlatformIOPtr pio = ImGui.GetPlatformIO();
 
-        /* FIXME: Use latest Imgui.NET
-
-        pio.Platform_GetClipboardTextFn = PinDelegate(GetClipboard);
-        pio.Platform_SetClipboardTextFn = PinDelegate(SetClipboard);
-        */
+        pio.PlatformGetClipboardTextFn = (void*)PinDelegate(GetClipboard);
+        pio.PlatformSetClipboardTextFn = (void*)PinDelegate(SetClipboard);
     }
 
     public void RebuildPipeline(Shader vertexShader, Shader fragmentShader)
@@ -357,8 +354,8 @@ public class ImGuiBackend : IDisposable
         {
             ImDrawListPtr cmdList = drawData.CmdLists[i];
 
-            Span<Vertex> vertexSpan = new Span<Vertex>(cmdList.VtxBuffer.Data.ToPointer(), cmdList.VtxBuffer.Size);
-            Span<ushort> indexSpan = new Span<ushort>(cmdList.IdxBuffer.Data.ToPointer(), cmdList.IdxBuffer.Size);
+            Span<Vertex> vertexSpan = new Span<Vertex>(cmdList.VtxBuffer.Data, cmdList.VtxBuffer.Size);
+            Span<ushort> indexSpan = new Span<ushort>(cmdList.IdxBuffer.Data, cmdList.IdxBuffer.Size);
 
             vertexSpan.CopyTo(vertexTransBuf.MappedSpan<Vertex>((uint)(vertexOffset * sizeof(Vertex))));
             indexSpan.CopyTo(indexTransBuf.MappedSpan<ushort>((uint)(indexOffset * sizeof(ushort))));
@@ -410,7 +407,7 @@ public class ImGuiBackend : IDisposable
 
             for (int i = 0; i < cmdList.CmdBuffer.Size; i++)
             {
-                ImDrawCmdPtr drawCmd = cmdList.CmdBuffer[i];
+                var drawCmd = cmdList.CmdBuffer[i];
 
                 Vector2 clipMin = new Vector2(
                     Math.Max(0.0f, drawCmd.ClipRect.X),
@@ -434,7 +431,7 @@ public class ImGuiBackend : IDisposable
                     (int)(clipMax.Y - clipMin.Y)
                 ));
 
-                pass.BindFragmentSamplers(GetTextureBinding(drawCmd.TextureId));
+                pass.BindFragmentSamplers(GetTextureBinding(drawCmd.GetTexID()));
 
                 pass.DrawIndexedPrimitives(
                     drawCmd.ElemCount,
@@ -633,17 +630,22 @@ public class ImGuiBackend : IDisposable
 
 public static class ImGuiExtensions
 {
+    private static unsafe ImTextureRef GetTextureRef(nint texID)
+    {
+        return new ImTextureRef(null, texID); 
+    }
+
 	public static void Image(
-		Texture texture,
-		Vector2 imageSize,
-		ImGuiBackend.SamplerType samplerType = ImGuiBackend.SamplerType.LinearClamp
-	)
-	{
-		ImGui.Image(
-			ImGuiBackend.Instance.BindTexture(texture, samplerType),
-			imageSize
-		);
-	}
+        Texture texture,
+        Vector2 imageSize,
+        ImGuiBackend.SamplerType samplerType = ImGuiBackend.SamplerType.LinearClamp
+    )
+    {
+        ImGui.Image(
+            GetTextureRef(ImGuiBackend.Instance.BindTexture(texture, samplerType)),
+            imageSize
+        );
+    }
 
 	public static void Image(
 		Texture texture,
@@ -653,7 +655,7 @@ public static class ImGuiExtensions
 	)
 	{
 		ImGui.Image(
-			ImGuiBackend.Instance.BindTexture(texture, samplerType),
+			GetTextureRef(ImGuiBackend.Instance.BindTexture(texture, samplerType)),
 			imageSize,
 			uv0
 		);
@@ -668,7 +670,7 @@ public static class ImGuiExtensions
 	)
 	{
 		ImGui.Image(
-			ImGuiBackend.Instance.BindTexture(texture, samplerType),
+			GetTextureRef(ImGuiBackend.Instance.BindTexture(texture, samplerType)),
 			imageSize,
 			uv0,
 			uv1
@@ -684,13 +686,14 @@ public static class ImGuiExtensions
 		ImGuiBackend.SamplerType samplerType = ImGuiBackend.SamplerType.LinearClamp
 	)
 	{
+        /*
 		ImGui.Image(
-			ImGuiBackend.Instance.BindTexture(texture, samplerType),
+			GetTextureRef(ImGuiBackend.Instance.BindTexture(texture, samplerType)),
 			imageSize,
 			uv0,
 			uv1,
 			tintColor
-		);
+		);*/
 	}
 
 	public static void Image(
@@ -703,14 +706,15 @@ public static class ImGuiExtensions
 		ImGuiBackend.SamplerType samplerType = ImGuiBackend.SamplerType.LinearClamp
 	)
 	{
+        /*
 		ImGui.Image(
-			ImGuiBackend.Instance.BindTexture(texture, samplerType),
+			GetTextureRef(ImGuiBackend.Instance.BindTexture(texture, samplerType)),
 			imageSize,
 			uv0,
 			uv1,
 			tintColor,
 			borderColor
-		);
+		);*/
 	}
 
 	public static bool ImageButton(
@@ -722,7 +726,7 @@ public static class ImGuiExtensions
 	{
 		return ImGui.ImageButton(
 			id,
-			ImGuiBackend.Instance.BindTexture(texture, samplerType),
+			GetTextureRef(ImGuiBackend.Instance.BindTexture(texture, samplerType)),
 			imageSize
 		);
 	}
@@ -737,7 +741,7 @@ public static class ImGuiExtensions
 	{
 		return ImGui.ImageButton(
 			id,
-			ImGuiBackend.Instance.BindTexture(texture, samplerType),
+			GetTextureRef(ImGuiBackend.Instance.BindTexture(texture, samplerType)),
 			imageSize,
 			uv0
 		);
@@ -754,7 +758,7 @@ public static class ImGuiExtensions
 	{
 		return ImGui.ImageButton(
 			id,
-			ImGuiBackend.Instance.BindTexture(texture, samplerType),
+			GetTextureRef(ImGuiBackend.Instance.BindTexture(texture, samplerType)),
 			imageSize,
 			uv0,
 			uv1
@@ -773,7 +777,7 @@ public static class ImGuiExtensions
 	{
 		return ImGui.ImageButton(
 			id,
-			ImGuiBackend.Instance.BindTexture(texture, samplerType),
+			GetTextureRef(ImGuiBackend.Instance.BindTexture(texture, samplerType)),
 			imageSize,
 			uv0,
 			uv1,
@@ -794,7 +798,7 @@ public static class ImGuiExtensions
 	{
 		return ImGui.ImageButton(
 			id,
-			ImGuiBackend.Instance.BindTexture(texture, samplerType),
+			GetTextureRef(ImGuiBackend.Instance.BindTexture(texture, samplerType)),
 			imageSize,
 			uv0,
 			uv1,
