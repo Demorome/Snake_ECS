@@ -4,3 +4,6 @@
 [submodule "MoonTools.ECS"]
 	path = lib/MoonTools.ECS
 	url = https://github.com/MoonsideGames/MoonTools.ECS
+[submodule "lib/ImGui.NET"]
+	path = lib/ImGui.NET
+	url = https://github.com/ImGuiNET/ImGui.NET
