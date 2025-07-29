@@ -197,385 +197,392 @@ public class EditorSystem : MoonTools.ECS.System
             || sprite.CurrentSprite.UV == SpriteAnimations.EditorTile_EmptyTile.Frames[0].UV;
     }
 
-    const string TileSpritePrefix = "Tile_";
-    const string TileSetPrefix = "TileSet_";
-    unsafe static ImGuiTextFilterPtr TileSearchFilter = new(ImGuiNative.ImGuiTextFilter_ImGuiTextFilter(null));
-
-    void DrawTileSetSelectionPopup(LevelLayer levelLayer)
+    class TileLayerMenu
     {
-        if (ImGui.BeginPopup("##AddTileset"))
+        // Options
+        private bool ShowTileLayerMenuGrid = true;
+
+        // State
+        private int HoveredTileButtonIndex = -1;
+        private float TileLayerMenuBottomPortionWidth = 1;
+
+        // For DrawTileSetSelectionPopup
+        const string TileSpritePrefix = "Tile_";
+        const string TileSetPrefix = "TileSet_";
+        unsafe ImGuiTextFilterPtr TileSearchFilter = new(ImGuiNative.ImGuiTextFilter_ImGuiTextFilter(null));
+        void DrawTileSetSelectionPopup(LevelLayer levelLayer)
         {
-            ImGui.Text("Select TileSet");
-            ImGui.Separator();
-            TileSearchFilter.Draw("Search");
-
-            foreach (var spriteName in SpriteAnimations.Names)
+            if (ImGui.BeginPopup("##AddTileset"))
             {
-                if (!spriteName.ToLower().StartsWith(TileSetPrefix.ToLower()))
-                {
-                    continue;
-                }
+                ImGui.Text("Select TileSet");
+                ImGui.Separator();
+                TileSearchFilter.Draw("Search");
 
-                if (TileSearchFilter.PassFilter(spriteName))
+                foreach (var spriteName in SpriteAnimations.Names)
                 {
-                    if (ImGui.Selectable(spriteName))
+                    if (!spriteName.ToLower().StartsWith(TileSetPrefix.ToLower()))
                     {
-                        var tileSetSpriteID = SpriteAnimations.NameToInfoMap[spriteName].ID;
-                        var tileSetSpriteAnimInfo = SpriteAnimationInfo.FromID(tileSetSpriteID);
-                        var defaultColor = Color.White;
+                        continue;
+                    }
 
-                        // Add a bunch of SpriteAnimation-s based on each frame of the tileset
-                        for (int i = 0; i < tileSetSpriteAnimInfo.Frames.Length; ++i)
+                    if (TileSearchFilter.PassFilter(spriteName))
+                    {
+                        if (ImGui.Selectable(spriteName))
                         {
-                            levelLayer.Images.Add(
-                                (SpriteAnimation.ForceFrame(tileSetSpriteAnimInfo, i), defaultColor)
-                            );
+                            var tileSetSpriteID = SpriteAnimations.NameToInfoMap[spriteName].ID;
+                            var tileSetSpriteAnimInfo = SpriteAnimationInfo.FromID(tileSetSpriteID);
+                            var defaultColor = Color.White;
+
+                            // Add a bunch of SpriteAnimation-s based on each frame of the tileset
+                            for (int i = 0; i < tileSetSpriteAnimInfo.Frames.Length; ++i)
+                            {
+                                levelLayer.Images.Add(
+                                    (SpriteAnimation.ForceFrame(tileSetSpriteAnimInfo, i), defaultColor)
+                                );
+                            }
+                            break;
                         }
-                        break;
                     }
                 }
-            }
 
-            ImGui.EndPopup();
-        }
-    }
-
-    void DrawTileSpriteReplacementsPopup(LevelLayer levelLayer)
-    {
-        if (ImGui.BeginPopup("##SelectTileSprite"))
-        {
-            ImGui.Text("Select Tile Sprite Replacement");
-            ImGui.Separator();
-            TileSearchFilter.Draw("Search");
-
-            foreach (var spriteName in SpriteAnimations.Names)
-            {
-                if (!spriteName.ToLower().StartsWith(TileSpritePrefix.ToLower()))
-                {
-                    continue;
-                }
-
-                if (TileSearchFilter.PassFilter(spriteName))
-                {
-                    if (ImGui.Selectable(spriteName))
-                    {
-                        var spriteID = SpriteAnimations.NameToInfoMap[spriteName].ID;
-                        var spriteAnimInfo = SpriteAnimationInfo.FromID(spriteID);
-                        var sprite = new SpriteAnimation(spriteAnimInfo);
-                        levelLayer.ReplaceImage(LayerImageToReplaceID, sprite, World);
-                        LayerImageToReplaceID = -1;
-                        break;
-                    }
-                }
-            }
-            ImGui.EndPopup();
-        }
-        else
-        {
-            LayerImageToReplaceID = -1;
-        }
-    }
-
-    void UpdateMultiImagePaintSelection(LevelLayer levelLayer, int? toAddIndex = null, int? toRemoveIndex = null)
-    {
-        // LayerImageIDs may be invalid here, for odd selection schemes.
-        // Ex: picking 2 sprites that are diagonal from each other.
-        // This would produce a 2x2 selection scheme, with 2 tiles being 'invalid' (empty).
-        List<int> validLayerImageIDs = new();
-        foreach (var (layerImageID, isValid) in ImagesToPaint.LayerImageIDs)
-        {
-            if (isValid)
-            {
-                validLayerImageIDs.Add(layerImageID);
+                ImGui.EndPopup();
             }
         }
-        ImagesToPaint.LayerImageIDs.Clear();
 
-        if (toAddIndex.HasValue)
+        void UpdateMultiImagePaintSelection(LevelLayer levelLayer, int? toAddIndex = null, int? toRemoveIndex = null)
         {
-            validLayerImageIDs.Add(toAddIndex.Value);
-        }
-        if (toRemoveIndex.HasValue)
-        {
-            validLayerImageIDs.Remove(toRemoveIndex.Value);
-        }
-
-        if (validLayerImageIDs.Count == 0)
-        {
-            ImagesToPaint = null;
-            return;
-        }
-
-        var top = int.MaxValue;
-        var bottom = int.MinValue;
-        var left = int.MaxValue;
-        var right = int.MinValue;
-
-        foreach (var layerImageID in validLayerImageIDs)
-        {
-            var col = layerImageID % levelLayer.ImagesPerRow;
-            var row = layerImageID / levelLayer.ImagesPerRow;
-
-            top = int.Min(top, row);
-            bottom = int.Max(bottom, row);
-            left = int.Min(left, col);
-            right = int.Max(right, col);
-        }
-
-        ImagesToPaint.NumColumns = right - left + 1;
-
-        for (int row = top; row <= bottom; ++row)
-        {
-            for (int col = left; col <= right; ++col)
+            // LayerImageIDs may be invalid here, for odd selection schemes.
+            // Ex: picking 2 sprites that are diagonal from each other.
+            // This would produce a 2x2 selection scheme, with 2 tiles being 'invalid' (empty).
+            List<int> validLayerImageIDs = new();
+            foreach (var (layerImageID, isValid) in ImagesToPaint.LayerImageIDs)
             {
-                var currentImageLayerPos = row * levelLayer.ImagesPerRow + col;
-                if (validLayerImageIDs.Contains(currentImageLayerPos))
+                if (isValid)
                 {
-                    ImagesToPaint.LayerImageIDs.Add((currentImageLayerPos, true));
-                }
-                else
-                {
-                    ImagesToPaint.LayerImageIDs.Add((currentImageLayerPos, false));
+                    validLayerImageIDs.Add(layerImageID);
                 }
             }
-        }
-    }
+            ImagesToPaint.LayerImageIDs.Clear();
 
-    private static float TileLayerMenuBottomPortionWidth = 1;
-    private static bool ShowTileLayerMenuGrid = true;
-    private static int HoveredTileButtonIndex = -1;
-
-    void ShowTileLayerMenu(LevelLayer tileLayer)
-    {
-        if (ImGui.InputInt("Tiles per row", ref tileLayer.ImagesPerRow))
-        {
-            tileLayer.ImagesPerRow = int.Max(1, tileLayer.ImagesPerRow);
-            // Reset the selected tiles since if multiple were selected, the selection would change in a bizarre way.
-            ImagesToPaint = null;
-        }
-
-        if (ImGui.InputInt("Preview Scale", ref tileLayer.PreviewScaleMult))
-        {
-            tileLayer.PreviewScaleMult = int.Max(1, tileLayer.PreviewScaleMult);
-        }
-
-        ImGui.Checkbox("Show Grid", ref ShowTileLayerMenuGrid);
-
-        var scalingFactor = ImGui.GetWindowViewport().Size / Dimensions.GAME_DIMENSIONS * tileLayer.PreviewScaleMult / 2;
-        var tileSizeScaled = Dimensions.TILE_DIMENSIONS * scalingFactor;
-
-        ImGui.Separator();
-
-        // FIXME: Allow drag-selection!
-        if (ImGui.BeginChild("##TileView", new Vector2(-1, -TileLayerMenuBottomPortionWidth),
-            ImGuiChildFlags.AlwaysAutoResize,
-            ImGuiWindowFlags.AlwaysHorizontalScrollbar | ImGuiWindowFlags.AlwaysVerticalScrollbar))
-        {
-            // Draw with 1 pixel gaps between sprites.
-            // Helpful explanation: https://github.com/ocornut/imgui/issues/4216#issuecomment-860007592
-            ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(2.0f, 2.0f));
-            ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0f, 0f));
-
-            for (int i = 0; i < tileLayer.Images.Count; ++i)
+            if (toAddIndex.HasValue)
             {
-                var (sprite, colorBlend) = tileLayer.Images[i];
+                validLayerImageIDs.Add(toAddIndex.Value);
+            }
+            if (toRemoveIndex.HasValue)
+            {
+                validLayerImageIDs.Remove(toRemoveIndex.Value);
+            }
 
-                bool invalid = sprite.SpriteAnimationInfoID == SpriteAnimations.EditorTile_InvalidTile.ID;
+            if (validLayerImageIDs.Count == 0)
+            {
+                ImagesToPaint = null;
+                return;
+            }
 
-                // FIXME: Allow sprite animations to play (simulate frame countdown?)
-                var currentFrame = sprite.CurrentSprite;
+            var top = int.MaxValue;
+            var bottom = int.MinValue;
+            var left = int.MaxValue;
+            var right = int.MinValue;
 
-                bool wasSelected = ImagesToPaint != null && ImagesToPaint.LayerImageIDs.Contains((i, true));
-                bool wasHovered = i == HoveredTileButtonIndex;
-                bool isReplacing = i == LayerImageToReplaceID;
+            foreach (var layerImageID in validLayerImageIDs)
+            {
+                var col = layerImageID % levelLayer.ImagesPerRow;
+                var row = layerImageID / levelLayer.ImagesPerRow;
 
-                Vector2 posToOverlap = ImGui.GetCursorScreenPos();
+                top = int.Min(top, row);
+                bottom = int.Max(bottom, row);
+                left = int.Min(left, col);
+                right = int.Max(right, col);
+            }
 
-                var origin = sprite.Origin * scalingFactor;
-                var offset = -origin - new Vector2(currentFrame.FrameRect.X, currentFrame.FrameRect.Y) * scalingFactor;
-                ImGui.SetCursorScreenPos(posToOverlap + offset + (tileSizeScaled / 2) + new Vector2(2, 2));
-                ImGui.SetNextItemAllowOverlap();
-                ImGuiExtensions.Image(
-                    currentFrame.Texture,
-                    currentFrame.SliceSize * scalingFactor,
-                    currentFrame.UV.LeftTop,
-                    currentFrame.UV.RightBottom,
-                    tileLayer.MixLayerColorWithImageColor(colorBlend).ToVector4(),
-                    Color.Transparent.ToVector4(),
-                    ImGuiBackend.SamplerType.PointClamp
-                );
+            ImagesToPaint.NumColumns = right - left + 1;
 
-                if (ShowTileLayerMenuGrid || wasSelected || wasHovered || isReplacing)
+            for (int row = top; row <= bottom; ++row)
+            {
+                for (int col = left; col <= right; ++col)
                 {
-                    Vector4 gridColorVec;
-                    if (isReplacing)
+                    var currentImageLayerPos = row * levelLayer.ImagesPerRow + col;
+                    if (validLayerImageIDs.Contains(currentImageLayerPos))
                     {
-                        gridColorVec = Color.Red.ToVector4();
-                    }
-                    else if (wasHovered)
-                    {
-                        gridColorVec = Color.White.ToVector4();
-                    }
-                    else if (wasSelected)
-                    {
-                        gridColorVec = Color.Chocolate.ToVector4();
-                    }
-                    else if (ShowTileLayerMenuGrid)
-                    {
-                        gridColorVec = GridLineColor;
+                        ImagesToPaint.LayerImageIDs.Add((currentImageLayerPos, true));
                     }
                     else
                     {
-                        throw new Exception("Unhandled case!");
+                        ImagesToPaint.LayerImageIDs.Add((currentImageLayerPos, false));
+                    }
+                }
+            }
+        }
+
+        void DrawTileSpriteReplacementsPopup(LevelLayer levelLayer, World World)
+        {
+            if (ImGui.BeginPopup("##SelectTileSprite"))
+            {
+                ImGui.Text("Select Tile Sprite Replacement");
+                ImGui.Separator();
+                TileSearchFilter.Draw("Search");
+
+                foreach (var spriteName in SpriteAnimations.Names)
+                {
+                    if (!spriteName.ToLower().StartsWith(TileSpritePrefix.ToLower()))
+                    {
+                        continue;
                     }
 
-                    ImGui.SetCursorScreenPos(posToOverlap);
-                    var transparentTileFrame = SpriteAnimations.EditorTile_EmptyTile.Frames[0];
+                    if (TileSearchFilter.PassFilter(spriteName))
+                    {
+                        if (ImGui.Selectable(spriteName))
+                        {
+                            var spriteID = SpriteAnimations.NameToInfoMap[spriteName].ID;
+                            var spriteAnimInfo = SpriteAnimationInfo.FromID(spriteID);
+                            var sprite = new SpriteAnimation(spriteAnimInfo);
+                            levelLayer.ReplaceImage(LayerImageToReplaceID, sprite, World);
+                            LayerImageToReplaceID = -1;
+                            break;
+                        }
+                    }
+                }
+                ImGui.EndPopup();
+            }
+            else
+            {
+                LayerImageToReplaceID = -1;
+            }
+        }
+
+        public void Show(LevelLayer tileLayer, World World)
+        {
+            if (ImGui.InputInt("Tiles per row", ref tileLayer.ImagesPerRow))
+            {
+                tileLayer.ImagesPerRow = int.Max(1, tileLayer.ImagesPerRow);
+                // Reset the selected tiles since if multiple were selected, the selection would change in a bizarre way.
+                ImagesToPaint = null;
+            }
+
+            if (ImGui.InputInt("Preview Scale", ref tileLayer.PreviewScaleMult))
+            {
+                tileLayer.PreviewScaleMult = int.Max(1, tileLayer.PreviewScaleMult);
+            }
+
+            ImGui.Checkbox("Show Grid", ref ShowTileLayerMenuGrid);
+
+            var scalingFactor = ImGui.GetWindowViewport().Size / Dimensions.GAME_DIMENSIONS * tileLayer.PreviewScaleMult / 2;
+            var tileSizeScaled = Dimensions.TILE_DIMENSIONS * scalingFactor;
+
+            ImGui.Separator();
+
+            // FIXME: Allow drag-selection!
+            if (ImGui.BeginChild("##TileView", new Vector2(-1, -TileLayerMenuBottomPortionWidth),
+                ImGuiChildFlags.AlwaysAutoResize,
+                ImGuiWindowFlags.AlwaysHorizontalScrollbar | ImGuiWindowFlags.AlwaysVerticalScrollbar))
+            {
+                // Draw with 1 pixel gaps between sprites.
+                // Helpful explanation: https://github.com/ocornut/imgui/issues/4216#issuecomment-860007592
+                ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(2.0f, 2.0f));
+                ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0f, 0f));
+
+                for (int i = 0; i < tileLayer.Images.Count; ++i)
+                {
+                    var (sprite, colorBlend) = tileLayer.Images[i];
+
+                    bool invalid = sprite.SpriteAnimationInfoID == SpriteAnimations.EditorTile_InvalidTile.ID;
+
+                    // FIXME: Allow sprite animations to play (simulate frame countdown?)
+                    var currentFrame = sprite.CurrentSprite;
+
+                    bool wasSelected = ImagesToPaint != null && ImagesToPaint.LayerImageIDs.Contains((i, true));
+                    bool wasHovered = i == HoveredTileButtonIndex;
+                    bool isReplacing = i == LayerImageToReplaceID;
+
+                    Vector2 posToOverlap = ImGui.GetCursorScreenPos();
+
+                    var origin = sprite.Origin * scalingFactor;
+                    var offset = -origin - new Vector2(currentFrame.FrameRect.X, currentFrame.FrameRect.Y) * scalingFactor;
+                    ImGui.SetCursorScreenPos(posToOverlap + offset + (tileSizeScaled / 2) + new Vector2(2, 2));
+                    ImGui.SetNextItemAllowOverlap();
                     ImGuiExtensions.Image(
-                        transparentTileFrame.Texture,
-                        transparentTileFrame.SliceSize * scalingFactor,
-                        transparentTileFrame.UV.LeftTop,
-                        transparentTileFrame.UV.RightBottom,
+                        currentFrame.Texture,
+                        currentFrame.SliceSize * scalingFactor,
+                        currentFrame.UV.LeftTop,
+                        currentFrame.UV.RightBottom,
+                        tileLayer.MixLayerColorWithImageColor(colorBlend).ToVector4(),
                         Color.Transparent.ToVector4(),
-                        gridColorVec,
                         ImGuiBackend.SamplerType.PointClamp
                     );
-                }
 
-                ImGui.SetCursorScreenPos(posToOverlap);
-                if (ImGui.InvisibleButton($"##{i}", tileSizeScaled))
-                {
-                    if (!invalid)
+                    if (ShowTileLayerMenuGrid || wasSelected || wasHovered || isReplacing)
                     {
-                        if (wasSelected)
+                        Vector4 gridColorVec;
+                        if (isReplacing)
                         {
-                            UpdateMultiImagePaintSelection(tileLayer, null, i);
+                            gridColorVec = Color.Red.ToVector4();
+                        }
+                        else if (wasHovered)
+                        {
+                            gridColorVec = Color.White.ToVector4();
+                        }
+                        else if (wasSelected)
+                        {
+                            gridColorVec = Color.Chocolate.ToVector4();
+                        }
+                        else if (ShowTileLayerMenuGrid)
+                        {
+                            gridColorVec = GridLineColor;
                         }
                         else
                         {
-                            if (ImagesToPaint != null && ImGui.IsKeyDown(ImGuiKey.ModCtrl))
+                            throw new Exception("Unhandled case!");
+                        }
+
+                        ImGui.SetCursorScreenPos(posToOverlap);
+                        var transparentTileFrame = SpriteAnimations.EditorTile_EmptyTile.Frames[0];
+                        ImGuiExtensions.Image(
+                            transparentTileFrame.Texture,
+                            transparentTileFrame.SliceSize * scalingFactor,
+                            transparentTileFrame.UV.LeftTop,
+                            transparentTileFrame.UV.RightBottom,
+                            Color.Transparent.ToVector4(),
+                            gridColorVec,
+                            ImGuiBackend.SamplerType.PointClamp
+                        );
+                    }
+
+                    ImGui.SetCursorScreenPos(posToOverlap);
+                    if (ImGui.InvisibleButton($"##{i}", tileSizeScaled))
+                    {
+                        if (!invalid)
+                        {
+                            if (wasSelected)
                             {
-                                UpdateMultiImagePaintSelection(tileLayer, i, null);
+                                UpdateMultiImagePaintSelection(tileLayer, null, i);
                             }
                             else
                             {
-                                if (ImagesToPaint == null)
+                                if (ImagesToPaint != null && ImGui.IsKeyDown(ImGuiKey.ModCtrl))
                                 {
-                                    ImagesToPaint = new();
+                                    UpdateMultiImagePaintSelection(tileLayer, i, null);
                                 }
                                 else
                                 {
-                                    ImagesToPaint.LayerImageIDs.Clear();
+                                    if (ImagesToPaint == null)
+                                    {
+                                        ImagesToPaint = new();
+                                    }
+                                    else
+                                    {
+                                        ImagesToPaint.LayerImageIDs.Clear();
+                                    }
+                                    ImagesToPaint.NumColumns = 1;
+                                    ImagesToPaint.LayerImageIDs.Add((i, true));
                                 }
-                                ImagesToPaint.NumColumns = 1;
-                                ImagesToPaint.LayerImageIDs.Add((i, true));
                             }
                         }
                     }
-                }
 
-                if (ImGui.IsItemHovered())
-                {
-                    HoveredTileButtonIndex = i;
-
-                    // Right-clicking on a sprite opens a menu to replace the sprite for any other "Tile"-named sprite
-                    if (ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+                    if (ImGui.IsItemHovered())
                     {
-                        ImGui.OpenPopup("##SelectTileSprite");
-                        LayerImageToReplaceID = i;
+                        HoveredTileButtonIndex = i;
+
+                        // Right-clicking on a sprite opens a menu to replace the sprite for any other "Tile"-named sprite
+                        if (ImGui.IsMouseClicked(ImGuiMouseButton.Right))
+                        {
+                            ImGui.OpenPopup("##SelectTileSprite");
+                            LayerImageToReplaceID = i;
+                        }
+                    }
+
+                    if (((i + 1) % tileLayer.ImagesPerRow) != 0)
+                    {
+                        ImGui.SameLine();
                     }
                 }
 
-                if (((i + 1) % tileLayer.ImagesPerRow) != 0)
-                {
-                    ImGui.SameLine();
-                }
+                ImGui.PopStyleVar(2);
             }
 
-            ImGui.PopStyleVar(2);
-        }
-
-        if (LayerImageToReplaceID != -1)
-        {
-            DrawTileSpriteReplacementsPopup(tileLayer);
-        }
-        if (HoveredTileButtonIndex != -1)
-        {
-            // FIXME: Set to -1 if no longer hovering anything!!!!
-        }
-        ImGui.EndChild();
-
-        var startHeight = ImGui.GetCursorScreenPos().Y;
-        ImGui.Separator();
-
-        // FIXME: Undo/Redo support!
-        if (ImGui.Button("Add Tile"))
-        {
-            tileLayer.Images.Add((new SpriteAnimation(SpriteAnimations.EditorTile_EmptyTile), Color.White));
-        }
-        ImGui.SameLine();
-        if (ImGui.Button("Add TileSet"))
-        {
-            ImGui.OpenPopup("##AddTileset");
-        }
-        DrawTileSetSelectionPopup(tileLayer);
-        ImGui.SameLine();
-        bool noSelectedImages = ImagesToPaint == null || ImagesToPaint.LayerImageIDs.Count <= 0;
-        if (noSelectedImages)
-        {
-            ImGui.BeginDisabled();
-        }
-        if (ImGui.Button("Delete"))
-        {
-            // FIXME: Implement!
-
-            // Reset selections.
-            ImagesToPaint = null;
-        }
-        if (noSelectedImages)
-        {
-            ImGui.EndDisabled();
-        }
-
-        var colorBlendVec = tileLayer.ColorBlend.ToVector4();
-        if (ImGui.ColorEdit4("Layer Color Blend", ref colorBlendVec))
-        {
-            tileLayer.ChangeLayerColorBlend(new Color(colorBlendVec), World);
-        }
-
-        var tileColor = Color.White.ToVector4();
-        var firstValidLayerImageID = ImagesToPaint == null ? null : ImagesToPaint.FirstValidLayerImageID;
-        noSelectedImages = firstValidLayerImageID == null;
-        if (noSelectedImages)
-        {
-            ImGui.BeginDisabled();
-        }
-        else
-        {
-            tileColor = tileLayer.Images[firstValidLayerImageID.Value].Item2.ToVector4();
-        }
-        if (ImGui.ColorEdit4("Tile Color Blend", ref tileColor))
-        {
-            if (ImagesToPaint != null)
+            if (LayerImageToReplaceID != -1)
             {
-                foreach (var (layerImageID, isValid) in ImagesToPaint.LayerImageIDs)
+                DrawTileSpriteReplacementsPopup(tileLayer, World);
+            }
+            if (HoveredTileButtonIndex != -1)
+            {
+                // FIXME: Set to -1 if no longer hovering anything!!!!
+            }
+            ImGui.EndChild();
+
+            var startHeight = ImGui.GetCursorScreenPos().Y;
+            ImGui.Separator();
+
+            // FIXME: Undo/Redo support!
+            if (ImGui.Button("Add Tile"))
+            {
+                tileLayer.Images.Add((new SpriteAnimation(SpriteAnimations.EditorTile_EmptyTile), Color.White));
+            }
+            ImGui.SameLine();
+            if (ImGui.Button("Add TileSet"))
+            {
+                ImGui.OpenPopup("##AddTileset");
+            }
+            DrawTileSetSelectionPopup(tileLayer);
+            ImGui.SameLine();
+            bool noSelectedImages = ImagesToPaint == null || ImagesToPaint.LayerImageIDs.Count <= 0;
+            if (noSelectedImages)
+            {
+                ImGui.BeginDisabled();
+            }
+            if (ImGui.Button("Delete"))
+            {
+                // FIXME: Implement!
+
+                // Reset selections.
+                ImagesToPaint = null;
+            }
+            if (noSelectedImages)
+            {
+                ImGui.EndDisabled();
+            }
+
+            var colorBlendVec = tileLayer.ColorBlend.ToVector4();
+            if (ImGui.ColorEdit4("Layer Color Blend", ref colorBlendVec))
+            {
+                tileLayer.ChangeLayerColorBlend(new Color(colorBlendVec), World);
+            }
+
+            var tileColor = Color.White.ToVector4();
+            var firstValidLayerImageID = ImagesToPaint == null ? null : ImagesToPaint.FirstValidLayerImageID;
+            noSelectedImages = firstValidLayerImageID == null;
+            if (noSelectedImages)
+            {
+                ImGui.BeginDisabled();
+            }
+            else
+            {
+                tileColor = tileLayer.Images[firstValidLayerImageID.Value].Item2.ToVector4();
+            }
+            if (ImGui.ColorEdit4("Tile Color Blend", ref tileColor))
+            {
+                if (ImagesToPaint != null)
                 {
-                    if (isValid)
+                    foreach (var (layerImageID, isValid) in ImagesToPaint.LayerImageIDs)
                     {
-                        tileLayer.ChangeTileColorBlend(new Editor_LayerImageID(layerImageID),
-                            new Color(tileColor), World);
+                        if (isValid)
+                        {
+                            tileLayer.ChangeTileColorBlend(new Editor_LayerImageID(layerImageID),
+                                new Color(tileColor), World);
+                        }
                     }
                 }
             }
-        }
-        if (noSelectedImages)
-        {
-            ImGui.EndDisabled();
-        }
+            if (noSelectedImages)
+            {
+                ImGui.EndDisabled();
+            }
 
-        var endHeight = ImGui.GetCursorScreenPos().Y;
-        TileLayerMenuBottomPortionWidth = endHeight - startHeight;
+            var endHeight = ImGui.GetCursorScreenPos().Y;
+            TileLayerMenuBottomPortionWidth = endHeight - startHeight;
+        }
     }
+    static TileLayerMenu TileLayerMenuStatic = new();
 
     public int HoveredOverLayerID = -1;
     public LevelLayer HoveredOverLayer => HoveredOverLayerID == -1 ? null : LevelLayers[HoveredOverLayerID];
@@ -736,7 +743,7 @@ public class EditorSystem : MoonTools.ECS.System
                 {
                     case LevelLayer.LevelLayerTypes.SolidTile:
                     case LevelLayer.LevelLayerTypes.VisualTile:
-                        ShowTileLayerMenu(layer);
+                        TileLayerMenuStatic.Show(layer, World);
                         break;
                     default:
                         // TODO: 
