@@ -14,7 +14,7 @@ using MoonWorks.Math;
 using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
 using MoonWorks.Input;
 using RollAndCash.Systems;
-using ImGuiNET;
+using Hexa.NET.ImGui;
 
 namespace RollAndCash;
 

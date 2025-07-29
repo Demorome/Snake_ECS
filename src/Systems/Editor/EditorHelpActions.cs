@@ -2,7 +2,7 @@
 
 using System;
 using System.Collections.Generic;
-using ImGuiNET;
+using Hexa.NET.ImGui;
 using MoonTools.ECS;
 using RollAndCash.GameStates;
 using static RollAndCash.Systems.EditorSystem;
@@ -99,7 +99,7 @@ public class EditorHelpActions
     {
         foreach (var (key, debugAction) in EditorHelpKeybinds)
         {
-            if (key != ImGuiKey.None && ImGui.IsKeyChordPressed(key))
+            if (key != ImGuiKey.None && ImGui.IsKeyChordPressed((int)key))
             {
                 debugAction.Invoke(world);
             }
@@ -107,7 +107,7 @@ public class EditorHelpActions
 
         foreach (var (key, debugAction) in EditorEditKeybinds)
         {
-            if (key != ImGuiKey.None && ImGui.IsKeyChordPressed(key))
+            if (key != ImGuiKey.None && ImGui.IsKeyChordPressed((int)key))
             {
                 debugAction.Invoke(world);
             }

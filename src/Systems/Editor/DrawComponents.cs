@@ -3,7 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-using ImGuiNET;
+using Hexa.NET.ImGui;
 using MoonTools.ECS;
 using MoonWorks;
 using MoonWorks.Graphics;
@@ -19,7 +19,7 @@ public static class DrawComponents
 {
     static HashSet<Type> ComponentTypeWindows = new();
 
-    unsafe static ImGuiTextFilterPtr TypeSearchFilter = new(ImGuiNative.ImGuiTextFilter_ImGuiTextFilter(null));
+    unsafe static ImGuiTextFilterPtr TypeSearchFilter = new(ImGui.ImGuiTextFilter("Position2D"u8));
 
     public static void DrawComponentTypeSearch(World world)
     {
@@ -152,7 +152,7 @@ public static class DrawComponents
         }
     }
 
-    unsafe static ImGuiTextFilterPtr SpriteSearchFilter = new(ImGuiNative.ImGuiTextFilter_ImGuiTextFilter(null));
+    unsafe static ImGuiTextFilterPtr SpriteSearchFilter = new(ImGui.ImGuiTextFilter());
     static string RectToString(Rect rect)
     {
         return $"W: {rect.W}, H: {rect.H}, X: {rect.X}, Y: {rect.Y}";

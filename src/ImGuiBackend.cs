@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using ImGuiNET;
+using Hexa.NET.ImGui;
 using MoonTools.ECS;
 using MoonWorks;
 using MoonWorks.AsyncIO;
@@ -549,16 +549,16 @@ public class ImGuiBackend : IDisposable
             KeyCode.X => ImGuiKey.X,
             KeyCode.Y => ImGuiKey.Y,
             KeyCode.Z => ImGuiKey.Z,
-            KeyCode.D1 => ImGuiKey._1,
-            KeyCode.D2 => ImGuiKey._2,
-            KeyCode.D3 => ImGuiKey._3,
-            KeyCode.D4 => ImGuiKey._4,
-            KeyCode.D5 => ImGuiKey._5,
-            KeyCode.D6 => ImGuiKey._6,
-            KeyCode.D7 => ImGuiKey._7,
-            KeyCode.D8 => ImGuiKey._8,
-            KeyCode.D9 => ImGuiKey._9,
-            KeyCode.D0 => ImGuiKey._0,
+            KeyCode.D1 => ImGuiKey.Key1,
+            KeyCode.D2 => ImGuiKey.Key2,
+            KeyCode.D3 => ImGuiKey.Key3,
+            KeyCode.D4 => ImGuiKey.Key4,
+            KeyCode.D5 => ImGuiKey.Key5,
+            KeyCode.D6 => ImGuiKey.Key6,
+            KeyCode.D7 => ImGuiKey.Key7,
+            KeyCode.D8 => ImGuiKey.Key8,
+            KeyCode.D9 => ImGuiKey.Key9,
+            KeyCode.D0 => ImGuiKey.Key0,
             KeyCode.Return => ImGuiKey.Enter,
             KeyCode.Escape => ImGuiKey.Escape,
             KeyCode.Backspace => ImGuiKey.Backspace,
