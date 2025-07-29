@@ -28,6 +28,11 @@
 		<ProjectReference Include="lib\MoonWorks\MoonWorks.csproj" />
 		<ProjectReference Include="lib\MoonTools.ECS\MoonTools.ECS.csproj" />
 		<ProjectReference Include="lib\Hexa.NET.ImGui\Hexa.NET.ImGui\Hexa.NET.ImGui.csproj" />
+		<ProjectReference Include="lib\Hexa.NET.ImGui\Hexa.NET.ImGui.Backends.SDL3\Hexa.NET.ImGui.Backends.SDL3.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="Hexa.NET.SDL3" Version="1.2.16" />
 	</ItemGroup>
 
 	<!-- The MacOS dynamic loader really sucks! -->
