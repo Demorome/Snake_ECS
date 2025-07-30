@@ -144,7 +144,7 @@ public class ImGuiBackend : IDisposable
         //imGuiContext.IO.ConfigFlags |= ImGuiConfigFlags.NavEnableKeyboard | ImGuiConfigFlags.NavEnableGamepad;
         //Debug.Assert(imGuiContext.IO.ConfigFlags == (ImGuiConfigFlags.NavEnableKeyboard | ImGuiConfigFlags.NavEnableGamepad));
 
-        var io = ImGui.GetIO(); // FIXME: crashes
+        var io = ImGui.GetIO();
         io.ConfigFlags |= ImGuiConfigFlags.NavEnableKeyboard | ImGuiConfigFlags.NavEnableGamepad;
 
         // We can honor ImGuiPlatformIO::Textures[] requests during render.
