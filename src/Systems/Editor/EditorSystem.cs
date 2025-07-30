@@ -199,6 +199,11 @@ public class EditorSystem : MoonTools.ECS.System
 
     class TileLayerMenu
     {
+        // Visual constants
+        static readonly Color SelectedOutlineColor = Color.Chocolate;
+        static readonly Color HoveredOutlineColor = Color.White;
+        static readonly Color ReplacingOutlineColor = Color.Red;
+
         // Options
         private bool ShowTileLayerMenuGrid = true;
 
@@ -424,21 +429,21 @@ public class EditorSystem : MoonTools.ECS.System
                         uint gridColorPacked;
                         if (isReplacing)
                         {
-                            gridColorPacked = Color.Red.PackedValue();
+                            gridColorPacked = ReplacingOutlineColor.PackedValue();
                         }
                         else if (wasHovered)
                         {
-                            var hoveredColor = Color.White;
+                            var hoveredColor = HoveredOutlineColor;
                             if (wasSelected)
                             {
                                 // Make it clear if a hovered tile is selected or not.
-                                hoveredColor = Color.Lerp(hoveredColor, Color.Chocolate, 0.5f);
+                                hoveredColor = Color.Lerp(hoveredColor, SelectedOutlineColor, 0.5f);
                             }
                             gridColorPacked = hoveredColor.PackedValue();
                         }
                         else if (wasSelected)
                         {
-                            gridColorPacked = Color.Chocolate.PackedValue();
+                            gridColorPacked = SelectedOutlineColor.PackedValue();
                         }
                         else if (ShowTileLayerMenuGrid)
                         {
