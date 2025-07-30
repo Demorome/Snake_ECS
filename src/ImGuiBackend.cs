@@ -355,7 +355,7 @@ public class ImGuiBackend : IDisposable
         if (tex->Status == ImTextureStatus.WantCreate)
         {
             // Create and upload new texture to graphics system
-            Debug.Assert(tex->TexID == ImTextureID.Null && tex->BackendUserData == null);
+            Debug.Assert(tex->TexID.IsNull && tex->BackendUserData == null);
             Debug.Assert(tex->Format == ImTextureFormat.Rgba32);
 
             // Create texture
@@ -382,6 +382,8 @@ public class ImGuiBackend : IDisposable
             var textureBinding = imGuiBoundTextures[tex->GetTexID()];
 
             Debug.Assert(tex->Format == ImTextureFormat.Rgba32);
+            Debug.Assert(tex->BytesPerPixel == sizeof(UInt32));
+            const int BytesPerPixel = sizeof(UInt32);
 
             // Update full texture or selected blocks. We only ever write to textures regions which have never been used before!
             // This backend choose to use tex->UpdateRect but you can use tex->Updates[] to upload individual regions.
@@ -390,8 +392,8 @@ public class ImGuiBackend : IDisposable
             int upload_y = (tex->Status == ImTextureStatus.WantCreate) ? 0 : tex->UpdateRect.Y;
             int upload_w = (tex->Status == ImTextureStatus.WantCreate) ? tex->Width : tex->UpdateRect.W;
             int upload_h = (tex->Status == ImTextureStatus.WantCreate) ? tex->Height : tex->UpdateRect.H;
-            int upload_pitch = upload_w * tex->BytesPerPixel;
-            uint upload_size = (uint)(upload_w * upload_h * tex->BytesPerPixel);
+            int upload_pitch = upload_w * BytesPerPixel;
+            uint upload_size = (uint)(upload_w * upload_h * BytesPerPixel);
 
             // Create transfer buffer
             if (textureTransferBuffer == null || textureTransferBuffer.Size < upload_size)
@@ -417,7 +419,7 @@ public class ImGuiBackend : IDisposable
 
                     // Since pixel format is RGBA 32, it should be 32 bits per pixel, thus a span of uint(32)s.
                     var textureSpan = new Span<UInt32>(tex->GetPixelsAt(upload_x, upload_y + y), upload_pitch);
-                    textureSpan.CopyTo(textureTransferBuffer.MappedSpan<UInt32>((UInt32)(y * upload_pitch))); // FIXME: Probably incorrect!!!!!
+                    textureSpan.CopyTo(textureTransferBuffer.MappedSpan<UInt32>((UInt32)(y * upload_pitch)));
                 }
                 textureTransferBuffer.Unmap();
             }
