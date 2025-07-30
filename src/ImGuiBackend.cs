@@ -135,12 +135,16 @@ public class ImGuiBackend : IDisposable
             Sampler.Create(Game.GraphicsDevice, "Dear ImGui Point Wrap Sampler", SamplerCreateInfo.PointWrap),
         ];
 
-        boundTextures = new Dictionary<IntPtr, TextureSamplerBinding>();
+        boundTextures = new();
+        imGuiBoundTextures = new();
 
-        //var imGuiContext = ImGui.CreateContext();
-        //ImGui.SetCurrentContext(imGuiContext);
+        var imGuiContext = ImGui.CreateContext(null);
+        ImGui.SetCurrentContext(imGuiContext);
 
-        var io = ImGui.GetIO();
+        //imGuiContext.IO.ConfigFlags |= ImGuiConfigFlags.NavEnableKeyboard | ImGuiConfigFlags.NavEnableGamepad;
+        //Debug.Assert(imGuiContext.IO.ConfigFlags == (ImGuiConfigFlags.NavEnableKeyboard | ImGuiConfigFlags.NavEnableGamepad));
+
+        var io = ImGui.GetIO(); // FIXME: crashes
         io.ConfigFlags |= ImGuiConfigFlags.NavEnableKeyboard | ImGuiConfigFlags.NavEnableGamepad;
 
         // We can honor ImGuiPlatformIO::Textures[] requests during render.
