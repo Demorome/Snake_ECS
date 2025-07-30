@@ -7,7 +7,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 using System.Text.Unicode;
-using ImGuiNET;
+using Hexa.NET.ImGui;
 using MoonTools.ECS;
 using MoonWorks;
 using MoonWorks.AsyncIO;
@@ -209,7 +209,7 @@ public class EditorSystem : MoonTools.ECS.System
         // For DrawTileSetSelectionPopup
         const string TileSpritePrefix = "Tile_";
         const string TileSetPrefix = "TileSet_";
-        unsafe ImGuiTextFilterPtr TileSearchFilter = new(ImGuiNative.ImGuiTextFilter_ImGuiTextFilter(null));
+        unsafe ImGuiTextFilterPtr TileSearchFilter = new(ImGui.ImGuiTextFilter(""u8));
         void DrawTileSetSelectionPopup(LevelLayer levelLayer)
         {
             if (ImGui.BeginPopup("##AddTileset"))
@@ -1163,9 +1163,8 @@ public class EditorSystem : MoonTools.ECS.System
                     var action = (Action<World>)obj;
                     action(world);
                 }
-
-                ImGui.End();
             }
+            ImGui.End();
 
             if (!dontCloseWindow)
             {
