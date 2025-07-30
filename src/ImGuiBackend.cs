@@ -898,44 +898,47 @@ public static class ImGuiExtensions
         );
     }
 
-    public static void Image(
+    // Q: Why aren't there 'tintColor' and 'borderColor' overloads for Image() anymore?
+    // A: Dear ImGui update: "removed 'tint_col', 'border_col' parameters from Image()"
+    // Recommended instead to use ImGuiCol_Border color + style.ImageBorderSize / ImGuiStyleVar_ImageBorderSize.
+    // Added ImageWithBg() function which has both 'bg_col' (which was missing) and 'tint_col'.
+    // https://github.com/ocornut/imgui/commit/494ea57b65325f00165da10e6b57b4f295a65bca
+    public static void ImageWithBg(
         Texture texture,
         Vector2 imageSize,
         Vector2 uv0,
         Vector2 uv1,
-        Vector4 tintColor,
+        Vector4 bgCol,
         ImGuiBackend.SamplerType samplerType = ImGuiBackend.SamplerType.LinearClamp
     )
     {
-        /*
-		ImGui.Image(
-			GetTextureRef(ImGuiBackend.Instance.BindTexture(texture, samplerType)),
-			imageSize,
-			uv0,
-			uv1,
-			tintColor
-		);*/
+        ImGui.ImageWithBg(
+            GetTextureRef(ImGuiBackend.Instance.BindPreExistingTexture(texture, samplerType)),
+            imageSize,
+            uv0,
+            uv1,
+            bgCol
+        );
     }
 
-    public static void Image(
+    public static void ImageWithBg(
         Texture texture,
         Vector2 imageSize,
         Vector2 uv0,
         Vector2 uv1,
-        Vector4 tintColor,
-        Vector4 borderColor,
+        Vector4 bgCol,
+        Vector4 tintCol,
         ImGuiBackend.SamplerType samplerType = ImGuiBackend.SamplerType.LinearClamp
     )
     {
-        /*
-		ImGui.Image(
-			GetTextureRef(ImGuiBackend.Instance.BindTexture(texture, samplerType)),
-			imageSize,
-			uv0,
-			uv1,
-			tintColor,
-			borderColor
-		);*/
+        ImGui.ImageWithBg(
+            GetTextureRef(ImGuiBackend.Instance.BindPreExistingTexture(texture, samplerType)),
+            imageSize,
+            uv0,
+            uv1,
+            bgCol,
+            tintCol
+        );
     }
 
     public static bool ImageButton(

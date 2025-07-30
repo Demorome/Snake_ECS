@@ -359,27 +359,33 @@ public class EditorSystem : MoonTools.ECS.System
                 ImagesToPaint = null;
             }
 
-            if (ImGui.InputInt("Preview Scale", ref tileLayer.PreviewScaleMult))
+            if (ImGui.InputFloat("Preview Scale", ref tileLayer.PreviewScaleMult, 1f))
             {
-                tileLayer.PreviewScaleMult = int.Max(1, tileLayer.PreviewScaleMult);
+                tileLayer.PreviewScaleMult = float.Max(0.5f, tileLayer.PreviewScaleMult);
+                if (tileLayer.PreviewScaleMult > 1f)
+                {
+                    tileLayer.PreviewScaleMult = float.Floor(tileLayer.PreviewScaleMult);
+                }
             }
 
             ImGui.Checkbox("Show Grid", ref ShowTileLayerMenuGrid);
 
-            var scalingFactor = ImGui.GetWindowViewport().Size / Dimensions.GAME_DIMENSIONS * tileLayer.PreviewScaleMult / 2;
+            var scalingFactor = ImGui.GetWindowViewport().Size / Dimensions.GAME_DIMENSIONS * tileLayer.PreviewScaleMult;
             var tileSizeScaled = Dimensions.TILE_DIMENSIONS * scalingFactor;
 
             ImGui.Separator();
 
             // FIXME: Allow drag-selection!
             if (ImGui.BeginChild("##TileView", new Vector2(-1, -TileLayerMenuBottomPortionWidth),
-                ImGuiChildFlags.AlwaysAutoResize,
+                ImGuiChildFlags.AlwaysAutoResize | ImGuiChildFlags.AutoResizeX | ImGuiChildFlags.AutoResizeY,
                 ImGuiWindowFlags.AlwaysHorizontalScrollbar | ImGuiWindowFlags.AlwaysVerticalScrollbar))
             {
                 // Draw with 1 pixel gaps between sprites.
                 // Helpful explanation: https://github.com/ocornut/imgui/issues/4216#issuecomment-860007592
                 ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(2.0f, 2.0f));
                 ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, new Vector2(0f, 0f));
+                //ImGui.PushStyleVar(ImGuiStyleVar.ImageBorderSize, 1f);
+                const int numStyleVars = 2;
 
                 for (int i = 0; i < tileLayer.Images.Count; ++i)
                 {
@@ -398,36 +404,39 @@ public class EditorSystem : MoonTools.ECS.System
 
                     var origin = sprite.Origin * scalingFactor;
                     var offset = -origin - new Vector2(currentFrame.FrameRect.X, currentFrame.FrameRect.Y) * scalingFactor;
-                    ImGui.SetCursorScreenPos(posToOverlap + offset + (tileSizeScaled / 2) + new Vector2(2, 2));
+                    ImGui.SetCursorScreenPos(posToOverlap + offset + (tileSizeScaled / 2));
                     ImGui.SetNextItemAllowOverlap();
-                    ImGuiExtensions.Image(
+
+                    // Draw tile sprite
+                    ImGuiExtensions.ImageWithBg(
                         currentFrame.Texture,
                         currentFrame.SliceSize * scalingFactor,
                         currentFrame.UV.LeftTop,
                         currentFrame.UV.RightBottom,
-                        tileLayer.MixLayerColorWithImageColor(colorBlend).ToVector4(),
                         Color.Transparent.ToVector4(),
+                        tileLayer.MixLayerColorWithImageColor(colorBlend).ToVector4(),
                         ImGuiBackend.SamplerType.PointClamp
                     );
 
+                    // Draw tile outline.
                     if (ShowTileLayerMenuGrid || wasSelected || wasHovered || isReplacing)
                     {
-                        Vector4 gridColorVec;
+                        uint gridColorPacked;
                         if (isReplacing)
                         {
-                            gridColorVec = Color.Red.ToVector4();
+                            gridColorPacked = Color.Red.PackedValue();
                         }
                         else if (wasHovered)
                         {
-                            gridColorVec = Color.White.ToVector4();
+                            gridColorPacked = Color.White.PackedValue();
                         }
                         else if (wasSelected)
                         {
-                            gridColorVec = Color.Chocolate.ToVector4();
+                            gridColorPacked = Color.Chocolate.PackedValue();
                         }
                         else if (ShowTileLayerMenuGrid)
                         {
-                            gridColorVec = GridLineColor;
+                            gridColorPacked = new Color(GridLineColor).PackedValue();
                         }
                         else
                         {
@@ -435,16 +444,13 @@ public class EditorSystem : MoonTools.ECS.System
                         }
 
                         ImGui.SetCursorScreenPos(posToOverlap);
-                        var transparentTileFrame = SpriteAnimations.EditorTile_EmptyTile.Frames[0];
-                        ImGuiExtensions.Image(
-                            transparentTileFrame.Texture,
-                            transparentTileFrame.SliceSize * scalingFactor,
-                            transparentTileFrame.UV.LeftTop,
-                            transparentTileFrame.UV.RightBottom,
-                            Color.Transparent.ToVector4(),
-                            gridColorVec,
-                            ImGuiBackend.SamplerType.PointClamp
-                        );
+
+                        // Reduce the thickness when zooming out. Probably gets set to a minimum of 1 by ImGui anyways, so oops.
+                        float thickness = float.Min(1f, tileLayer.PreviewScaleMult); 
+
+                        // Draw a square outline for the tile sprite.
+                        ImGui.GetWindowDrawList().AddRect(posToOverlap, posToOverlap + tileSizeScaled,
+                            gridColorPacked, 0.0f, ImDrawFlags.None, thickness);
                     }
 
                     ImGui.SetCursorScreenPos(posToOverlap);
@@ -497,7 +503,7 @@ public class EditorSystem : MoonTools.ECS.System
                     }
                 }
 
-                ImGui.PopStyleVar(2);
+                ImGui.PopStyleVar(numStyleVars);
             }
 
             if (LayerImageToReplaceID != -1)
