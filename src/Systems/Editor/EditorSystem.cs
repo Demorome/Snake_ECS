@@ -390,6 +390,7 @@ public class EditorSystem : MoonTools.ECS.System
                 for (int i = 0; i < tileLayer.Images.Count; ++i)
                 {
                     var (sprite, colorBlend) = tileLayer.Images[i];
+                    var tintColor = tileLayer.MixLayerColorWithImageColor(colorBlend);
 
                     bool invalid = sprite.SpriteAnimationInfoID == SpriteAnimations.EditorTile_InvalidTile.ID;
 
@@ -401,7 +402,6 @@ public class EditorSystem : MoonTools.ECS.System
                     bool isReplacing = i == LayerImageToReplaceID;
 
                     Vector2 posToOverlap = ImGui.GetCursorScreenPos();
-
                     var origin = sprite.Origin * scalingFactor;
                     var offset = -origin - new Vector2(currentFrame.FrameRect.X, currentFrame.FrameRect.Y) * scalingFactor;
                     ImGui.SetCursorScreenPos(posToOverlap + offset + (tileSizeScaled / 2));
@@ -414,7 +414,7 @@ public class EditorSystem : MoonTools.ECS.System
                         currentFrame.UV.LeftTop,
                         currentFrame.UV.RightBottom,
                         Color.Transparent.ToVector4(),
-                        tileLayer.MixLayerColorWithImageColor(colorBlend).ToVector4(),
+                        tintColor.ToVector4(),
                         ImGuiBackend.SamplerType.PointClamp
                     );
 
@@ -428,7 +428,13 @@ public class EditorSystem : MoonTools.ECS.System
                         }
                         else if (wasHovered)
                         {
-                            gridColorPacked = Color.White.PackedValue();
+                            var hoveredColor = Color.White;
+                            if (wasSelected)
+                            {
+                                // Make it clear if a hovered tile is selected or not.
+                                hoveredColor = Color.Lerp(hoveredColor, Color.Chocolate, 0.5f);
+                            }
+                            gridColorPacked = hoveredColor.PackedValue();
                         }
                         else if (wasSelected)
                         {
