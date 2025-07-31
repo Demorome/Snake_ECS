@@ -254,6 +254,11 @@ public class EditorSystem : MoonTools.ECS.System
             }
         }
 
+        private bool IsLayerImageInvalid(int layerImageID, LevelLayer levelLayer)
+        {
+            return levelLayer.Images[layerImageID].Item1.SpriteAnimationInfoID == SpriteAnimations.EditorTile_InvalidTile.ID;
+        }
+
         void UpdateMultiImagePaintSelection(LevelLayer levelLayer, int? toAddIndex = null, int? toRemoveIndex = null)
         {
             // LayerImageIDs may be invalid here, for odd selection schemes.
@@ -319,6 +324,75 @@ public class EditorSystem : MoonTools.ECS.System
             }
         }
 
+        private void HandleMultiSelectRequests(ImGuiMultiSelectIOPtr multiSelectIO, LevelLayer levelLayer)
+        {
+            for (int requestNum = 0; requestNum < multiSelectIO.Requests.Size; ++requestNum)
+            {
+                var request = multiSelectIO.Requests[requestNum];
+
+                if (request.Type == ImGuiSelectionRequestType.SetAll)
+                {
+                    if (request.Selected != 0) // Select all
+                    {
+                        if (ImagesToPaint == null)
+                        {
+                            ImagesToPaint = new();
+                        }
+                        else
+                        {
+                            ImagesToPaint.LayerImageIDs.Clear();
+                        }
+
+                        for (int id = 0; id < levelLayer.Images.Count; ++id)
+                        {
+                            ImagesToPaint.LayerImageIDs.Add((id, true));
+                        }
+                    }
+                    else // Unselect all
+                    {
+                        if (ImagesToPaint != null)
+                        {
+                            ImagesToPaint.LayerImageIDs.Clear();
+                            ImagesToPaint = null;
+                        }
+                    }
+                }
+                else if (request.Type == ImGuiSelectionRequestType.SetRange)
+                {
+                    for (int id = (int)request.RangeFirstItem; id <= (int)request.RangeLastItem; ++id)
+                    {
+                        if (IsLayerImageInvalid(id, levelLayer))
+                        {
+                            // Can't interact with an invalid image.
+                            continue;
+                        }
+
+                        if (request.Selected == 0) // selection removed
+                        {
+                            UpdateMultiImagePaintSelection(levelLayer, null, id);
+                        }
+                        else // selection added
+                        {
+                            if (ImagesToPaint == null)
+                            {
+                                ImagesToPaint = new();
+                                ImagesToPaint.NumColumns = 1;
+                                ImagesToPaint.LayerImageIDs.Add((id, true));
+                            }
+                            else
+                            {
+                                UpdateMultiImagePaintSelection(levelLayer, id, null);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    throw new NotImplementedException("Unexpected selection request type!");
+                }
+            }
+        }
+
         void DrawTileSpriteReplacementsPopup(LevelLayer levelLayer, World World)
         {
             if (ImGui.BeginPopup("##SelectTileSprite"))
@@ -380,11 +454,21 @@ public class EditorSystem : MoonTools.ECS.System
 
             ImGui.Separator();
 
-            // FIXME: Allow drag-selection!
             if (ImGui.BeginChild("##TileView", new Vector2(-1, -TileLayerMenuBottomPortionWidth),
                 ImGuiChildFlags.AlwaysAutoResize | ImGuiChildFlags.AutoResizeX | ImGuiChildFlags.AutoResizeY,
                 ImGuiWindowFlags.AlwaysHorizontalScrollbar | ImGuiWindowFlags.AlwaysVerticalScrollbar))
             {
+                // Multi-selection code based off of Dear Imgui's Example Assets Browser: https://github.com/ocornut/imgui/blob/2ab3946ecb12962eff96c9bc13ef83d403c84dd8/imgui_demo.cpp#L10538
+                var multiSelectIO = ImGui.BeginMultiSelect(
+                    ImGuiMultiSelectFlags.BoxSelect2D // enable drag-selection
+                    | ImGuiMultiSelectFlags.ClearOnEscape
+                    | ImGuiMultiSelectFlags.ClearOnClickVoid
+                    | ImGuiMultiSelectFlags.NavWrapX, // Enable keyboard wrapping on X axis
+                    0, // FIXME: Pass # of selected items!
+                    tileLayer.Images.Count
+                );
+                HandleMultiSelectRequests(multiSelectIO, tileLayer);
+
                 // Draw with 1 pixel gaps between sprites.
                 // Helpful explanation: https://github.com/ocornut/imgui/issues/4216#issuecomment-860007592
                 ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new Vector2(2.0f, 2.0f));
@@ -396,8 +480,6 @@ public class EditorSystem : MoonTools.ECS.System
                 {
                     var (sprite, colorBlend) = tileLayer.Images[i];
                     var tintColor = tileLayer.MixLayerColorWithImageColor(colorBlend);
-
-                    bool invalid = sprite.SpriteAnimationInfoID == SpriteAnimations.EditorTile_InvalidTile.ID;
 
                     // FIXME: Allow sprite animations to play (simulate frame countdown?)
                     var currentFrame = sprite.CurrentSprite;
@@ -457,7 +539,7 @@ public class EditorSystem : MoonTools.ECS.System
                         ImGui.SetCursorScreenPos(posToOverlap);
 
                         // Reduce the thickness when zooming out. Probably gets set to a minimum of 1 by ImGui anyways, so oops.
-                        float thickness = float.Min(1f, tileLayer.PreviewScaleMult); 
+                        float thickness = float.Min(1f, tileLayer.PreviewScaleMult);
 
                         // Draw a square outline for the tile sprite.
                         ImGui.GetWindowDrawList().AddRect(posToOverlap, posToOverlap + tileSizeScaled,
@@ -465,36 +547,12 @@ public class EditorSystem : MoonTools.ECS.System
                     }
 
                     ImGui.SetCursorScreenPos(posToOverlap);
-                    if (ImGui.InvisibleButton($"##{i}", tileSizeScaled))
-                    {
-                        if (!invalid)
-                        {
-                            if (wasSelected)
-                            {
-                                UpdateMultiImagePaintSelection(tileLayer, null, i);
-                            }
-                            else
-                            {
-                                if (ImagesToPaint != null && ImGui.IsKeyDown(ImGuiKey.ModCtrl))
-                                {
-                                    UpdateMultiImagePaintSelection(tileLayer, i, null);
-                                }
-                                else
-                                {
-                                    if (ImagesToPaint == null)
-                                    {
-                                        ImagesToPaint = new();
-                                    }
-                                    else
-                                    {
-                                        ImagesToPaint.LayerImageIDs.Clear();
-                                    }
-                                    ImagesToPaint.NumColumns = 1;
-                                    ImagesToPaint.LayerImageIDs.Add((i, true));
-                                }
-                            }
-                        }
-                    }
+
+                    ImGui.SetNextItemSelectionUserData(i);
+                    ImGui.PushID(i);
+                    // FIXME: Crashes when using empty u8 string!
+                    ImGui.Selectable("", wasSelected, ImGuiSelectableFlags.None, tileSizeScaled);
+                    ImGui.PopID();
 
                     if (ImGui.IsItemHovered())
                     {
@@ -515,6 +573,9 @@ public class EditorSystem : MoonTools.ECS.System
                 }
 
                 ImGui.PopStyleVar(numStyleVars);
+
+                multiSelectIO = ImGui.EndMultiSelect();
+                HandleMultiSelectRequests(multiSelectIO, tileLayer);
             }
 
             if (LayerImageToReplaceID != -1)
