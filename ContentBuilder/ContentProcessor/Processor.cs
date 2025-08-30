@@ -539,9 +539,9 @@ namespace ContentProcessor
 
 			return (width, height);
 		}
-		
+#if NET10_0_OR_GREATER
 		static StringComparer NumericOrderingComparer = StringComparer.Create(CultureInfo.CurrentCulture, CompareOptions.NumericOrdering);
-		class FileNameComparer : IComparer<FileInfo>
+		sealed class FileNameComparer : IComparer<FileInfo>
 		{
 			public int Compare(FileInfo? x, FileInfo? y)
 			{
@@ -560,6 +560,38 @@ namespace ContentProcessor
 				return NumericOrderingComparer.Compare(x.Name, y.Name);
 			}
 		}
+#else
+		// Credits to https://khalidabuhakmeh.com/writing-a-string-numeric-comparer-with-dotnet-9
+		sealed class FileNameComparer : IComparer<FileInfo>
+		{
+			public int Compare(FileInfo? x, FileInfo? y)
+			{
+				if (x == null && y == null) return 0;
+				if (x == null) return -1;
+				if (y == null) return 1;
+
+				var xSpan = x.Name.AsSpan();
+				var ySpan = y.Name.AsSpan();
+				
+				var commonPrefixLength = xSpan.CommonPrefixLength(ySpan);
+
+				while (commonPrefixLength > 0)
+				{
+					xSpan = xSpan[commonPrefixLength..];
+					ySpan = ySpan[commonPrefixLength..];
+					commonPrefixLength = xSpan.CommonPrefixLength(ySpan);
+				}
+				
+				if (int.TryParse(xSpan, out var xNumber) && 
+					int.TryParse(ySpan, out var yNumber))
+				{
+					return xNumber.CompareTo(yNumber);
+				}
+
+				return xSpan.CompareTo(ySpan, StringComparison.Ordinal);
+			}
+		}
+#endif
 		static FileNameComparer NumericOrderFileNameComparer = new();
 
 		public static void ProcessTexturePage(DirectoryInfo texturePageDir, DirectoryInfo textureOutputDir)
