@@ -1,4 +1,4 @@
-using ImGuiNET;
+using Hexa.NET.ImGui;
 using MoonWorks.Graphics;
 using MoonWorks.Input;
 using MoonWorks;
@@ -7,33 +7,21 @@ using System.IO;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace ContentBuilderUI
 {
 	class ContentBuilderUIGame : Game
 	{
-		private string ShaderContentPath = "Content/Shaders";
 		private string FontContentPath = Path.Combine("Content", "Fonts");
-
-		private DebugTextureStorage TextureStorage;
-		private Texture FontTexture;
-
-		private uint VertexCount = 0;
-		private uint IndexCount = 0;
-		private MoonWorks.Graphics.Buffer ImGuiVertexBuffer = null;
-		private MoonWorks.Graphics.Buffer ImGuiIndexBuffer = null;
-		private GraphicsPipeline ImGuiPipeline;
-		private Shader ImGuiVertexShader;
-		private Shader ImGuiFragmentShader;
-		private Sampler ImGuiSampler;
-
-		private ResourceUploader BufferUploader;
 
 		private string unprocessedContentPath = "";
 		private string projectPath = "";
 
 		private bool ContentPathValid = false;
 		private bool ProjectPathValid = false;
+
+		private ImGuiBackend ImGuiBackend;
 
 		public unsafe ContentBuilderUIGame(
 			AppInfo appInfo,
@@ -59,153 +47,38 @@ namespace ContentBuilderUI
 				ProjectPathValid = Operations.ValidateGameProjectDirectory(projectPath);
 			}
 
-			TextureStorage = new DebugTextureStorage();
+			ImGuiBackend = new ImGuiBackend(this);
 
-			ImGui.CreateContext();
-
+			/* ImGui 1.92: https://github.com/ocornut/imgui/blob/master/docs/FONTS.md#new-dynamic-fonts-system-in-192-june-2025
+			* Users of icons, Asian and non-English languages do not need to pre-build all glyphs ahead of time. 
+			* Saving on loading time, memory, and also reducing issues with missing glyphs. 
+			* Specifying glyph ranges is not needed anymore.
+			*/
 			var io = ImGui.GetIO();
 
-			io.Fonts.AddFontFromFileTTF(
+			// Load a first font ("Combine multiple fonts into one" example from https://github.com/ocornut/imgui/blob/master/docs/FONTS.md)
+			//io.Fonts.AddFontDefault();
+			var newFont = io.Fonts.AddFontFromFileTTF(
 				Path.Combine(FontContentPath, "FiraCode-Regular.ttf"),
 				16
 			);
+			Debug.Assert(newFont != null);
 
-			ImFontConfigPtr fontConfig = ImGuiNative.ImFontConfig_ImFontConfig();
+			var fontConfig = ImGui.ImFontConfig();
 			fontConfig.MergeMode = true;
-
-			var glyph_ranges = stackalloc ushort[]
-			{
-				0xE800, 0xE801, // check mark and X mark
-				0xE832, 0xE832, // spinner
-				0xF0EC, 0xF0EC, // compare
-				0
-			};
 
 			io.Fonts.AddFontFromFileTTF(
 				Path.Combine(FontContentPath, "fontello.ttf"),
 				16,
-				fontConfig,
-				(nint)glyph_ranges
-			);
-			io.Fonts.Build();
-
-			Inputs.TextInput += c =>
-			{
-				if (c == '\t') { return; }
-				io.AddInputCharacter(c);
-			};
-
-			io.DisplaySize = new System.Numerics.Vector2(MainWindow.Width, MainWindow.Height);
-			io.DisplayFramebufferScale = System.Numerics.Vector2.One;
-
-			ImGuiVertexShader = Shader.Create(
-				GraphicsDevice,
-				RootTitleStorage,
-				$"{ShaderContentPath}/ImGui.vert.spv",
-				"main",
-				new ShaderCreateInfo
-				{
-					Format = ShaderFormat.SPIRV,
-					Stage = ShaderStage.Vertex,
-					NumUniformBuffers = 1
-				}
+				fontConfig
 			);
 
-			ImGuiFragmentShader = Shader.Create(
-				GraphicsDevice,
-				RootTitleStorage,
-				$"{ShaderContentPath}/ImGui.frag.spv",
-				"main",
-				new ShaderCreateInfo
-				{
-					Format = ShaderFormat.SPIRV,
-					Stage = ShaderStage.Fragment,
-					NumSamplers = 1
-				}
-			);
-
-			ImGuiSampler = Sampler.Create(GraphicsDevice, SamplerCreateInfo.LinearClamp);
-
-			ImGuiPipeline = GraphicsPipeline.Create(
-				GraphicsDevice,
-				new GraphicsPipelineCreateInfo
-				{
-					TargetInfo = new GraphicsPipelineTargetInfo
-					{
-						ColorTargetDescriptions = [
-							new ColorTargetDescription
-							{
-								Format = MainWindow.SwapchainFormat,
-								BlendState = ColorTargetBlendState.NonPremultipliedAlphaBlend
-							}
-						]
-					},
-					DepthStencilState = DepthStencilState.Disable,
-					VertexShader = ImGuiVertexShader,
-					FragmentShader = ImGuiFragmentShader,
-					VertexInputState = VertexInputState.CreateSingleBinding<Position2DTextureColorVertex>(),
-					PrimitiveType = PrimitiveType.TriangleList,
-					RasterizerState = RasterizerState.CW_CullNone,
-					MultisampleState = MultisampleState.None
-				}
-			);
-
-			BufferUploader = new ResourceUploader(GraphicsDevice);
-			BuildFontAtlas();
+			fontConfig.Destroy(); // FIXME: Not 100% sure it's safe to destroy.
 		}
 
 		protected override void Update(System.TimeSpan dt)
 		{
-			var io = ImGui.GetIO();
-
-			if (io.WantCaptureKeyboard)
-			{
-				MainWindow.StartTextInput();
-			}
-			else if (!io.WantCaptureKeyboard)
-			{
-				MainWindow.StopTextInput();
-			}
-
-			io.AddMousePosEvent(Inputs.Mouse.X, Inputs.Mouse.Y);
-			io.AddMouseButtonEvent(0, Inputs.Mouse.LeftButton.IsDown);
-			io.AddMouseButtonEvent(1, Inputs.Mouse.RightButton.IsDown);
-			io.AddMouseButtonEvent(2, Inputs.Mouse.MiddleButton.IsDown);
-			io.AddMouseWheelEvent(0f, Inputs.Mouse.Wheel);
-
-			// TODO: set up io.AddKeyEvents for keyboard keys
-
-			io.KeyShift = Inputs.Keyboard.IsDown(KeyCode.LeftShift) || Inputs.Keyboard.IsDown(KeyCode.RightShift);
-			io.KeyCtrl = Inputs.Keyboard.IsDown(KeyCode.LeftControl) || Inputs.Keyboard.IsDown(KeyCode.RightControl);
-			io.KeyAlt = Inputs.Keyboard.IsDown(KeyCode.LeftAlt) || Inputs.Keyboard.IsDown(KeyCode.RightAlt);
-			io.KeySuper = Inputs.Keyboard.IsDown(KeyCode.LeftMeta) || Inputs.Keyboard.IsDown(KeyCode.RightMeta);
-
-			io.AddKeyEvent(ImGuiKey.A, Inputs.Keyboard.IsDown(KeyCode.A));
-			io.AddKeyEvent(ImGuiKey.Z, Inputs.Keyboard.IsDown(KeyCode.Z));
-			io.AddKeyEvent(ImGuiKey.Y, Inputs.Keyboard.IsDown(KeyCode.Y));
-			io.AddKeyEvent(ImGuiKey.X, Inputs.Keyboard.IsDown(KeyCode.X));
-			io.AddKeyEvent(ImGuiKey.C, Inputs.Keyboard.IsDown(KeyCode.C));
-			io.AddKeyEvent(ImGuiKey.V, Inputs.Keyboard.IsDown(KeyCode.V));
-
-			io.AddKeyEvent(ImGuiKey.Tab, Inputs.Keyboard.IsDown(KeyCode.Tab));
-			io.AddKeyEvent(ImGuiKey.LeftArrow, Inputs.Keyboard.IsDown(KeyCode.Left));
-			io.AddKeyEvent(ImGuiKey.RightArrow, Inputs.Keyboard.IsDown(KeyCode.Right));
-			io.AddKeyEvent(ImGuiKey.UpArrow, Inputs.Keyboard.IsDown(KeyCode.Up));
-			io.AddKeyEvent(ImGuiKey.DownArrow, Inputs.Keyboard.IsDown(KeyCode.Down));
-			io.AddKeyEvent(ImGuiKey.Enter, Inputs.Keyboard.IsDown(KeyCode.Return));
-			io.AddKeyEvent(ImGuiKey.Escape, Inputs.Keyboard.IsDown(KeyCode.Escape));
-			io.AddKeyEvent(ImGuiKey.Delete, Inputs.Keyboard.IsDown(KeyCode.Delete));
-			io.AddKeyEvent(ImGuiKey.Backspace, Inputs.Keyboard.IsDown(KeyCode.Backspace));
-			io.AddKeyEvent(ImGuiKey.Home, Inputs.Keyboard.IsDown(KeyCode.Home));
-			io.AddKeyEvent(ImGuiKey.End, Inputs.Keyboard.IsDown(KeyCode.End));
-			io.AddKeyEvent(ImGuiKey.PageDown, Inputs.Keyboard.IsDown(KeyCode.PageDown));
-			io.AddKeyEvent(ImGuiKey.PageUp, Inputs.Keyboard.IsDown(KeyCode.PageUp));
-
-			if (Inputs.Keyboard.IsDown(KeyCode.LeftControl) && Inputs.Keyboard.IsPressed(KeyCode.V))
-			{
-				var pasteString = SDL3.SDL.SDL_GetClipboardText();
-				io.AddInputCharactersUTF8(pasteString);
-			}
+			ImGuiBackend.NewFrame(dt);
 
 			// Style
 			var hover = UIColors.RGB255(73, 46, 46);
@@ -229,9 +102,7 @@ namespace ContentBuilderUI
 			ImGui.PushStyleColor(ImGuiCol.SeparatorHovered, hover);
 			ImGui.PushStyleColor(ImGuiCol.PopupBg, UIColors.InkBlack);
 
-			ImGui.NewFrame();
-
-			ImGui.SetNextWindowSize(io.DisplaySize);
+			ImGui.SetNextWindowSize(ImGui.GetIO().DisplaySize);
 			ImGui.SetNextWindowPos(new System.Numerics.Vector2(0, 0));
 			ImGui.Begin("Main", ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove);
 
@@ -315,7 +186,13 @@ namespace ContentBuilderUI
 			ImGui.PopStyleVar(5);
 			ImGui.PopStyleColor(14);
 			ImGui.End();
-			ImGui.EndFrame();
+
+
+			// https://github.com/ocornut/imgui/blob/8dc457fda24806d69a1b291f6fa03b9924c41fdd/docs/FONTS.md#debug-tools
+			//ImGui.ShowStyleEditor(); // has a block that allows you to inspect what your fonts are, for debugging.
+
+
+			ImGuiBackend.EndFrame();
 		}
 
 		public void DrawContentGroup(ContentGroup contentGroup)
@@ -408,210 +285,27 @@ namespace ContentBuilderUI
 
 		protected override void Draw(double alpha)
 		{
-			ImGui.Render();
-
-			var io = ImGui.GetIO();
-			var drawDataPtr = ImGui.GetDrawData();
-
-			UpdateImGuiBuffers(drawDataPtr);
-
 			var commandBuffer = GraphicsDevice.AcquireCommandBuffer();
 			var swapchainTexture = commandBuffer.AcquireSwapchainTexture(MainWindow);
+			if (swapchainTexture != null)
+			{
+				ImGuiBackend.UploadBuffers(commandBuffer);
 
-			RenderCommandLists(commandBuffer, swapchainTexture, drawDataPtr, io);
+				var renderPass = commandBuffer.BeginRenderPass(
+					new ColorTargetInfo(swapchainTexture, Color.White)
+				);
 
+				ImGuiBackend.Render(renderPass);
+				commandBuffer.EndRenderPass(renderPass);
+			}
+
+			// You must always submit the command buffer.
 			GraphicsDevice.Submit(commandBuffer);
 		}
 
 		protected override void Destroy()
 		{
 
-		}
-
-		private unsafe void BuildFontAtlas()
-		{
-			var textureUploader = new ResourceUploader(GraphicsDevice);
-
-			var io = ImGui.GetIO();
-
-			io.Fonts.GetTexDataAsRGBA32(
-				out System.IntPtr pixelData,
-				out int width,
-				out int height,
-				out int bytesPerPixel
-			);
-
-			var pixelSpan = new ReadOnlySpan<Color>((void*)pixelData, width * height);
-
-			FontTexture = textureUploader.CreateTexture2D(
-				pixelSpan,
-				TextureFormat.R8G8B8A8Unorm,
-				TextureUsageFlags.Sampler,
-                (uint)width,
-                (uint)height);
-
-			textureUploader.Upload();
-			textureUploader.Dispose();
-
-			io.Fonts.SetTexID(FontTexture.Handle);
-			io.Fonts.ClearTexData();
-
-			TextureStorage.Add(FontTexture);
-		}
-
-		private unsafe void UpdateImGuiBuffers(ImDrawDataPtr drawDataPtr)
-		{
-			if (drawDataPtr.TotalVtxCount == 0) { return; }
-
-			var commandBuffer = GraphicsDevice.AcquireCommandBuffer();
-
-			if (drawDataPtr.TotalVtxCount > VertexCount)
-			{
-				ImGuiVertexBuffer?.Dispose();
-
-				VertexCount = (uint)(drawDataPtr.TotalVtxCount * 1.5f);
-				ImGuiVertexBuffer = MoonWorks.Graphics.Buffer.Create<Position2DTextureColorVertex>(
-					GraphicsDevice,
-					BufferUsageFlags.Vertex,
-					VertexCount
-				);
-			}
-
-			if (drawDataPtr.TotalIdxCount > IndexCount)
-			{
-				ImGuiIndexBuffer?.Dispose();
-
-				IndexCount = (uint)(drawDataPtr.TotalIdxCount * 1.5f);
-				ImGuiIndexBuffer = MoonWorks.Graphics.Buffer.Create<ushort>(
-					GraphicsDevice,
-					BufferUsageFlags.Index,
-					IndexCount
-				);
-			}
-
-			uint vertexOffset = 0;
-			uint indexOffset = 0;
-
-			for (var n = 0; n < drawDataPtr.CmdListsCount; n += 1)
-			{
-				var cmdList = drawDataPtr.CmdLists[n];
-
-				BufferUploader.SetBufferData(
-					ImGuiVertexBuffer,
-					vertexOffset,
-					new ReadOnlySpan<Position2DTextureColorVertex>((void*) cmdList.VtxBuffer.Data, cmdList.VtxBuffer.Size),
-					n == 0
-				);
-
-				BufferUploader.SetBufferData(
-					ImGuiIndexBuffer,
-					indexOffset,
-					new ReadOnlySpan<ushort>((void*) cmdList.IdxBuffer.Data, cmdList.IdxBuffer.Size),
-					n == 0
-				);
-
-				vertexOffset += (uint)cmdList.VtxBuffer.Size;
-				indexOffset += (uint)cmdList.IdxBuffer.Size;
-			}
-
-			BufferUploader.Upload();
-			GraphicsDevice.Submit(commandBuffer);
-		}
-
-		private void RenderCommandLists(CommandBuffer commandBuffer, Texture renderTexture, ImDrawDataPtr drawDataPtr, ImGuiIOPtr ioPtr)
-		{
-			var renderPass = commandBuffer.BeginRenderPass(
-				new ColorTargetInfo(renderTexture, Color.White)
-			);
-
-			renderPass.BindGraphicsPipeline(ImGuiPipeline);
-
-			commandBuffer.PushVertexUniformData(
-				Matrix4x4.CreateOrthographicOffCenter(0, ioPtr.DisplaySize.X, ioPtr.DisplaySize.Y, 0, -1, 1)
-			);
-
-			renderPass.BindVertexBuffers(ImGuiVertexBuffer);
-			renderPass.BindIndexBuffer(ImGuiIndexBuffer, IndexElementSize.Sixteen);
-
-			uint vertexOffset = 0;
-			uint indexOffset = 0;
-
-			for (int n = 0; n < drawDataPtr.CmdListsCount; n += 1)
-			{
-				var cmdList = drawDataPtr.CmdLists[n];
-
-				for (int cmdIndex = 0; cmdIndex < cmdList.CmdBuffer.Size; cmdIndex += 1)
-				{
-					var drawCmd = cmdList.CmdBuffer[cmdIndex];
-
-					renderPass.BindFragmentSamplers(
-						new TextureSamplerBinding(TextureStorage.GetTexture(drawCmd.TextureId), ImGuiSampler)
-					);
-
-					var width = drawCmd.ClipRect.Z - (int)drawCmd.ClipRect.X;
-					var height = drawCmd.ClipRect.W - (int)drawCmd.ClipRect.Y;
-
-					if (width <= 0 || height <= 0)
-					{
-						continue;
-					}
-
-					renderPass.SetScissor(
-						new Rect(
-							(int)drawCmd.ClipRect.X,
-							(int)drawCmd.ClipRect.Y,
-							(int)width,
-							(int)height
-						)
-					);
-
-					renderPass.DrawIndexedPrimitives(
-						drawCmd.ElemCount,
-						1,
-						indexOffset,
-                        (int)vertexOffset,
-						0
-					);
-
-					indexOffset += drawCmd.ElemCount;
-				}
-
-				vertexOffset += (uint)cmdList.VtxBuffer.Size;
-			}
-
-			commandBuffer.EndRenderPass(renderPass);
-		}
-
-		public struct Position2DTextureColorVertex : IVertexType
-		{
-			public Vector2 Position;
-			public Vector2 TexCoord;
-			public Color Color;
-
-			public Position2DTextureColorVertex(
-				Vector2 position,
-				Vector2 texcoord,
-				Color color
-			)
-			{
-				Position = position;
-				TexCoord = texcoord;
-				Color = color;
-			}
-
-			public static VertexElementFormat[] Formats =>
-            [
-                VertexElementFormat.Float2,
-				VertexElementFormat.Float2,
-				VertexElementFormat.Ubyte4Norm
-			];
-
-			public static uint[] Offsets =>
-			[
-				0,
-				8,
-				16
-			];
 		}
 
 		public class DebugTextureStorage

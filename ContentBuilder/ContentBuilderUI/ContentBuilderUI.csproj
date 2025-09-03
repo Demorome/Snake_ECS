@@ -25,8 +25,12 @@
 
 	<ItemGroup>
 		<ProjectReference Include="..\ContentProcessor\ContentProcessor.csproj" />
-		<ProjectReference Include="lib\ImGui.NET\ImGui.NET.csproj" />
 		<ProjectReference Include="..\..\lib\MoonWorks\MoonWorks.csproj" />
+		<ProjectReference Include="..\..\lib\Hexa.NET.ImGui\Hexa.NET.ImGui\Hexa.NET.ImGui.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Include="..\..\src\ImGuiBackend.cs" />
 	</ItemGroup>
 
 	<Import Project=".\CopyMoonlibs.targets" />
