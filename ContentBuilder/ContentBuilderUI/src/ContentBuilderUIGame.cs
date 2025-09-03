@@ -67,11 +67,12 @@ namespace ContentBuilderUI
 			var fontConfig = ImGui.ImFontConfig();
 			fontConfig.MergeMode = true;
 
-			io.Fonts.AddFontFromFileTTF(
+			newFont = io.Fonts.AddFontFromFileTTF(
 				Path.Combine(FontContentPath, "fontello.ttf"),
 				16,
 				fontConfig
 			);
+			Debug.Assert(newFont != null);
 
 			fontConfig.Destroy(); // FIXME: Not 100% sure it's safe to destroy.
 		}
