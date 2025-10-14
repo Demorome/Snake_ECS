@@ -151,14 +151,14 @@ public class ImGuiBackend : IDisposable
         io.BackendFlags |= ImGuiBackendFlags.RendererHasTextures;  
 
         // Credits to @JunaMeinhold's SDL3 GPU example: https://github.com/HexaEngine/Hexa.NET.ImGui/blob/d32178601353430ef9c1df507dc72e34712d5e45/Examples/ExampleSDL3GPU/Program.cs#L63
-        /*var style = ImGui.GetStyle();
+        var style = ImGui.GetStyle();
         var mainScale =  SDL.SDL_GetDisplayContentScale(SDL.SDL_GetPrimaryDisplay());
         style.ScaleAllSizes(mainScale);
         style.FontScaleDpi = mainScale;
         io.ConfigDpiScaleFonts = true;
-        io.ConfigDpiScaleViewports = true;*/
+        io.ConfigDpiScaleViewports = true;
 
-        //ReuploadFontAtlas();
+        //ReuploadFontAtlas(); // FIXME: Enable if using an older ImGui version?
 
         Inputs.TextInput += OnTextInput;
 
@@ -386,7 +386,7 @@ public class ImGuiBackend : IDisposable
             const int BytesPerPixel = sizeof(UInt32);
 
             // Update full texture or selected blocks. We only ever write to textures regions which have never been used before!
-            // This backend choose to use tex->UpdateRect but you can use tex->Updates[] to upload individual regions.
+            // This backend chose to use tex->UpdateRect but you can use tex->Updates[] to upload individual regions.
             // We could use the smaller rect on _WantCreate but using the full rect allows us to clear the texture.
             int upload_x = (tex->Status == ImTextureStatus.WantCreate) ? 0 : tex->UpdateRect.X;
             int upload_y = (tex->Status == ImTextureStatus.WantCreate) ? 0 : tex->UpdateRect.Y;
@@ -415,11 +415,12 @@ public class ImGuiBackend : IDisposable
                 textureTransferBuffer.Map(true);
                 for (int y = 0; y < upload_h; y++)
                 {
-                    //memcpy((void*)((uintptr_t)texture_ptr + y * upload_pitch), tex->GetPixelsAt(upload_x, upload_y + y), upload_pitch);
-
                     // Since pixel format is RGBA 32, it should be 32 bits per pixel, thus a span of uint(32)s.
                     var textureSpan = new Span<UInt32>(tex->GetPixelsAt(upload_x, upload_y + y), upload_pitch);
                     textureSpan.CopyTo(textureTransferBuffer.MappedSpan<UInt32>((UInt32)(y * upload_pitch)));
+
+                    // Above is equivalent to this C code:
+                    //memcpy((void*)((uintptr_t)texture_ptr + y * upload_pitch), tex->GetPixelsAt(upload_x, upload_y + y), upload_pitch);
                 }
                 textureTransferBuffer.Unmap();
             }

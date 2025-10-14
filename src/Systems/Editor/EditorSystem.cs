@@ -34,7 +34,7 @@ public class EditorSystem : MoonTools.ECS.System
     public static void StaticInit()
     {
         // FIXME: Update on hot-reload, if we add new component types?
-        InitComponentTypesList();
+        ReInitComponentTypesList();
     }
 
     TileManipulator TileManipulator;
@@ -104,16 +104,16 @@ public class EditorSystem : MoonTools.ECS.System
     class SelectedImagesToPaint
     {
         // NOTE: This is a flat 2D array. See NumColumns for the column count.
-        // The `bool` is for "IsValid"; some may be invalid to represent filler in an non-square selection scheme.
+        // The `bool` is for "isNotFiller"; some may be filler in an non-square selection scheme.
         public List<(int, bool)> LayerImageIDs = new();
         public int? FirstValidLayerImageID
         {
             get
             {
                 int? result = null;
-                foreach (var (layerImageID, isValid) in LayerImageIDs)
+                foreach (var (layerImageID, isNotFiller) in LayerImageIDs)
                 {
-                    if (isValid)
+                    if (isNotFiller)
                     {
                         return layerImageID;
                     }
@@ -127,7 +127,7 @@ public class EditorSystem : MoonTools.ECS.System
 
     public List<(SpriteAnimation, Color, Position2D, Editor_LayerImageID)> GetLayerImagesToPaint()
     {
-        if (!IsInLevelEditor || ActiveLayerID == -1 || ImagesToPaint == null)
+        if (!IsInLevelEditor || ActiveLayerID == -1 || ImagesToPaint == null || ImGui.GetIO().WantCaptureMouse)
         {
             return new();
         }
@@ -144,7 +144,7 @@ public class EditorSystem : MoonTools.ECS.System
         var startingTile = maybeHoveredOverTile.Value;
         var nextTile = startingTile;
         int column = 0;
-        foreach (var (layerImageID, isValid) in ImagesToPaint.LayerImageIDs)
+        foreach (var (layerImageID, isNotFiller) in ImagesToPaint.LayerImageIDs)
         {
             Position2D worldPos = mouseWorldPos;
 
@@ -172,7 +172,7 @@ public class EditorSystem : MoonTools.ECS.System
                 // Ex: picking 2 sprites that are diagonal from each other.
                 // This would produce a 2x2 selection scheme, with 2 tiles being 'invalid' (empty).
                 // Or, the tile may actually be an empty filler tile, with a valid LayerImageID.
-                if (!isValid || IsEmptyTile(activeLayer.Images[layerImageID].Item1))
+                if (!isNotFiller || IsEmptyTile(activeLayer.Images[layerImageID].Item1))
                 {
                     continue;
                 }
@@ -265,9 +265,9 @@ public class EditorSystem : MoonTools.ECS.System
             // Ex: picking 2 sprites that are diagonal from each other.
             // This would produce a 2x2 selection scheme, with 2 tiles being 'invalid' (empty).
             List<int> validLayerImageIDs = new();
-            foreach (var (layerImageID, isValid) in ImagesToPaint.LayerImageIDs)
+            foreach (var (layerImageID, isNotFiller) in ImagesToPaint.LayerImageIDs)
             {
-                if (isValid)
+                if (isNotFiller)
                 {
                     validLayerImageIDs.Add(layerImageID);
                 }
@@ -548,8 +548,9 @@ public class EditorSystem : MoonTools.ECS.System
 
                     ImGui.SetCursorScreenPos(posToOverlap);
 
-                    ImGui.SetNextItemSelectionUserData(i);
+                    ImGui.SetNextItemSelectionUserData(i); // needed for MultiSelect
                     ImGui.PushID(i);
+                    // FIXME: Make selectable invisible (remove background col and border highlight)!
                     // FIXME: Crashes when using empty u8 string!
                     ImGui.Selectable("", wasSelected, ImGuiSelectableFlags.None, tileSizeScaled);
                     ImGui.PopID();
@@ -610,9 +611,18 @@ public class EditorSystem : MoonTools.ECS.System
             }
             if (ImGui.Button("Delete"))
             {
-                // FIXME: Implement!
+                // FIXME: Undo/Redo support!
+                for (int nthImageToPaint = ImagesToPaint.LayerImageIDs.Count - 1; nthImageToPaint >= 0; --nthImageToPaint)
+                {
+                    var (layerImageID, isNotFiller) = ImagesToPaint.LayerImageIDs[nthImageToPaint];
+                    if (isNotFiller)
+                    {
+                        tileLayer.DeleteLayerImage(layerImageID, World);
+                    }
+                }
 
                 // Reset selections.
+                ImagesToPaint.LayerImageIDs.Clear();
                 ImagesToPaint = null;
             }
             if (noSelectedImages)
@@ -641,9 +651,9 @@ public class EditorSystem : MoonTools.ECS.System
             {
                 if (ImagesToPaint != null)
                 {
-                    foreach (var (layerImageID, isValid) in ImagesToPaint.LayerImageIDs)
+                    foreach (var (layerImageID, isNotFiller) in ImagesToPaint.LayerImageIDs)
                     {
-                        if (isValid)
+                        if (isNotFiller)
                         {
                             tileLayer.ChangeTileColorBlend(new Editor_LayerImageID(layerImageID),
                                 new Color(tileColor), World);
@@ -1176,8 +1186,10 @@ public class EditorSystem : MoonTools.ECS.System
         return null;
     }
 
-    static void InitComponentTypesList()
+    static void ReInitComponentTypesList()
     {
+        ComponentTypes.Clear();
+
         string namespaceFilter = nameof(RollAndCash) + '.' + nameof(Components);
 
         foreach (var type in Assembly.GetExecutingAssembly().GetTypes())

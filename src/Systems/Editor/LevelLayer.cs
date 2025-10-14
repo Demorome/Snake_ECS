@@ -160,6 +160,27 @@ public class LevelLayer
         }
     }
 
+    public void DeleteLayerImage(int layerImageID, World world)
+    {
+        // FIXME: Undo support!
+        for (int nthEntity = CachedEntities.Count - 1; nthEntity >= 0; --nthEntity)
+        {
+            var entity = CachedEntities[nthEntity];
+
+            var otherLayerImageID = world.Get<Editor_LayerImageID>(entity).ID;
+            if (otherLayerImageID == layerImageID)
+            {
+                world.Destroy(entity);
+                CachedEntities.RemoveAt(nthEntity);
+            }
+            else if (otherLayerImageID > layerImageID)
+            {
+                world.Set(entity, new Editor_LayerImageID(otherLayerImageID - 1));
+            }
+        }
+        Images.RemoveAt(layerImageID);
+    }
+
     public static void DeleteLayerCleanup(Editor_LevelLayerID levelLayerToRemove,
         List<LevelLayer> levelLayers, World world)
     {
