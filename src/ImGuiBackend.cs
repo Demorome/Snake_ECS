@@ -2,18 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.InteropServices;
-using MoonTools.ECS;
 using MoonWorks;
 using MoonWorks.AsyncIO;
 using MoonWorks.Graphics;
 using MoonWorks.Input;
-using RollAndCash.Components;
 using SDL3;
 using Buffer = MoonWorks.Graphics.Buffer;
 using Hexa.NET.ImGui;
 using System.Diagnostics;
-
-namespace RollAndCash;
 
 // Credits to @darkerbit: https://gist.github.com/darkerbit/6bfb661d7ce9263ddd7dcc7b475460e0
 public class ImGuiBackend : IDisposable
@@ -108,13 +104,10 @@ public class ImGuiBackend : IDisposable
         SDL.SDL_SetClipboardText(text);
     }
 
-    public unsafe ImGuiBackend(Game game)
+    public unsafe ImGuiBackend(Game game, string shaderContentPath = "Content/Shaders")
     {
         Instance = this;
-
         Game = game;
-
-        var shaderContentPath = "Content/Shaders";
 
         var vertShader = ShaderCross.Create(Game.GraphicsDevice, Game.RootTitleStorage,
             $"{shaderContentPath}/ImGui.vert.hlsl.spv", "main", ShaderCross.ShaderFormat.SPIRV, ShaderStage.Vertex);
@@ -140,9 +133,6 @@ public class ImGuiBackend : IDisposable
 
         var imGuiContext = ImGui.CreateContext(null);
         ImGui.SetCurrentContext(imGuiContext);
-
-        //imGuiContext.IO.ConfigFlags |= ImGuiConfigFlags.NavEnableKeyboard | ImGuiConfigFlags.NavEnableGamepad;
-        //Debug.Assert(imGuiContext.IO.ConfigFlags == (ImGuiConfigFlags.NavEnableKeyboard | ImGuiConfigFlags.NavEnableGamepad));
 
         var io = ImGui.GetIO();
         io.ConfigFlags |= ImGuiConfigFlags.NavEnableKeyboard | ImGuiConfigFlags.NavEnableGamepad;
