@@ -9,6 +9,7 @@ using MoonTools.ECS;
 using MoonWorks.Graphics;
 using MoonWorks.Math;
 using System.Numerics;
+using Hexa.NET.ImGui;
 
 namespace RollAndCash.Systems;
 
@@ -109,6 +110,10 @@ public class PlayerController : MoonTools.ECS.System
 			}
 
 			if (inputState.Interact.IsPressed)
+			{
+			}
+
+			if (inputState.Attack.IsPressed && !ImGui.GetIO().WantCaptureMouse)
 			{
 				// Shoot where player is aiming
 				var pos = Get<Position2D>(entity);

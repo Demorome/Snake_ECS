@@ -14,6 +14,7 @@ public struct InputState
 	public ButtonState Up { get; set; }
 	public ButtonState Down { get; set; }
 	public ButtonState Interact { get; set; }
+	public ButtonState Attack { get; set; }
 }
 
 public class ControlSet
@@ -23,6 +24,7 @@ public class ControlSet
 	public VirtualButton Up { get; set; } = new EmptyButton();
 	public VirtualButton Down { get; set; } = new EmptyButton();
 	public VirtualButton Interact { get; set; } = new EmptyButton();
+	public VirtualButton Attack { get; set; } = new EmptyButton();
 }
 
 public class Input : MoonTools.ECS.System
@@ -31,7 +33,7 @@ public class Input : MoonTools.ECS.System
 
 	Filter PlayerFilter { get; }
 
-	ControlSet PlayerOneKeyboard = new ControlSet();
+	ControlSet PlayerOneMouseAndKeyboard = new ControlSet();
 	ControlSet PlayerOneGamepad = new ControlSet();
 	ControlSet PlayerTwoKeyboard = new ControlSet();
 	ControlSet PlayerTwoGamepad = new ControlSet();
@@ -56,19 +58,21 @@ public class Input : MoonTools.ECS.System
 		Inputs = inputs;
 		PlayerFilter = FilterBuilder.Include<Player>().Build();
 
-		PlayerOneKeyboard.Up = Inputs.Keyboard.Button(KeyCode.W);
-		PlayerOneKeyboard.Down = Inputs.Keyboard.Button(KeyCode.S);
-		PlayerOneKeyboard.Left = Inputs.Keyboard.Button(KeyCode.A);
-		PlayerOneKeyboard.Right = Inputs.Keyboard.Button(KeyCode.D);
-		PlayerOneKeyboard.Interact = Inputs.Keyboard.Button(KeyCode.Space);
+		PlayerOneMouseAndKeyboard.Up = Inputs.Keyboard.Button(KeyCode.W);
+		PlayerOneMouseAndKeyboard.Down = Inputs.Keyboard.Button(KeyCode.S);
+		PlayerOneMouseAndKeyboard.Left = Inputs.Keyboard.Button(KeyCode.A);
+		PlayerOneMouseAndKeyboard.Right = Inputs.Keyboard.Button(KeyCode.D);
+		PlayerOneMouseAndKeyboard.Interact = Inputs.Keyboard.Button(KeyCode.Space);
+		PlayerOneMouseAndKeyboard.Attack = Inputs.Mouse.LeftButton;
 
 		PlayerOneGamepad.Up = Inputs.GetGamepad(0).LeftYDown;
 		PlayerOneGamepad.Down = Inputs.GetGamepad(0).LeftYUp;
 		PlayerOneGamepad.Left = Inputs.GetGamepad(0).LeftXLeft;
 		PlayerOneGamepad.Right = Inputs.GetGamepad(0).LeftXRight;
 		PlayerOneGamepad.Interact = Inputs.GetGamepad(0).South;
+		PlayerOneGamepad.Interact = Inputs.GetGamepad(0).RightShoulder;
 
-		PlayerTwoKeyboard.Up = Inputs.Keyboard.Button(KeyCode.Up);
+		/*PlayerTwoKeyboard.Up = Inputs.Keyboard.Button(KeyCode.Up);
 		PlayerTwoKeyboard.Down = Inputs.Keyboard.Button(KeyCode.Down);
 		PlayerTwoKeyboard.Left = Inputs.Keyboard.Button(KeyCode.Left);
 		PlayerTwoKeyboard.Right = Inputs.Keyboard.Button(KeyCode.Right);
@@ -78,7 +82,7 @@ public class Input : MoonTools.ECS.System
 		PlayerTwoGamepad.Down = Inputs.GetGamepad(1).LeftYUp;
 		PlayerTwoGamepad.Left = Inputs.GetGamepad(1).LeftXLeft;
 		PlayerTwoGamepad.Right = Inputs.GetGamepad(1).LeftXRight;
-		PlayerTwoGamepad.Interact = Inputs.GetGamepad(1).South;
+		PlayerTwoGamepad.Interact = Inputs.GetGamepad(1).South;*/
 	}
 
 	public override void Update(TimeSpan timeSpan)
@@ -95,7 +99,7 @@ public class Input : MoonTools.ECS.System
 		foreach (var playerEntity in PlayerFilter.Entities)
 		{
 			var index = Get<Player>(playerEntity).Index;
-			var controlSet = index == 0 ? PlayerOneKeyboard : PlayerTwoKeyboard;
+			var controlSet = index == 0 ? PlayerOneMouseAndKeyboard : PlayerTwoKeyboard;
 			var altControlSet = index == 0 ? PlayerOneGamepad : PlayerTwoGamepad;
 
 			InputState inputState = InputState(controlSet, altControlSet);
@@ -115,7 +119,8 @@ public class Input : MoonTools.ECS.System
 			Right = controlSet.Right.State | altControlSet.Right.State,
 			Up = controlSet.Up.State | altControlSet.Up.State,
 			Down = controlSet.Down.State | altControlSet.Down.State,
-			Interact = controlSet.Interact.State | altControlSet.Interact.State
+			Interact = controlSet.Interact.State | altControlSet.Interact.State,
+			Attack = controlSet.Attack.State | altControlSet.Attack.State
 		};
 	}
 }
