@@ -9,12 +9,12 @@ using static RollAndCash.Systems.EditorSystem;
 
 namespace RollAndCash.Editor;
 
-public class EditorHelpActions
+public static class EditorHelpActions
 {
     public class EditorAction
     {
         public EditorAction(string name, Action<World> action,
-            bool opensWindow = false, Func<bool> isDisabledFunc = null)
+            bool opensWindow = false, bool drawsOwnWindow = false, Func<bool> isDisabledFunc = null)
         {
             WorldAction = action;
             Name = name;
@@ -84,32 +84,33 @@ public class EditorHelpActions
         { ImGuiKey.None,                 new("Toggle Level Editor",
             () => { return IsInLevelEditor = !IsInLevelEditor; } )
         },
-        { ImGuiKey.F2,                   new("Prefabs", ShowPrefabSpawnerWindow, true )},
+        { ImGuiKey.F2,                   new("Prefabs",
+            () => { return IsInPrefabSpawningMode = !IsInPrefabSpawningMode; } )},
     };
 
     public static Dictionary<ImGuiKey, EditorAction> EditorEditKeybinds = new()
     {
-        { ImGuiKey.ModCtrl | ImGuiKey.Z, new("Undo", UndoRedo.UndoLastComponentChange, false,
+        { ImGuiKey.ModCtrl | ImGuiKey.Z, new("Undo", UndoRedo.UndoLastComponentChange, false, false,
             () => UndoRedo.ChangeHistory.Count == 0) },
-        { ImGuiKey.ModCtrl | ImGuiKey.Y, new("Redo", UndoRedo.RedoLastComponentChange, false,
+        { ImGuiKey.ModCtrl | ImGuiKey.Y, new("Redo", UndoRedo.RedoLastComponentChange, false, false,
             () => UndoRedo.UndoHistory.Count == 0) },
     };
 
     public static void HandleEditorKeybinds(World world)
     {
-        foreach (var (key, debugAction) in EditorHelpKeybinds)
+        foreach (var (key, editorAction) in EditorHelpKeybinds)
         {
             if (key != ImGuiKey.None && ImGui.IsKeyChordPressed((int)key))
             {
-                debugAction.Invoke(world);
+                editorAction.Invoke(world);
             }
         }
 
-        foreach (var (key, debugAction) in EditorEditKeybinds)
+        foreach (var (key, editorAction) in EditorEditKeybinds)
         {
             if (key != ImGuiKey.None && ImGui.IsKeyChordPressed((int)key))
             {
-                debugAction.Invoke(world);
+                editorAction.Invoke(world);
             }
         }
     }

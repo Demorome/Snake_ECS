@@ -33,7 +33,7 @@ public class EnemySystem : MoonTools.ECS.System
     {
         if (!InitDone)
         {
-            var newEnemy = EnemySpawner.SpawnFrog();
+            var newEnemy = EnemySpawner.SpawnFrog(new Position2D(200, 150));
             InitDone = true;
         }
 

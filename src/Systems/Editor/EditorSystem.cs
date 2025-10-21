@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Data.Common;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -37,12 +38,14 @@ public class EditorSystem : MoonTools.ECS.System
         ReInitComponentTypesList();
     }
 
-    TileManipulator TileManipulator;
-
     MoonTools.ECS.Filter PositionFilter, LevelLayerFilter;
 
     public Entity? DebugEntity = null; // So we can stick Relations on this to safely track other entities.
     static string DebugEntityTag = "EDITOR";
+
+    TileManipulator TileManipulator;
+    MirrorManipulator MirrorManipulator;
+    EnemySpawner EnemySpawner;
 
     public EditorSystem(World world) : base(world)
     {
@@ -50,6 +53,8 @@ public class EditorSystem : MoonTools.ECS.System
         LevelLayerFilter = FilterBuilder.Include<Editor_LevelLayerID>().Build();
 
         TileManipulator = new(world);
+        MirrorManipulator = new(world);
+        EnemySpawner = new(world);
     }
 
     public override void Update(TimeSpan delta)
@@ -79,18 +84,67 @@ public class EditorSystem : MoonTools.ECS.System
 
         HandleSelectionMode();
         HandleLevelEditor();
-	}
+        HandlePrefabSpawner();
+    }
 
-    public static void ShowPrefabSpawnerWindow(World world)
+    public static bool IsInPrefabSpawningMode = false;
+    private enum Prefab
     {
-        /*if (ImGui.Button())
-        {
+        None = 0,
+        StaticLevelMirror,
+        FrogEnemy
+    }
+    private Prefab PrefabToSpawn = Prefab.None;
 
-        }*/
+    public Entity SpawnPrefab(Position2D pos)
+    {
+        switch (PrefabToSpawn)
+        {
+            case Prefab.StaticLevelMirror:
+                return MirrorManipulator.CreateStaticLevelMirror(pos);
+            case Prefab.FrogEnemy:
+                return EnemySpawner.SpawnFrog(pos);
+        }
+        throw new Exception("Failed to spawn prefab");
+    }
+
+    void HandlePrefabSpawner()
+    {
+        if (IsInPrefabSpawningMode)
+        {
+            foreach (Prefab prefab in Enum.GetValues(typeof(Prefab)))
+            {
+                if (prefab == Prefab.None)
+                {
+                    continue;
+                }
+
+                bool isSelected = PrefabToSpawn == prefab;
+                if (ImGui.Selectable(prefab.ToString(), isSelected))
+                {
+                    PrefabToSpawn = isSelected ? Prefab.None : prefab;
+                }
+            }
+
+            if (PrefabToSpawn != Prefab.None)
+            {
+                if (!ImGui.GetIO().WantCaptureMouse
+                    && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+                {
+                    SpawnPrefab(Input.WorldMousePosition);
+                }
+            }
+        }
+        else
+        {
+            PrefabToSpawn = Prefab.None;
+        }
+
         // TODO: Once button to spawn a prefab entity is pressed, make it appear transparent below cursor.
-        // TODO: Pressing click will spawn it.
         // TODO: If spawned, add to change history.
     }
+
+
 
     List<LevelLayer> LevelLayers = new(); // FIXME: Load from level data
 

@@ -15,11 +15,11 @@ public class EnemySpawner : MoonTools.ECS.Manipulator
     {
     }
 
-    public Entity SpawnFrog()
+    public Entity SpawnFrog(Position2D position)
     {
         var entity = CreateEntity("Frog");
     
-        Set(entity, new Position2D(200, 150));
+        Set(entity, position);
         var sprite = SpriteAnimations.NPC_Frog;
         Set(entity, new SpriteAnimation(sprite));
 		Set(entity, new Rectangle(-sprite.OriginX, -sprite.OriginY, 32, 32)); // Could use sprite.Frames[0].FrameRect.W
