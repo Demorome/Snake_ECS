@@ -76,6 +76,8 @@ public readonly record struct Rectangle(int X, int Y, int Width, int Height)
 public readonly record struct LastPosition(Vector2 Value);
 public readonly record struct Player(int Index);
 public readonly record struct Angle(float Value);
+public readonly record struct RotatesWithDirection(); // No need to touch Angle at all with this
+
 //public readonly record struct Solid();
 public readonly record struct TouchingSolid();
 public readonly record struct Name(int TextID);
@@ -205,8 +207,9 @@ public readonly record struct MaxMovementDistance(float Value);
 
 public readonly record struct CursorPosition(Vector2 Value);
 
+
 #if DEBUG
-    public readonly record struct Editor_DontShowInLists();
+public readonly record struct Editor_DontShowInLists();
 
     // Used to track tiles entities in-editor, to auto-refresh their appearance if the tileset changes etc.
     public readonly record struct Editor_LayerImageID(int ID);

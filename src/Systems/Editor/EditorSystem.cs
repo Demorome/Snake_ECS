@@ -1227,14 +1227,30 @@ public class EditorSystem : MoonTools.ECS.System
             var currentSprite = spriteAnim.CurrentSprite;
             var rect = currentSprite.FrameRect;
             var origin = spriteAnim.Origin;
-            
-            // FIXME: Account for rotation and scale?
-            var offset = -origin - new Vector2(currentSprite.FrameRect.X, currentSprite.FrameRect.Y);
+
+            Vector2 scale = Vector2.One;
+            if (Has<SpriteScale>(entity))
+            {
+                scale = Get<SpriteScale>(entity).Scale;
+            }
+
+            origin *= scale;
+
+            // FIXME: Account for orientation/angle!! Selection is AABB, so maybe draw an oversized rectangle to cover it all?
+            /*if (orientation != 0.0f)
+            {
+                //var rotationMatrix = Matrix3x2.CreateRotation(orientation);
+                //origin = Vector2.Transform(origin, rotationMatrix);
+                origin = MathUtilities.Rotate(origin, orientation);
+            }*/
+
+            var offset = -origin - new Vector2(currentSprite.FrameRect.X, currentSprite.FrameRect.Y) * scale;
+            var visualSize = new Vector2(currentSprite.SliceRect.W, currentSprite.SliceRect.H) * scale;
             return new Rectangle(
                 (int)(rect.X + offset.X),
                 (int)(rect.Y + offset.Y),
-                rect.W,
-                rect.H
+                (int)visualSize.X,
+                (int)visualSize.Y
             );
         }
         return null;

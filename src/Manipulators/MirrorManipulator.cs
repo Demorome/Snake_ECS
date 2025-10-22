@@ -36,6 +36,7 @@ public class MirrorManipulator : MoonTools.ECS.Manipulator
 
         direction = MathUtilities.SafeNormalize(direction);
         Set(entity, new Direction2D(direction));
+        Set(entity, new RotatesWithDirection());
 
         Set(entity, new SpriteScale(new Vector2(length, visualWidth)));
 
@@ -52,7 +53,11 @@ public class MirrorManipulator : MoonTools.ECS.Manipulator
 
     public Entity CreateStaticLevelMirror(Position2D pos)
     {
-        return CreateMirror(pos, new Layer(CollisionLayer.Level, CollisionLayer.Bullet), new Vector2(1, 0), 30, 1);
+        return CreateMirror(
+            pos,
+            new Layer(CollisionLayer.Level, CollisionLayer.Bullet),
+            new Vector2(1, 0), 30, 1
+        );
     }
     
     

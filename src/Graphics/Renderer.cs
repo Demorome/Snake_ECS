@@ -201,6 +201,11 @@ public class Renderer : MoonTools.ECS.Renderer
 			var origin = animation.Origin;
 			var depth = -(float)DepthLayer.DefaultDepth;
 			var orientation = Has<Angle>(entity) ? Get<Angle>(entity).Value : 0.0f;
+			if (Has<RotatesWithDirection>(entity))
+			{
+				// FIXME: Does Direction2D here need to be SafeNormalized?
+				orientation = MathUtilities.AngleFromUnitVector(Get<Direction2D>(entity).Value);
+            }
 			var color = GetColorBlend(entity);
 
 			foreach (var rotationEnforcingEntity in OutRelations<Rotated>(entity))
