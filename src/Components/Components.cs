@@ -192,10 +192,16 @@ public enum CollisionLayer
     EnemyBullet_CollidesWith = Player | Level,
 
     DetectionCone_ExistsOn = None,
-    DetectionCone_CollidesWith = Player | Level
+    DetectionCone_CollidesWith = Player | Level,
+
+    //StaticLevelMirror_ExistsOn = Level | ,
+    StaticLevelMirror_CollidesWith = None
 }
 public readonly record struct Layer(CollisionLayer ExistsOn, CollisionLayer CollideWith);
 public readonly record struct CanMoveThroughDespiteCollision(CollisionLayer Value);
+// A line hitbox can be angled, unlike an AABB hitbox.
+// The entity will have a Rectangle (AABB) generated for it that encompasses its area, for the broad collision pass.
+public readonly record struct HasLineHitbox();
 
 public readonly record struct BecomeInvincibleOnDamage(float Time);
 public readonly record struct MarkedForDestroy();

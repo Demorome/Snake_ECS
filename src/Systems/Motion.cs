@@ -20,25 +20,31 @@ public class Motion : MoonTools.ECS.System
     Filter SpeedFilter;
     //Filter InteractFilter;
     Filter AccelerateToPositionFilter;
+    Filter LineColliderFilter;
    
     public Motion(World world) : base(world)
     {
         CollisionManipulator = new CollisionManipulator(world);
 
         SpeedFilter = 
-        FilterBuilder
-        .Include<Position2D>()
-        .Include<Speed>()
-        .Build();
+            FilterBuilder
+            .Include<Position2D>()
+            .Include<Speed>()
+            .Build();
 
         //InteractFilter = FilterBuilder.Include<Position>().Include<Rectangle>().Include<CanInteract>().Build();
 
-        AccelerateToPositionFilter = 
-        FilterBuilder
-        .Include<Position2D>()
-        .Include<AccelerateToPosition>()
-        .Include<Speed>()
-        .Build();
+        AccelerateToPositionFilter =
+            FilterBuilder
+            .Include<Position2D>()
+            .Include<AccelerateToPosition>()
+            .Include<Speed>()
+            .Build();
+
+        LineColliderFilter = 
+            FilterBuilder
+            .Include<HasLineHitbox>()
+            .Build();
     }
 
     void HandleRegularCollisions(Entity e)
@@ -85,6 +91,10 @@ public class Motion : MoonTools.ECS.System
         }
     }
 
+    // Moves pixel-by-pixel, stopping when a collision is detected.
+    // Returns the new position of the moved object.
+    // The only difference between this and the non-"HighSpeed" version is:
+    //      * It moves both X and Y by 1 at the same time, if possible, to ensure nothing is missed diagonally.
     Position2D HighSpeedSweepTest(Entity e, float travelDistance, float dt)
     {
         var position = Get<Position2D>(e);
@@ -138,6 +148,8 @@ public class Motion : MoonTools.ECS.System
         return position + movement;
     }
 
+    // Moves pixel-by-pixel, stopping when a collision is detected.
+    // Returns the new position of the moved object.
     Position2D SweepTest(Entity e, Vector2 velocity, float dt)
     {
         var position = Get<Position2D>(e);
@@ -239,12 +251,14 @@ public class Motion : MoonTools.ECS.System
         var rayLayer = Get<Layer>(e);
         var canMoveThroughLayer = Has<CanMoveThroughDespiteCollision>(e) ? Get<CanMoveThroughDespiteCollision>(e).Value : CollisionLayer.None;
 
-        var (hit, stoppedAtEntity) = CollisionManipulator.Raycast_vs_AABBs(e, direction, scaledVelocity, rayLayer, canMoveThroughLayer);
+        var (hit, stoppedAtEntityWithAABB) = CollisionManipulator.Raycast_vs_AABBs(e, direction, scaledVelocity, rayLayer, canMoveThroughLayer);
+        // FIXME: Add stoppedAtEntityWithLine = CollisionManipulator.Raycast_vs_Lines
+        // TODO: OR pre-calculate "best-fit" AABBs for the lines, which may be huge for a diagonal line.
 
         Vector2 endPos;
-        if (stoppedAtEntity.HasValue)
+        if (stoppedAtEntityWithAABB.HasValue)
         {
-            endPos = CollisionManipulator.RaycastHits[stoppedAtEntity.Value];
+            endPos = CollisionManipulator.RaycastHits[stoppedAtEntityWithAABB.Value];
         }
         else {
             endPos = Get<Position2D>(e).AsVector() + (direction * scaledVelocity);
@@ -264,6 +278,17 @@ public class Motion : MoonTools.ECS.System
 
     public override void Update(TimeSpan delta)
     {
+        foreach (var entity in LineColliderFilter.Entities)
+        {
+            // Generate a best-fit AABB for the line.
+            // We constantly update it in case the line's direction or length changed.
+            // FIXME: Not sure this'll work if the line goes backwards (negative X or Y direction)
+            var length = Get<SpriteScale>(entity).Scale.X;
+            var direction = Get<Direction2D>(entity).Value;
+            var scaledDir = new Position2D(direction * length);
+            Set(entity, new Rectangle(0, 0, scaledDir.X, scaledDir.Y));
+        }
+
         //ClearCanBeHeldSpatialHash();
         // FIXME: make sure this isn't needed, i.e. it's called earlier in another system and no entities are deleted since then.
         CollisionManipulator.ResetCollidersSpatialHash();

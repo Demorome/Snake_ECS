@@ -40,10 +40,7 @@ public class MirrorManipulator : MoonTools.ECS.Manipulator
 
         Set(entity, new SpriteScale(new Vector2(length, visualWidth)));
 
-        // FIXME: Set up collision hitbox for actors!
-
-        // FIXME: Set up collision hitbox for hitscan / raycast projectiles!
-
+        Set(entity, new HasLineHitbox());
         //Set(entity, new ReflectsProjectiles()); // TODO: Reflect layer component instead?
 
         return entity;
