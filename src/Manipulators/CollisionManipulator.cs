@@ -231,7 +231,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
                 if (hitGrid)
                 {
 #if ShowDebugRaycastVisuals
-                    Debug_ShowHashCellCollision(cellRect);
+                    //Debug_ShowHashCellCollision(cellRect);
 #endif
 
                     // Do raycast checks with every AABB entity in this cell.
@@ -340,7 +340,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         foreach (var (other, hitPos) in RaycastHits)
         {
             //Console.WriteLine($"Raycast hit at: {hitPos}");
-            Debug_ShowCollisionPos(new Position(hitPos));
+            Debug_ShowCollisionPos(new Position2D(hitPos));
             Debug_ShowEntityHasBeenCollided(other);
         }
 #endif

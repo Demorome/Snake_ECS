@@ -56,13 +56,13 @@ public class DetectionSystem : MoonTools.ECS.System
                 {
                     var movement = MathUtilities.SafeNormalize(new Vector2(MathF.Cos(nthAngle), MathF.Sin(nthAngle))) * detectionArgs.MaxDistance;
                     stopPos = Get<Position2D>(entity).AsVector() + movement;
+                }
 
-                    foreach (var (other, hitPos) in CollisionManipulator.RaycastHits)
+                foreach (var (other, hitPos) in CollisionManipulator.RaycastHits)
+                {
+                    if (Has<CanBeDetected>(other))
                     {
-                        if (Has<CanBeDetected>(other))
-                        {
-                            Relate(other, entity, new Detected());
-                        }
+                        Relate(other, entity, new Detected());
                     }
                 }
 
