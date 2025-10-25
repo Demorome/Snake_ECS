@@ -282,11 +282,24 @@ public class Motion : MoonTools.ECS.System
         {
             // Generate a best-fit AABB for the line.
             // We constantly update it in case the line's direction or length changed.
-            // FIXME: Not sure this'll work if the line goes backwards (negative X or Y direction)
             var length = Get<SpriteScale>(entity).Scale.X;
             var direction = Get<Direction2D>(entity).Value;
             var scaledDir = new Position2D(direction * length);
-            Set(entity, new Rectangle(0, 0, scaledDir.X, scaledDir.Y));
+
+            // These need to be non-zero if the line goes backwards (negative X or Y direction)
+            int startX = 0;
+            int startY = 0;
+
+            if (scaledDir.X < 0)
+            {
+                startX = scaledDir.X;
+            }
+            if (scaledDir.Y < 0)
+            {
+                startY = scaledDir.Y;
+            }
+            
+            Set(entity, new Rectangle(startX, startY, int.Abs(scaledDir.X), int.Abs(scaledDir.Y)));
         }
 
         //ClearCanBeHeldSpatialHash();

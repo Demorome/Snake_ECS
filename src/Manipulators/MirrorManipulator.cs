@@ -52,7 +52,7 @@ public class MirrorManipulator : MoonTools.ECS.Manipulator
     {
         return CreateMirror(
             pos,
-            new Layer(CollisionLayer.Level, CollisionLayer.Bullet),
+            new Layer(CollisionLayer.LevelCollider_ExistsOn, CollisionLayer.StaticLevelCollider_CollidesWith),
             new Vector2(1, 0), 30, 1
         );
     }

@@ -180,7 +180,7 @@ public enum CollisionLayer
     StaticLevelCollider_CollidesWith = None, // a static level setpiece doesn't need to do collision, since it won't move.
 
     PlayerActor_ExistsOn = Player | Actor,
-    PlayerActor_CollidesWith = Actor | Bullet | Pickup,
+    PlayerActor_CollidesWith = Actor | Bullet | Pickup | Level,
 
     EnemyActor_ExistsOn = Enemy | Actor,
     EnemyActor_CollidesWith = Actor,
@@ -192,10 +192,7 @@ public enum CollisionLayer
     EnemyBullet_CollidesWith = Player | Level,
 
     DetectionCone_ExistsOn = None,
-    DetectionCone_CollidesWith = Player | Level,
-
-    //StaticLevelMirror_ExistsOn = Level | ,
-    StaticLevelMirror_CollidesWith = None
+    DetectionCone_CollidesWith = Player | Level
 }
 public readonly record struct Layer(CollisionLayer ExistsOn, CollisionLayer CollideWith);
 public readonly record struct CanMoveThroughDespiteCollision(CollisionLayer Value);
