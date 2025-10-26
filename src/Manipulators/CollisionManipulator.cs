@@ -202,11 +202,6 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         Entity other
     )
     {
-        if (source == other)
-        {
-            return null;
-        }
-
         if (!CheckCollisionFlags(other, rayLayer.ExistsOn, rayLayer.CollideWith))
         {
             return null;
@@ -242,7 +237,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         RaycastHits.Clear();
 
         var rayVec = direction * maxDistance;
-        var invRayVec = new Vector2(1, 1) / rayVec;
+        var invRayVec = Vector2.One / rayVec;
         Position2D startPos = Get<Position2D>(source);
 
         var startVec = startPos.AsVector();
@@ -279,8 +274,14 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
                     var others = CollidersSpatialHash.Cells[row][col];
                     foreach (var other in others)
                     {
+                        if (source == other)
+                        {
+                            continue;
+                        }
+
                         var maybeHitPos = Raycast_vs_Collider(source, startPos,
-                            rayLayer, rayVec, invRayVec, other);
+                            rayLayer, rayVec, invRayVec, other
+                        );
 
                         if (!maybeHitPos.HasValue)
                         {

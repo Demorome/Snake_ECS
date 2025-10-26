@@ -30,7 +30,7 @@ public class VFXManipulator : MoonTools.ECS.Manipulator
         float depth
         )
     {
-        var lastPos = new Position2D(Get<LastPosition>(projectile).Value);
+        var lastPos = Get<LastPosition>(projectile).Value;
         var projectilePos = Get<Position2D>(projectile).AsVector();
         var trailSprite = new SpriteAnimation(SpriteAnimations.ProjectileTrail);
 

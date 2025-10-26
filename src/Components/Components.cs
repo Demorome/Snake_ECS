@@ -73,7 +73,7 @@ public readonly record struct Rectangle(int X, int Y, int Width, int Height)
     }
 }
 
-public readonly record struct LastPosition(Vector2 Value);
+public readonly record struct LastPosition(Position2D Value);
 public readonly record struct Player(int Index);
 public readonly record struct Angle(float Value);
 public readonly record struct RotatesWithDirection(); // No need to touch Angle at all with this

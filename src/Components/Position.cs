@@ -65,4 +65,14 @@ public readonly record struct Position2D
         return new Vector2(X, Y);
     }
 
+    public int Distance(Position2D other)
+    {
+        return (int)Vector2.Distance(RawPosition, other.RawPosition);
+    }
+
+    // More efficient for distance comparisons, since it doesn't require a square-root calculation.
+    public int DistanceSquared(Position2D other)
+    {
+        return (int)Vector2.DistanceSquared(RawPosition, other.RawPosition);
+    }
 }
