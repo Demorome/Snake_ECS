@@ -249,18 +249,17 @@ public class Motion : MoonTools.ECS.System
         float scaledVelocity = hitscanSpeed * secondsDelta;
 
         var rayLayer = Get<Layer>(e);
-        var canMoveThroughLayer = Has<CanMoveThroughDespiteCollision>(e) ? Get<CanMoveThroughDespiteCollision>(e).Value : CollisionLayer.None;
+        var canMoveThroughLayer = Has<CanMoveThroughDespiteCollision>(e) 
+            ? Get<CanMoveThroughDespiteCollision>(e).Value : CollisionLayer.None;
 
-        var (hit, stoppedAtEntity) = CollisionManipulator.Raycast_vs_Colliders(e, direction, scaledVelocity, rayLayer, canMoveThroughLayer);
+        var (hit, maybeStoppedAtEntity) = CollisionManipulator.Raycast_vs_Colliders(e, direction,
+            scaledVelocity, rayLayer, canMoveThroughLayer);
 
         Position2D endPos;
-        if (stoppedAtEntity.HasValue)
+        if (maybeStoppedAtEntity.HasValue)
         {
-            // FIXME: Stop 1 pixel short of the hit position.
-            var hitPos = CollisionManipulator.RaycastHits[stoppedAtEntity.Value];
-
-            // March down until we no longer collide.
-            endPos = new Position2D(hitPos - new Position2D(direction * 5));
+            // TODO: Stop 1 pixel short of the hit position?
+            endPos = CollisionManipulator.RaycastHits[maybeStoppedAtEntity.Value];
         }
         else {
             endPos = Get<Position2D>(e) + new Position2D(direction * scaledVelocity);

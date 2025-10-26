@@ -72,18 +72,17 @@ public static class LineCollision
 
     // Credits to Callum Rogers: https://stackoverflow.com/a/3746601
     // Returns collision point if there is any, null otherwise.
-    public static Position2D? Line_vs_Line(Vector2 lineFirstPoint, Vector2 lineSecondPoint,
-                        Vector2 otherLineFirstPoint, Vector2 otherLineSecondPoint)
+    public static Position2D? Line_vs_Line(Line line, Line otherLine)
     {
-        Vector2 b = lineSecondPoint - lineFirstPoint;
-        Vector2 d = otherLineSecondPoint - otherLineFirstPoint;
+        Vector2 b = line.PointB - line.PointA;
+        Vector2 d = otherLine.PointB - otherLine.PointA;
         float bDotDPerp = b.X * d.Y - b.Y * d.X;
 
         // if b dot d == 0, it means the lines are parallel so have infinite intersection points
         if (bDotDPerp == 0)
             return null;
 
-        Vector2 c = otherLineFirstPoint - lineFirstPoint;
+        Vector2 c = otherLine.PointA - line.PointA;
         float t = (c.X * d.Y - c.Y * d.X) / bDotDPerp;
         if (t < 0 || t > 1)
         {
@@ -96,12 +95,6 @@ public static class LineCollision
             return null;
         }
 
-        return new Position2D(lineFirstPoint + t * b);
-    }
-
-    public static Position2D? Line_vs_Line(Line line, Line otherLine)
-    {
-        return Line_vs_Line(line.PointA.AsVector(), line.PointB.AsVector(),
-            otherLine.PointA.AsVector(), otherLine.PointB.AsVector());
+        return line.PointA + new Position2D(t * b);
     }
 }

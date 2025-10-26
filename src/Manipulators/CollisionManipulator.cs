@@ -231,7 +231,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         }
     }
 
-    public (bool hit, Entity? stoppedAtEntity) Raycast_vs_Colliders(
+    public (bool hit, Entity? maybeStoppedAtEntity) Raycast_vs_Colliders(
         Entity source,
         Vector2 direction,
         float maxDistance,
@@ -281,7 +281,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
                     {
                         var maybeHitPos = Raycast_vs_Collider(source, startPos,
                             rayLayer, rayVec, invRayVec, other);
-                            
+
                         if (!maybeHitPos.HasValue)
                         {
                             continue;
