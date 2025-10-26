@@ -44,7 +44,7 @@ public class PlayerController : MoonTools.ECS.System
 		Set(player, new SpriteAnimation(Content.SpriteAnimations.Heart));
 		Set(player, new Rectangle(-12, -12, 24, 24));
 		Set(player, new Layer(CollisionLayer.PlayerActor_ExistsOn, CollisionLayer.PlayerActor_CollidesWith));
-		Set(player, new CanMoveThroughDespiteCollision(CollisionLayer.Bullet));
+		Set(player, new CanMoveThroughDespiteCollision(CollisionLayer.Projectile));
 		//Set(player, index == 0 ? Color.Green : Color.Blue);
 		Set(player, new ColorBlend(Color.Red));
 		Set(player, new Depth(DepthLayer.Player));

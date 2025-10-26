@@ -173,22 +173,22 @@ public enum CollisionLayer
     Actor = 2,
     Player = 4,
     Enemy = 8,
-    Bullet = 16,
+    Projectile = 16,
     Pickup = 32,
 
     LevelCollider_ExistsOn = Level,
     StaticLevelCollider_CollidesWith = None, // a static level setpiece doesn't need to do collision, since it won't move.
 
     PlayerActor_ExistsOn = Player | Actor,
-    PlayerActor_CollidesWith = Actor | Bullet | Pickup | Level,
+    PlayerActor_CollidesWith = Actor | Projectile | Pickup | Level,
 
     EnemyActor_ExistsOn = Enemy | Actor,
     EnemyActor_CollidesWith = Actor,
 
-    PlayerBullet_ExistsOn = Bullet,
+    PlayerBullet_ExistsOn = Projectile,
     PlayerBullet_CollidesWith = Enemy | Level,
 
-    EnemyBullet_ExistsOn = Bullet,
+    EnemyBullet_ExistsOn = Projectile,
     EnemyBullet_CollidesWith = Player | Level,
 
     DetectionCone_ExistsOn = None,
@@ -196,9 +196,13 @@ public enum CollisionLayer
 }
 public readonly record struct Layer(CollisionLayer ExistsOn, CollisionLayer CollideWith);
 public readonly record struct CanMoveThroughDespiteCollision(CollisionLayer Value);
+
 // A line hitbox can be angled, unlike an AABB hitbox.
 // The entity will have a Rectangle (AABB) generated for it that encompasses its area, for the broad collision pass.
 public readonly record struct HasLineHitbox();
+
+ // If a Projectile-layer entity hits this, their direction is reflected.
+public readonly record struct ReflectsProjectiles();
 
 public readonly record struct BecomeInvincibleOnDamage(float Time);
 public readonly record struct MarkedForDestroy();

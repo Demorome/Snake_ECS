@@ -122,7 +122,7 @@ public class Motion : MoonTools.ECS.System
             var newPos = new Position2D(x, y);
             var rect = r.GetWorldRect(newPos);
 
-            var stopMoving = CollisionManipulator.CheckCollisions_AABB_vs_AABBs(e, rect);
+            var stopMoving = CollisionManipulator.CheckCollisions(e, rect);
             if (stopMoving)
             {
                 movement.X = mostRecentValidXPosition - position.X;
@@ -173,7 +173,7 @@ public class Motion : MoonTools.ECS.System
             var newPos = new Position2D(x, position.Y);
             var rect = r.GetWorldRect(newPos);
 
-            var stopMoving = CollisionManipulator.CheckCollisions_AABB_vs_AABBs(e, rect);
+            var stopMoving = CollisionManipulator.CheckCollisions(e, rect);
 
             xHit = stopMoving;
 
@@ -192,7 +192,7 @@ public class Motion : MoonTools.ECS.System
             var newPos = new Position2D(mostRecentValidXPosition, y);
             var rect = r.GetWorldRect(newPos);
 
-            var stopMoving = CollisionManipulator.CheckCollisions_AABB_vs_AABBs(e, rect);
+            var stopMoving = CollisionManipulator.CheckCollisions(e, rect);
             yHit = stopMoving;
 
             if (yHit)
@@ -251,17 +251,19 @@ public class Motion : MoonTools.ECS.System
         var rayLayer = Get<Layer>(e);
         var canMoveThroughLayer = Has<CanMoveThroughDespiteCollision>(e) ? Get<CanMoveThroughDespiteCollision>(e).Value : CollisionLayer.None;
 
-        var (hit, stoppedAtEntityWithAABB) = CollisionManipulator.Raycast_vs_AABBs(e, direction, scaledVelocity, rayLayer, canMoveThroughLayer);
-        // FIXME: Add stoppedAtEntityWithLine = CollisionManipulator.Raycast_vs_Lines
-        // TODO: OR pre-calculate "best-fit" AABBs for the lines, which may be huge for a diagonal line.
+        var (hit, stoppedAtEntity) = CollisionManipulator.Raycast_vs_Colliders(e, direction, scaledVelocity, rayLayer, canMoveThroughLayer);
 
-        Vector2 endPos;
-        if (stoppedAtEntityWithAABB.HasValue)
+        Position2D endPos;
+        if (stoppedAtEntity.HasValue)
         {
-            endPos = CollisionManipulator.RaycastHits[stoppedAtEntityWithAABB.Value];
+            // FIXME: Stop 1 pixel short of the hit position.
+            var hitPos = CollisionManipulator.RaycastHits[stoppedAtEntity.Value];
+
+            // March down until we no longer collide.
+            endPos = new Position2D(hitPos - new Position2D(direction * 5));
         }
         else {
-            endPos = Get<Position2D>(e).AsVector() + (direction * scaledVelocity);
+            endPos = Get<Position2D>(e) + new Position2D(direction * scaledVelocity);
         }
 
         /*
@@ -273,7 +275,7 @@ public class Motion : MoonTools.ECS.System
         // FIXME: Check if we've travelled the MaxDistance.
         // If so, stop any future movement.
 
-        return new Position2D(endPos);
+        return endPos;
     }
 
     public override void Update(TimeSpan delta)

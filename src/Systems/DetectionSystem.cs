@@ -41,12 +41,12 @@ public class DetectionSystem : MoonTools.ECS.System
 
             for (float nthAngle = angle - detectionArgs.ConeRadius; nthAngle < maxAngle; nthAngle += angleStep)
             {
-                var (hit, stoppedAtEntity) = CollisionManipulator.Raycast_vs_AABBs(entity, nthAngle, detectionArgs.MaxDistance,
+                var (hit, stoppedAtEntity) = CollisionManipulator.Raycast_vs_Colliders(entity, nthAngle, detectionArgs.MaxDistance,
                     new Layer(CollisionLayer.None, CollisionLayer.DetectionCone_CollidesWith), // don't need to exclude, since detection cones aren't stored as colliders.
                     CollisionLayer.Player
                 );
 
-                Vector2 stopPos;
+                Position2D stopPos;
 
                 if (stoppedAtEntity.HasValue)
                 {
@@ -55,7 +55,7 @@ public class DetectionSystem : MoonTools.ECS.System
                 else
                 {
                     var movement = MathUtilities.SafeNormalize(new Vector2(MathF.Cos(nthAngle), MathF.Sin(nthAngle))) * detectionArgs.MaxDistance;
-                    stopPos = Get<Position2D>(entity).AsVector() + movement;
+                    stopPos = Get<Position2D>(entity) + movement;
                 }
 
                 foreach (var (other, hitPos) in CollisionManipulator.RaycastHits)
@@ -71,7 +71,7 @@ public class DetectionSystem : MoonTools.ECS.System
 #if DEBUG
                 Set(pointEntity, new Editor_DontShowInLists());
 #endif
-                Set(pointEntity, new Position2D(stopPos));
+                Set(pointEntity, stopPos); // change position
                 Set(pointEntity, new Timer(-1)); // destroy next frame
             }
         }

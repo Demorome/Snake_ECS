@@ -1,6 +1,5 @@
 using System;
 using System.Numerics;
-using System.Xml;
 using RollAndCash.Components;
 
 namespace RollAndCash.Utility;
@@ -91,9 +90,9 @@ public static class RayCollision
 
     // TODO: Implement https://noonat.github.io/intersect/ 's "AABB vs Segment" and compare performance.
 
-    // From the book 'Real-Time Collision Detection' by Christer Ericson, slightly tweaked.
-    static public (bool hit, Vector2 hitPos) Intersects_AABB(
-        Vector2 rayOrigin, Vector2 rayDirection, Vector2 invRayDir,
+    // From the book 'Real-Time Collision Detection' by Christer Ericson, slightly altered.
+    static public Position2D? Intersects_AABB(
+        Position2D rayOrigin, Vector2 rayDirection, Vector2 invRayDir,
         Rectangle AABB)
     {
         float min = 0;
@@ -108,7 +107,7 @@ public static class RayCollision
         {
             if (rayOrigin.X < AABB.Left || rayOrigin.X > AABB.Right)
             {
-                return (false, new Vector2(float.NaN, float.NaN));
+                return null;
             }
         }
         // - Make sure t0 holds the smaller value by checking the direction of the line.
@@ -129,7 +128,7 @@ public static class RayCollision
             max = MathF.Min(max, t1); // if (t1 < max) max = t1;
             if (min > max || max < 0)
             {
-                return (false, new Vector2(float.NaN, float.NaN));
+                return null;
             }
         }
 
@@ -139,7 +138,7 @@ public static class RayCollision
         {
             if (rayOrigin.Y < AABB.Top || rayOrigin.Y > AABB.Bottom)
             {
-                return (false, new Vector2(float.NaN, float.NaN));
+                return null;
             }
         }
         // - Make sure t0 holds the smaller value by checking the direction of the line.
@@ -160,14 +159,12 @@ public static class RayCollision
             max = MathF.Min(max, t1); // if (t1 < max) max = t1;
             if (min > max || max < 0)
             {
-                return (false, new Vector2(float.NaN, float.NaN));
+                return null;
             }
         }
 
-        // The point of intersection
-        float ix = rayOrigin.X + rayDirection.X * min;
-        float iy = rayOrigin.Y + rayDirection.Y * min;
-        return (true, new Vector2(ix, iy));
+        var hitPos = rayOrigin + rayDirection * min;
+        return hitPos;
     }
 
     // Credits to Jeroen Baert: https://gamedev.stackexchange.com/a/24464

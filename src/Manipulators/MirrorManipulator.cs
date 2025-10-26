@@ -41,7 +41,7 @@ public class MirrorManipulator : MoonTools.ECS.Manipulator
         Set(entity, new SpriteScale(new Vector2(length, visualWidth)));
 
         Set(entity, new HasLineHitbox());
-        //Set(entity, new ReflectsProjectiles()); // TODO: Reflect layer component instead?
+        Set(entity, new ReflectsProjectiles());
 
         return entity;
     }
