@@ -82,7 +82,7 @@ public class EditorSystem : MoonTools.ECS.System
         DrawDetachedWindows(World);
         DrawComponents.DrawEntitiesWithComponentWindows(World);
 
-        HandleSelectionMode();
+        HandleEntitySelectionMode();
         HandleLevelEditor();
         HandlePrefabSpawner();
     }
@@ -98,6 +98,8 @@ public class EditorSystem : MoonTools.ECS.System
 
     public Entity SpawnPrefab(Position2D pos)
     {
+        // FIXME: Add to change history!
+
         switch (PrefabToSpawn)
         {
             case Prefab.StaticLevelMirror:
@@ -112,36 +114,40 @@ public class EditorSystem : MoonTools.ECS.System
     {
         if (IsInPrefabSpawningMode)
         {
-            foreach (Prefab prefab in Enum.GetValues(typeof(Prefab)))
+            if (ImGui.Begin("Prefab Objects"u8))
             {
-                if (prefab == Prefab.None)
+                foreach (Prefab prefab in Enum.GetValues(typeof(Prefab)))
                 {
-                    continue;
+                    if (prefab == Prefab.None)
+                    {
+                        continue;
+                    }
+
+                    bool isSelected = PrefabToSpawn == prefab;
+                    ImGui.PushStyleColor(ImGuiCol.Header, Color.Green.ToVector4());
+                    if (ImGui.Selectable(prefab.ToString(), isSelected))
+                    {
+                        PrefabToSpawn = isSelected ? Prefab.None : prefab;
+                    }
+                    ImGui.PopStyleColor();
                 }
 
-                bool isSelected = PrefabToSpawn == prefab;
-                if (ImGui.Selectable(prefab.ToString(), isSelected))
+                // TODO: Once button to spawn a prefab entity is pressed, make it appear transparent below cursor.
+                if (PrefabToSpawn != Prefab.None)
                 {
-                    PrefabToSpawn = isSelected ? Prefab.None : prefab;
-                }
+                    if (!ImGui.GetIO().WantCaptureMouse
+                        && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+                    {
+                        SpawnPrefab(Input.WorldMousePosition);
+                    }
+                } 
             }
-
-            if (PrefabToSpawn != Prefab.None)
-            {
-                if (!ImGui.GetIO().WantCaptureMouse
-                    && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
-                {
-                    SpawnPrefab(Input.WorldMousePosition);
-                }
-            }
+            ImGui.End();
         }
         else
         {
             PrefabToSpawn = Prefab.None;
         }
-
-        // TODO: Once button to spawn a prefab entity is pressed, make it appear transparent below cursor.
-        // TODO: If spawned, add to change history.
     }
 
 
@@ -921,6 +927,7 @@ public class EditorSystem : MoonTools.ECS.System
 
             ImGui.Checkbox("Show Grid?", ref ShowGrid);
             ImGui.ColorEdit4("Grid Line Color", ref GridLineColor);
+            ImGui.Checkbox("Prefabs", ref IsInPrefabSpawningMode);
         }
         ImGui.End();
 
@@ -1066,7 +1073,7 @@ public class EditorSystem : MoonTools.ECS.System
     static SpatialHash<Entity> VisualEntitiesSpatialHash =
         new SpatialHash<Entity>(0, 0, Dimensions.GAME_W, Dimensions.GAME_H, 32);
 
-    void HandleSelectionMode()
+    void HandleEntitySelectionMode()
     {
         VisualEntitiesSpatialHash.Clear();
 
@@ -1096,6 +1103,8 @@ public class EditorSystem : MoonTools.ECS.System
                 }
             }
 
+            // Check what entities the mouse is hovering over.
+            // FIXME: Make this ignore entities that aren't in the Level Editor's currently active Editor Layer?
             List<Entity> hoveredOverEntities = new();
 
             foreach (var (entity, rect) in VisualEntitiesSpatialHash.Retrieve(mouseWorldPosRect))
@@ -1217,7 +1226,8 @@ public class EditorSystem : MoonTools.ECS.System
 
     public Rectangle? GetEntityVisualRect(Entity entity)
     {
-        if (Has<Rectangle>(entity) && Has<DrawAsRectangle>(entity))
+        if (Has<Rectangle>(entity) 
+            && (Has<DrawAsRectangle>(entity) || Has<HasLineHitbox>(entity)))
         {
             return Get<Rectangle>(entity);
         }
@@ -1236,16 +1246,18 @@ public class EditorSystem : MoonTools.ECS.System
 
             origin *= scale;
 
-            // FIXME: Account for orientation/angle!! Selection is AABB, so maybe draw an oversized rectangle to cover it all?
-            /*if (orientation != 0.0f)
-            {
-                //var rotationMatrix = Matrix3x2.CreateRotation(orientation);
-                //origin = Vector2.Transform(origin, rotationMatrix);
-                origin = MathUtilities.Rotate(origin, orientation);
-            }*/
-
             var offset = -origin - new Vector2(currentSprite.FrameRect.X, currentSprite.FrameRect.Y) * scale;
             var visualSize = new Vector2(currentSprite.SliceRect.W, currentSprite.SliceRect.H) * scale;
+
+            // FIXME: Account for orientation/angle!! 
+            // Selection is AABB, so maybe draw an oversized rectangle to cover it all?
+            var orientation = Has<Angle>(entity) ? Get<Angle>(entity).Value : 0.0f;
+            if (orientation != 0.0f)
+            {
+                // FIXME: Get highest & lowest points, somehow??
+                // One thing is certain: the points will be at the four corners of the rectangle.
+            }
+
             return new Rectangle(
                 (int)(rect.X + offset.X),
                 (int)(rect.Y + offset.Y),

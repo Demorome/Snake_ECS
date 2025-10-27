@@ -71,24 +71,23 @@ public static class EditorHelpActions
 
     public static Dictionary<ImGuiKey, EditorAction> EditorHelpKeybinds = new()
     {
-        { ImGuiKey.F1,                   new("Search By Component", DrawComponents.DrawComponentTypeSearch, true)},
-        { ImGuiKey.ModCtrl | ImGuiKey.T, new("Show Colliders",
-            () => { return Renderer.DrawDebugColliders = !Renderer.DrawDebugColliders; } )
-        },
-        { ImGuiKey.F6,                   new("Toggle Freeze All",
+        { ImGuiKey.MouseX1,              new("Toggle Freeze All",
             () => { return GameplayState.FreezeTimeForAll = !GameplayState.FreezeTimeForAll; } )
         },
         { ImGuiKey.MouseX2,              new("Toggle Selection Mode",
              () => { return IsInEntitySelectionMode = !IsInEntitySelectionMode; } )
         },
-        { ImGuiKey.None,                 new("Toggle Level Editor",
-            () => { return IsInLevelEditor = !IsInLevelEditor; } )
+        { ImGuiKey.F1,                   new("Search By Component",
+            DrawComponents.DrawComponentTypeSearch, true)
         },
-        { ImGuiKey.F2,                   new("Prefabs",
-            () => { return IsInPrefabSpawningMode = !IsInPrefabSpawningMode; } )
-        },
-        { ImGuiKey.F3,                   new("Lock Cursor Position",
+        { ImGuiKey.F2,                   new("Lock Cursor Position",
             () => { return GameplayState.LockingCursorPosition = !GameplayState.LockingCursorPosition; } )
+        },
+        { ImGuiKey.ModCtrl | ImGuiKey.T, new("Show Colliders",
+            () => { return Renderer.DrawDebugColliders = !Renderer.DrawDebugColliders; } )
+        },
+        { ImGuiKey.ModCtrl | ImGuiKey.E, new("Toggle Level Editor",
+            () => { return IsInLevelEditor = !IsInLevelEditor; } )
         },
     };
 
