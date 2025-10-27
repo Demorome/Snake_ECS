@@ -85,7 +85,11 @@ public static class EditorHelpActions
             () => { return IsInLevelEditor = !IsInLevelEditor; } )
         },
         { ImGuiKey.F2,                   new("Prefabs",
-            () => { return IsInPrefabSpawningMode = !IsInPrefabSpawningMode; } )},
+            () => { return IsInPrefabSpawningMode = !IsInPrefabSpawningMode; } )
+        },
+        { ImGuiKey.F3,                   new("Lock Cursor Position",
+            () => { return GameplayState.LockingCursorPosition = !GameplayState.LockingCursorPosition; } )
+        },
     };
 
     public static Dictionary<ImGuiKey, EditorAction> EditorEditKeybinds = new()

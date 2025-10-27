@@ -106,8 +106,11 @@ public class Input : MoonTools.ECS.System
 
 			Set(playerEntity, inputState);
 
-			// FIXME: Account for potential camera changes (zoom in, etc)
-			Set(playerEntity, new CursorPosition(mouseWorldPosition));
+			if (!GameStates.GameplayState.LockingCursorPosition)
+			{
+				// FIXME: Account for potential camera changes (zoom in, etc)
+                Set(playerEntity, new CursorPosition(mouseWorldPosition));
+            }
 		}
 	}
 

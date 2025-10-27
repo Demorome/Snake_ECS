@@ -43,6 +43,7 @@ public class GameplayState : GameState
     EditorSystem ImGuiEditor;
 
     public static bool FreezeTimeForAll = false;
+    public static bool LockingCursorPosition  = false;
 #endif
 
     public GameplayState(RollAndCashGame game, GameState transitionState)
