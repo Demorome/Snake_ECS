@@ -84,10 +84,8 @@ public class EditorSystem : MoonTools.ECS.System
 
         HandleEntitySelectionMode();
         HandleLevelEditor();
-        HandlePrefabSpawner();
     }
 
-    public static bool IsInPrefabSpawningMode = false;
     private enum Prefab
     {
         None = 0,
@@ -110,44 +108,37 @@ public class EditorSystem : MoonTools.ECS.System
         throw new Exception("Failed to spawn prefab");
     }
 
-    void HandlePrefabSpawner()
+    void ShowPrefabSpawner()
     {
-        if (IsInPrefabSpawningMode)
+        if (ImGui.Begin("Prefab Objects"u8))
         {
-            if (ImGui.Begin("Prefab Objects"u8))
+            foreach (Prefab prefab in Enum.GetValues(typeof(Prefab)))
             {
-                foreach (Prefab prefab in Enum.GetValues(typeof(Prefab)))
+                if (prefab == Prefab.None)
                 {
-                    if (prefab == Prefab.None)
-                    {
-                        continue;
-                    }
-
-                    bool isSelected = PrefabToSpawn == prefab;
-                    ImGui.PushStyleColor(ImGuiCol.Header, Color.Green.ToVector4());
-                    if (ImGui.Selectable(prefab.ToString(), isSelected))
-                    {
-                        PrefabToSpawn = isSelected ? Prefab.None : prefab;
-                    }
-                    ImGui.PopStyleColor();
+                    continue;
                 }
 
-                // TODO: Once button to spawn a prefab entity is pressed, make it appear transparent below cursor.
-                if (PrefabToSpawn != Prefab.None)
+                bool isSelected = PrefabToSpawn == prefab;
+                ImGui.PushStyleColor(ImGuiCol.Header, Color.Green.ToVector4());
+                if (ImGui.Selectable(prefab.ToString(), isSelected))
                 {
-                    if (!ImGui.GetIO().WantCaptureMouse
-                        && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
-                    {
-                        SpawnPrefab(Input.WorldMousePosition);
-                    }
-                } 
+                    PrefabToSpawn = isSelected ? Prefab.None : prefab;
+                }
+                ImGui.PopStyleColor();
             }
-            ImGui.End();
+
+            // TODO: Once button to spawn a prefab entity is pressed, make it appear transparent below cursor.
+            if (PrefabToSpawn != Prefab.None)
+            {
+                if (!ImGui.GetIO().WantCaptureMouse
+                    && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+                {
+                    SpawnPrefab(Input.WorldMousePosition);
+                }
+            } 
         }
-        else
-        {
-            PrefabToSpawn = Prefab.None;
-        }
+        ImGui.End();
     }
 
 
@@ -923,11 +914,11 @@ public class EditorSystem : MoonTools.ECS.System
             ImGui.Text($"Mouse world position: {Input.WorldMousePosition}");
             ImGui.Text($"Tile position: {TileManipulator.GetTilePos(Input.WorldMousePosition)}");
 
-            // TODO: Snap to grid option? Not sure if I should support going off-grid yet.
-
             ImGui.Checkbox("Show Grid?", ref ShowGrid);
             ImGui.ColorEdit4("Grid Line Color", ref GridLineColor);
-            ImGui.Checkbox("Prefabs", ref IsInPrefabSpawningMode);
+
+            // TODO: Snap to grid option? Not sure if I should support going off-grid yet.
+            //ImGui.Checkbox("Snap to Grid", ref SnapEntitiesToGrid);
         }
         ImGui.End();
 
@@ -943,6 +934,8 @@ public class EditorSystem : MoonTools.ECS.System
         {
             return;
         }
+
+        ShowPrefabSpawner();
 
         DrawLevelEditorMainWindow();
         ShowLevelLayerOptions();
