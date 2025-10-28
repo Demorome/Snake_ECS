@@ -133,7 +133,7 @@ public class GameplayState : GameState
     public override void Update(TimeSpan dt)
     {
 #if DEBUG
-        if (!FreezeTimeForAll && !EditorSystem.IsInLevelEditor)
+        if (!FreezeTimeForAll && !Editor.LevelEditorManipulator.IsInLevelEditor)
         {
 #endif
             Timing.Update(dt);

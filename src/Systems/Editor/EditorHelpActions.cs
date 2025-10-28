@@ -87,7 +87,7 @@ public static class EditorHelpActions
             () => { return Renderer.DrawDebugColliders = !Renderer.DrawDebugColliders; } )
         },
         { ImGuiKey.ModCtrl | ImGuiKey.E, new("Toggle Level Editor",
-            () => { return IsInLevelEditor = !IsInLevelEditor; } )
+            () => { return LevelEditorManipulator.IsInLevelEditor = !LevelEditorManipulator.IsInLevelEditor; } )
         },
     };
 

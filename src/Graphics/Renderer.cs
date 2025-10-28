@@ -15,6 +15,7 @@ using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
 using MoonWorks.Input;
 using RollAndCash.Systems;
 using Hexa.NET.ImGui;
+using RollAndCash.Editor;
 
 namespace RollAndCash;
 
@@ -146,13 +147,13 @@ public class Renderer : MoonTools.ECS.Renderer
 		}
 
 #if DEBUG
-		if (EditorSystem.IsInLevelEditor)
+		if (LevelEditorManipulator.IsInLevelEditor)
 		{
-			var hoveredOverLayer = EditorSystem.HoveredOverLayer;
+			var hoveredOverLayer = EditorSystem.LevelEditor.HoveredOverLayer;
 			if (hoveredOverLayer != null)
 			{
 				if (!Has<Editor_LevelLayerID>(e)
-					|| Get<Editor_LevelLayerID>(e).ID != EditorSystem.HoveredOverLayerID)
+					|| Get<Editor_LevelLayerID>(e).ID != EditorSystem.LevelEditor.HoveredOverLayerID)
 				{
 					color = Color.Lerp(color, Color.Transparent, 0.75f);
 				}
@@ -390,9 +391,9 @@ public class Renderer : MoonTools.ECS.Renderer
 #if DEBUG
 		ArtSpriteBatch.Start();
 
-		if (EditorSystem.IsInLevelEditor && EditorSystem.ShowGrid)
+		if (LevelEditorManipulator.IsInLevelEditor && LevelEditorManipulator.ShowGrid)
 		{
-			var color = new Color(EditorSystem.GridLineColor);
+			var color = new Color(LevelEditorManipulator.GridLineColor);
 			var depth = -(float)DepthLayer.Editor_TileOutline; // draw above backgrounds, but nothing else.
 			var verticalLength = Dimensions.TILE_ROW_COUNT * Dimensions.TILE_SIZE;
 			var horizontalLength = Dimensions.TILE_COLUMN_COUNT * Dimensions.TILE_SIZE;
@@ -429,10 +430,10 @@ public class Renderer : MoonTools.ECS.Renderer
 			worldPos = TileManipulator.TilePosToWorldPos_TopLeft(Dimensions.TILE_COLUMN_COUNT, 0);
 			DrawDebugLine(worldPos.AsVector(), verticalLength, DebugLineThickness, false, color, depth);
 
-			if (EditorSystem.HoveredOverTilePosition.HasValue)
+			if (EditorSystem.LevelEditor.HoveredOverTilePosition.HasValue)
 			{
 				color = Color.White with { A = 200 };
-				var tilePos = EditorSystem.HoveredOverTilePosition.Value;
+				var tilePos = EditorSystem.LevelEditor.HoveredOverTilePosition.Value;
 				worldPos = TileManipulator.TilePosToWorldPos_TopLeft(tilePos);
 				var tileRect = new Rectangle(0, 0, Dimensions.TILE_SIZE, Dimensions.TILE_SIZE);
 				DrawDebugRectangle(worldPos, tileRect, color, depth, DebugLineThickness);
@@ -498,11 +499,11 @@ public class Renderer : MoonTools.ECS.Renderer
 			}
 		}
 
-		var selectedSpritesToPaint = EditorSystem.GetLayerImagesToPaint();
+		var selectedSpritesToPaint = EditorSystem.LevelEditor.GetLayerImagesToPaint();
 		foreach (var (selectedSprite, selectedColor, drawPos, _) in selectedSpritesToPaint)
 		{
 			// Draw a transparent version of the sprite that would be painted, as a preview.
-			var depth = -EditorSystem.ActiveLayerDepth;
+			var depth = -EditorSystem.LevelEditor.ActiveLayerDepth;
 			var sprite = selectedSprite.CurrentSprite;
 			var origin = selectedSprite.Origin;
 			var offset = -origin - new Vector2(sprite.FrameRect.X, sprite.FrameRect.Y);

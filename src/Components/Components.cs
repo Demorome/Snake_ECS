@@ -216,10 +216,10 @@ public readonly record struct CursorPosition(Vector2 Value);
 
 
 #if DEBUG
-public readonly record struct Editor_DontShowInLists();
+    public readonly record struct Editor_DontShowInLists();
+    public readonly record struct Editor_DebugEntity();
 
     // Used to track tiles entities in-editor, to auto-refresh their appearance if the tileset changes etc.
     public readonly record struct Editor_LayerImageID(int ID);
-
     public readonly record struct Editor_LevelLayerID(int ID);
 #endif
