@@ -142,13 +142,22 @@ public class EditorSystem : MoonTools.ECS.System
                 var rect = GetEntityVisualRect(entity);
                 if (rect.HasValue)
                 {
+                    // Ignore entities that aren't in the Level Editor's currently active Editor Layer
+                    if (!float.IsNaN(LevelEditor.SelectedLayerDepth))
+					{
+						var entityDepth = Has<Depth>(entity) ? Get<Depth>(entity).Value : (float)DepthLayer.DefaultDepth;
+						if (entityDepth != LevelEditor.SelectedLayerDepth)
+                        {
+                            continue;
+                        }
+                    }
+
                     var worldRect = rect.Value.GetWorldRect(Get<Position2D>(entity));
                     VisualEntitiesSpatialHash.Insert(entity, worldRect);
                 }
             }
 
             // Check what entities the mouse is hovering over.
-            // FIXME: Make this ignore entities that aren't in the Level Editor's currently active Editor Layer?
             List<Entity> hoveredOverEntities = new();
 
             foreach (var (entity, rect) in VisualEntitiesSpatialHash.Retrieve(mouseWorldPosRect))
@@ -186,7 +195,7 @@ public class EditorSystem : MoonTools.ECS.System
                 Logger.LogInfo($"Selected {EntityToString(hoveredOverEntity)}");
             }
 
-            // Switch selection to one of greater/lower depth at the same mouse position.
+            // TODO: Switch selection to one of greater/lower depth at the same mouse position?
             else if (ImGui.IsKeyPressed(ImGuiKey.UpArrow))
             {
                 // FIXME:

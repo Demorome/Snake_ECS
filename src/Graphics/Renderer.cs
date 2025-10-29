@@ -458,15 +458,14 @@ public class Renderer : MoonTools.ECS.Renderer
 
 		// Draw selection mode-related stuff
 		{
-
-			var depth = -(float)DepthLayer.Editor_SelectionOutline;
+			var outlineDepth = -(float)DepthLayer.Editor_SelectionOutline;
 
 			var selectedEntity = EditorSystem.GetSelectedEntity();
 			if (selectedEntity.HasValue)
 			{
 				var entity = selectedEntity.Value;
 				var rectangle = EditorSystem.GetEntityVisualRect(entity).Value;
-				DrawDebugRectangle(entity, rectangle, Color.LimeGreen, depth, DebugLineThickness * 4);
+				DrawDebugRectangle(entity, rectangle, Color.LimeGreen, outlineDepth, DebugLineThickness * 4);
 			}
 
 			// FIXME: Scale color intensity by depth?
@@ -480,10 +479,18 @@ public class Renderer : MoonTools.ECS.Renderer
 					{
 						continue;
 					}
+					if (!float.IsNaN(EditorSystem.LevelEditor.SelectedLayerDepth))
+					{
+						var entityDepth = Has<Depth>(entity) ? Get<Depth>(entity).Value : (float)DepthLayer.DefaultDepth;
+						if (entityDepth != EditorSystem.LevelEditor.SelectedLayerDepth)
+                        {
+                            continue;
+                        }
+                    }
 
 					var spriteAnim = Get<SpriteAnimation>(entity);
 					var rectangle = EditorSystem.GetEntityVisualRect(entity).Value;
-					DrawDebugRectangle(entity, rectangle, selectionColor, depth, DebugLineThickness);
+					DrawDebugRectangle(entity, rectangle, selectionColor, outlineDepth, DebugLineThickness);
 				}
 
 				foreach (var entity in DrawRectFilter.Entities)
@@ -492,9 +499,17 @@ public class Renderer : MoonTools.ECS.Renderer
 					{
 						continue;
 					}
+					if (!float.IsNaN(EditorSystem.LevelEditor.SelectedLayerDepth))
+					{
+						var entityDepth = Has<Depth>(entity) ? Get<Depth>(entity).Value : (float)DepthLayer.DefaultDepth;
+						if (entityDepth != EditorSystem.LevelEditor.SelectedLayerDepth)
+                        {
+                            continue;
+                        }
+                    }
 
 					var rect = Get<Rectangle>(entity);
-					DrawDebugRectangle(entity, rect, selectionColor, depth, DebugLineThickness);
+					DrawDebugRectangle(entity, rect, selectionColor, outlineDepth, DebugLineThickness);
 				}
 			}
 		}
@@ -506,7 +521,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			foreach (var (selectedSprite, selectedColor, drawPos, _) in selectedSpritesToPaint)
 			{
 				// Draw a transparent version of the sprite that would be painted, as a preview.
-				var depth = -EditorSystem.LevelEditor.ActiveLayerDepth;
+				var depth = -EditorSystem.LevelEditor.OpenedLayerDepth;
 				var sprite = selectedSprite.CurrentSprite;
 				var origin = selectedSprite.Origin;
 				var offset = -origin - new Vector2(sprite.FrameRect.X, sprite.FrameRect.Y);

@@ -82,11 +82,11 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         {
             return;
         }
-        if (float.IsNaN(ActiveLayerDepth))
+        if (float.IsNaN(OpenedLayerDepth))
         {
             return;
         }
-        var activeLayer = LevelLayers[ActiveLayerDepth];
+        var activeLayer = LevelLayers[OpenedLayerDepth];
         var imagesToPaint = GetLayerImagesToPaint();
         if (!HasSelectedPrefab && imagesToPaint != null && ImGui.IsMouseDown(ImGuiMouseButton.Left))
         {
@@ -161,7 +161,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 
             foreach (var entity in paintedEntities)
             {
-                Set(entity, new Depth(ActiveLayerDepth));
+                Set(entity, new Depth(OpenedLayerDepth));
 
                 // FIXME: Group together multiple entities created in a single paintbrush stroke for Undo.
                 UndoRedo.StoreEntityCreateHistory(entity, World);
@@ -196,13 +196,13 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
     public Dictionary<float, LevelLayer> LevelLayers = new(); // FIXME: Load from level data
     
 
-    public float ActiveLayerDepth = float.NaN;
-    float SelectedLayerDepth = float.NaN;
-    public bool IsActiveLayerTiled => LevelLayers[ActiveLayerDepth].IsTiled;
+    public float OpenedLayerDepth = float.NaN;
+    public float SelectedLayerDepth = float.NaN;
+    public bool IsActiveLayerTiled => LevelLayers[OpenedLayerDepth].IsTiled;
 
     public List<(SpriteAnimation, Color, Position2D, Editor_LayerImageID)> GetLayerImagesToPaint()
     {
-        if (!LevelEditorManipulator.IsInLevelEditor || float.IsNaN(ActiveLayerDepth)
+        if (!LevelEditorManipulator.IsInLevelEditor || float.IsNaN(OpenedLayerDepth)
             || TileLayerMenu.ImagesToPaint == null || ImGui.GetIO().WantCaptureMouse
             )
         {
@@ -210,10 +210,10 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         }
         var result = new List<(SpriteAnimation, Color, Position2D, Editor_LayerImageID)>();
 
-        var activeLayer = LevelLayers[ActiveLayerDepth];
+        var openedLayer = LevelLayers[OpenedLayerDepth];
         var mouseWorldPos = Input.WorldMousePosition;
         var maybeHoveredOverTile = TileManipulator.GetTilePos(mouseWorldPos);
-        if (activeLayer.IsTiled && !maybeHoveredOverTile.HasValue)
+        if (openedLayer.IsTiled && !maybeHoveredOverTile.HasValue)
         {
             return new();
         }
@@ -227,7 +227,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 
             var currentTile = nextTile;
 
-            if (activeLayer.IsTiled)
+            if (openedLayer.IsTiled)
             {
                 nextTile.X += 1;
                 column += 1;
@@ -249,18 +249,18 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                 // Ex: picking 2 sprites that are diagonal from each other.
                 // This would produce a 2x2 selection scheme, with 2 tiles being 'invalid' (empty).
                 // Or, the tile may actually be an empty filler tile, with a valid LayerImageID.
-                if (!isNotFiller || IsEmptyTile(activeLayer.Images[layerImageID].Item1))
+                if (!isNotFiller || IsEmptyTile(openedLayer.Images[layerImageID].Item1))
                 {
                     continue;
                 }
             }
 
-            var (sprite, imageColor) = activeLayer.Images[layerImageID];
-            imageColor = activeLayer.MixLayerColorWithImageColor(imageColor);
+            var (sprite, imageColor) = openedLayer.Images[layerImageID];
+            imageColor = openedLayer.MixLayerColorWithImageColor(imageColor);
             result.Add((sprite, imageColor, worldPos, new Editor_LayerImageID(layerImageID)));
         }
 
-        if (result.Count > 1 && !activeLayer.IsTiled)
+        if (result.Count > 1 && !openedLayer.IsTiled)
         {
             throw new Exception("Should only be creating 1 image here...");
         }
@@ -299,7 +299,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                     SelectedLayerDepth = depth;
                     if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
                     {
-                        ActiveLayerDepth = depth;
+                        OpenedLayerDepth = depth;
                         TileLayerMenu.ImagesToPaint = null;
                     }
                 }
@@ -371,9 +371,9 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             }
             if (ImGui.Button("Delete"))
             {
-                if (ActiveLayerDepth == SelectedLayerDepth)
+                if (OpenedLayerDepth == SelectedLayerDepth)
                 {
-                    ActiveLayerDepth = float.NaN;
+                    OpenedLayerDepth = float.NaN;
                     TileLayerMenu.ImagesToPaint = null;
                 }
 
@@ -429,9 +429,9 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 
 
         // Draw separate window to show the active layer options.
-        if (!float.IsNaN(ActiveLayerDepth))
+        if (!float.IsNaN(OpenedLayerDepth))
         {
-            var layer = LevelLayers[ActiveLayerDepth];
+            var layer = LevelLayers[OpenedLayerDepth];
 
             bool stayOpen = true;
             if (ImGui.Begin(layer.Name, ref stayOpen))
@@ -450,7 +450,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             ImGui.End();
             if (!stayOpen)
             {
-                ActiveLayerDepth = float.NaN;
+                OpenedLayerDepth = float.NaN;
             }
         }
     }
