@@ -82,11 +82,11 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         {
             return;
         }
-        if (ActiveLayerID == -1) // FIXME: If there's a prefab to spawn, get the active layer from prefab!!
+        if (float.IsNaN(ActiveLayerDepth))
         {
             return;
         }
-        var activeLayer = LevelLayers[ActiveLayerID];
+        var activeLayer = LevelLayers[ActiveLayerDepth];
         var imagesToPaint = GetLayerImagesToPaint();
         if (!HasSelectedPrefab && imagesToPaint != null && ImGui.IsMouseDown(ImGuiMouseButton.Left))
         {
@@ -161,8 +161,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 
             foreach (var entity in paintedEntities)
             {
-                Set(entity, new Editor_LevelLayerID(ActiveLayerID));
-                Set(entity, new Depth(activeLayer.Depth));
+                Set(entity, new Depth(ActiveLayerDepth));
 
                 // FIXME: Group together multiple entities created in a single paintbrush stroke for Undo.
                 UndoRedo.StoreEntityCreateHistory(entity, World);
@@ -175,8 +174,6 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             {
                 var mouseHitboxRect = new Rectangle(0, 0, 1, 1);
                 var mouseWorldPosRect = mouseHitboxRect.GetWorldRect(mouseWorldPos);
-
-                // FIXME: Populate CachedEntities with not just tiles, but also Prefabs.
 
                 // Hopefully won't need an acceleration structure for this...
                 foreach (var entity in activeLayer.CachedEntities)
@@ -196,17 +193,16 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
     }
 
 
-    public List<LevelLayer> LevelLayers = new(); // FIXME: Load from level data
+    public Dictionary<float, LevelLayer> LevelLayers = new(); // FIXME: Load from level data
     
 
-    int ActiveLayerID = -1;
-    int SelectedLayerID = -1;
-    public bool IsActiveLayerTiled => LevelLayers[ActiveLayerID].IsTiled;
-    public float ActiveLayerDepth => LevelLayers[ActiveLayerID].Depth;
+    public float ActiveLayerDepth = float.NaN;
+    float SelectedLayerDepth = float.NaN;
+    public bool IsActiveLayerTiled => LevelLayers[ActiveLayerDepth].IsTiled;
 
     public List<(SpriteAnimation, Color, Position2D, Editor_LayerImageID)> GetLayerImagesToPaint()
     {
-        if (!LevelEditorManipulator.IsInLevelEditor || ActiveLayerID == -1 
+        if (!LevelEditorManipulator.IsInLevelEditor || float.IsNaN(ActiveLayerDepth)
             || TileLayerMenu.ImagesToPaint == null || ImGui.GetIO().WantCaptureMouse
             )
         {
@@ -214,7 +210,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         }
         var result = new List<(SpriteAnimation, Color, Position2D, Editor_LayerImageID)>();
 
-        var activeLayer = LevelLayers[ActiveLayerID];
+        var activeLayer = LevelLayers[ActiveLayerDepth];
         var mouseWorldPos = Input.WorldMousePosition;
         var maybeHoveredOverTile = TileManipulator.GetTilePos(mouseWorldPos);
         if (activeLayer.IsTiled && !maybeHoveredOverTile.HasValue)
@@ -279,18 +275,18 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
     }
     static TileLayerMenu TileLayerMenuStatic = new();
 
-    public int HoveredOverLayerID = -1;
-    public LevelLayer HoveredOverLayer => HoveredOverLayerID == -1 ? null : LevelLayers[HoveredOverLayerID];
+    public float HoveredOverLayerDepth = float.NaN;
+    public LevelLayer HoveredOverLayer =>
+        float.IsNaN(HoveredOverLayerDepth) ? null : LevelLayers[HoveredOverLayerDepth];
 
     void ShowLevelLayerOptions(Entity debugEntity)
     {
-        HoveredOverLayerID = -1;
+        HoveredOverLayerDepth = float.NaN;
 
         if (ImGui.Begin("Level Layers"))
         {
-            for (int i = 0; i < LevelLayers.Count; ++i)
+            foreach (var (depth, layer) in LevelLayers)
             {
-                var layer = LevelLayers[i];
                 var isVisible = layer.IsVisible;
                 if (ImGui.Checkbox("##" + layer.Name + "Visibility", ref isVisible))
                 {
@@ -298,25 +294,25 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                 }
                 ImGui.SameLine();
 
-                if (ImGui.Selectable(layer.Name, SelectedLayerID == i, ImGuiSelectableFlags.AllowDoubleClick))
+                if (ImGui.Selectable(layer.Name, SelectedLayerDepth == depth, ImGuiSelectableFlags.AllowDoubleClick))
                 {
-                    SelectedLayerID = i;
+                    SelectedLayerDepth = depth;
                     if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
                     {
-                        ActiveLayerID = i;
+                        ActiveLayerDepth = depth;
                         TileLayerMenu.ImagesToPaint = null;
                     }
                 }
                 if (ImGui.IsItemHovered())
                 {
-                    HoveredOverLayerID = i;
+                    HoveredOverLayerDepth = depth;
                 }
 
                 ImGui.SameLine();
                 ImGui.TextColored(Color.Green.ToVector4(),
-                    $"\tDepth: {layer.Depth}" + (layer.IsDepthLocked ? " (Locked)" : ""));
+                    $"\tDepth: {depth}" + (layer.IsDepthLocked ? " (Locked)" : ""));
 
-                if (ImGui.BeginPopup($"RenameLayer{i}"))
+                if (ImGui.BeginPopup($"RenameLayer{depth}"))
                 {
                     string newName = layer.Name;
                     for (int c = newName.Length - 1; c >= 0; --c)
@@ -348,13 +344,19 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             if (ImGui.BeginPopup("ChooseLayerType"))
             {
                 ImGui.SeparatorText("Layer Type");
-                for (int i = 0; i < (int)LevelLayer.LevelLayerTypes.COUNT; ++i)
+                for (int i = 0; i < (int)LevelLayer.LevelLayerTypes.SELECTABLE_COUNT; ++i)
                 {
                     var layerType = (LevelLayer.LevelLayerTypes)i;
                     var layerTypeStr = LevelLayer.LayerTypeToString(layerType);
                     if (ImGui.Selectable(layerTypeStr))
                     {
-                        LevelLayers.Add(new LevelLayer(layerType, layerTypeStr + " Layer"));
+                        var newLayerDepth = (float)DepthLayer.DefaultDepth;
+                        if (layerType == LevelLayer.LevelLayerTypes.SolidTile)
+                        {
+                            newLayerDepth = (float)DepthLayer.Tile_Solid;
+                        }
+
+                        LevelLayers.Add(newLayerDepth, new LevelLayer(layerType, layerTypeStr + " Layer"));
                     }
                 }
                 ImGui.EndPopup();
@@ -362,45 +364,37 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 
             ImGui.SameLine();
             bool disabled = false;
-            if (SelectedLayerID == -1)
+            if (float.IsNaN(SelectedLayerDepth))
             {
                 ImGui.BeginDisabled();
                 disabled = true;
             }
             if (ImGui.Button("Delete"))
             {
-                if (ActiveLayerID == SelectedLayerID)
+                if (ActiveLayerDepth == SelectedLayerDepth)
                 {
-                    ActiveLayerID = -1;
+                    ActiveLayerDepth = float.NaN;
                     TileLayerMenu.ImagesToPaint = null;
                 }
-                else if (ActiveLayerID > SelectedLayerID)
-                {
-                    ActiveLayerID -= 1;
-                }
 
-                if (HoveredOverLayerID == SelectedLayerID)
+                if (HoveredOverLayerDepth == SelectedLayerDepth)
                 {
-                    HoveredOverLayerID = -1;
-                }
-                else if (HoveredOverLayerID > SelectedLayerID)
-                {
-                    HoveredOverLayerID -= 1;
+                    HoveredOverLayerDepth = float.NaN;
                 }
 
                 // Deleting a layer deletes all entities in it.
-                LevelLayer.DeleteLayerCleanup(new Editor_LevelLayerID(SelectedLayerID), LevelLayers, World);
-                SelectedLayerID = -1;
+                LevelLayer.DeleteLayerCleanup(SelectedLayerDepth, LevelLayers, World);
+                SelectedLayerDepth = float.NaN;
             }
 
             ImGui.SameLine();
             if (ImGui.Button("Rename"))
             {
-                ImGui.OpenPopup($"RenameLayer{SelectedLayerID}");
+                ImGui.OpenPopup($"RenameLayer{SelectedLayerDepth}");
             }
 
             ImGui.SameLine();
-            if (SelectedLayerID != -1 && LevelLayers[SelectedLayerID].IsDepthLocked)
+            if (!float.IsNaN(SelectedLayerDepth) && LevelLayers[SelectedLayerDepth].IsDepthLocked)
             {
                 ImGui.BeginDisabled();
                 disabled = true;
@@ -411,10 +405,18 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             }
             if (ImGui.BeginPopup($"ChangeLayerDepth"))
             {
-                var depth = LevelLayers[SelectedLayerID].Depth;
-                if (ImGui.InputFloat("Depth", ref depth))
+                var oldDepth = SelectedLayerDepth;
+                var newDepth = oldDepth;
+                if (ImGui.InputFloat("Depth", ref newDepth))
                 {
-                    LevelLayers[SelectedLayerID].ChangeLayerDepth(depth, World);
+                    if (!LevelLayers.ContainsKey(newDepth))
+                    {
+                        LevelLayer.ChangeLayerDepth(oldDepth, newDepth, LevelLayers, World);
+                    }
+                    else
+                    {
+                        // TODO: Open an explanatory popup
+                    }
                 }
                 ImGui.EndPopup();
             }
@@ -427,9 +429,9 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 
 
         // Draw separate window to show the active layer options.
-        if (ActiveLayerID != -1)
+        if (!float.IsNaN(ActiveLayerDepth))
         {
-            var layer = LevelLayers[ActiveLayerID];
+            var layer = LevelLayers[ActiveLayerDepth];
 
             bool stayOpen = true;
             if (ImGui.Begin(layer.Name, ref stayOpen))
@@ -448,7 +450,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             ImGui.End();
             if (!stayOpen)
             {
-                ActiveLayerID = -1;
+                ActiveLayerDepth = float.NaN;
             }
         }
     }

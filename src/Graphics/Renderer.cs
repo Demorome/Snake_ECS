@@ -152,8 +152,8 @@ public class Renderer : MoonTools.ECS.Renderer
 			var hoveredOverLayer = EditorSystem.LevelEditor.HoveredOverLayer;
 			if (hoveredOverLayer != null)
 			{
-				if (!Has<Editor_LevelLayerID>(e)
-					|| Get<Editor_LevelLayerID>(e).ID != EditorSystem.LevelEditor.HoveredOverLayerID)
+				var depth = Has<Depth>(e) ? Get<Depth>(e).Value : (float)DepthLayer.DefaultDepth;
+				if (depth != EditorSystem.LevelEditor.HoveredOverLayerDepth)
 				{
 					color = Color.Lerp(color, Color.Transparent, 0.75f);
 				}
@@ -271,7 +271,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			var str = Data.TextStorage.GetString(text.TextID);
 			var font = Fonts.FromID(text.FontID);
 			var color = Has<Color>(entity) ? Get<Color>(entity) : Color.White;
-			var depth = -1f;
+			var depth = -(float)DepthLayer.DefaultDepth;
 
 			if (Has<ColorBlend>(entity))
 			{

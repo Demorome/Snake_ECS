@@ -38,7 +38,7 @@ public class EditorSystem : MoonTools.ECS.System
         ReInitComponentTypesList();
     }
 
-    MoonTools.ECS.Filter PositionFilter, LevelLayerFilter;
+    MoonTools.ECS.Filter PositionFilter;
 
     public Entity? DebugEntity = null; // So we can stick Relations on this to safely track other entities.
     static string DebugEntityTag = "EDITOR";
@@ -48,7 +48,6 @@ public class EditorSystem : MoonTools.ECS.System
     public EditorSystem(World world) : base(world)
     {
         PositionFilter = FilterBuilder.Include<Position2D>().Build();
-        LevelLayerFilter = FilterBuilder.Include<Editor_LevelLayerID>().Build();
 
         LevelEditor = new(World, this);
     }
@@ -76,16 +75,41 @@ public class EditorSystem : MoonTools.ECS.System
 
     void UpdateCachedLevelLayerEntities()
     {
-        foreach (var levelLayer in LevelEditor.LevelLayers)
+        foreach (var (_, levelLayer) in LevelEditor.LevelLayers)
         {
             levelLayer.CachedEntities.Clear();
         }
 
-        foreach (var entity in LevelLayerFilter.Entities)
+        foreach (var entity in PositionFilter.Entities)
         {
-            var layerID = Get<Editor_LevelLayerID>(entity);
-            LevelEditor.LevelLayers[layerID.ID].CachedEntities.Add(entity);
+            var depth = Has<Depth>(entity) ? Get<Depth>(entity).Value : (float)DepthLayer.DefaultDepth;
+            if (!LevelEditor.LevelLayers.ContainsKey(depth))
+            {
+                bool isInteger = depth == float.Floor(depth);
+                if (isInteger && Enum.IsDefined((DepthLayer)(int)depth))
+                {
+                    // Assume the objects here are prefabs.
+                    LevelEditor.LevelLayers.Add(
+                        depth,
+                        new LevelLayer(LevelLayer.LevelLayerTypes.Prefab,
+                            $"{((DepthLayer)(int)depth).ToString()} Layer"
+                        )
+                    );
+                }
+                else
+                {
+                    // Create a new level layer for this unrecognized depth.
+                    LevelEditor.LevelLayers.Add(
+                        depth,
+                        new LevelLayer(LevelLayer.LevelLayerTypes.Unknown, "Unknown/Dynamic Layer")
+                    );
+                }
+            }
+            LevelEditor.LevelLayers[depth].CachedEntities.Add(entity);
         }
+
+        // TODO: Delete level layers that no longer contain any entities.
+        // Maybe only those that were dynamically generated, for unrecognized depth.
     }
 
     public static bool IsInEntitySelectionMode = false;

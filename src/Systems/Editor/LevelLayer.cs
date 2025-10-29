@@ -33,10 +33,12 @@ public class LevelLayer
 
     public enum LevelLayerTypes
     {
-        Image = 0,
+        Prefab = 0,
+        Image,
         VisualTile,
         SolidTile,
-        COUNT
+        SELECTABLE_COUNT,
+        Unknown
     }
 
     public LevelLayer(LevelLayerTypes layerType, string name = "New Layer")
@@ -44,11 +46,6 @@ public class LevelLayer
         LayerType = layerType;
         ValidateLayerName(ref name);
         Name = name;
-
-        if (layerType == LevelLayerTypes.SolidTile)
-        {
-            Depth = (float)DepthLayer.Tile_Solid;
-        }
     }
 
     public string Name;
@@ -59,7 +56,6 @@ public class LevelLayer
     public List<(SpriteAnimation, Color)> Images { get; private set; } = new();
     public int ImagesPerRow = 8;
     public float PreviewScaleMult = 1;
-    public float Depth { get; private set; } = -2;
     public bool IsDepthLocked => LayerType == LevelLayerTypes.SolidTile;
     public bool IsVisible { get; private set; } = true;
     public List<Entity> CachedEntities = new();
@@ -151,13 +147,24 @@ public class LevelLayer
         }
     }
 
-    public void ChangeLayerDepth(float newDepth, World world)
+    // Assumes that newDepth isn't already being occupied as a level layer.
+    public static void ChangeLayerDepth(
+        float oldDepth,
+        float newDepth,
+        Dictionary<float, LevelLayer> levelLayers,
+        World world
+        )
     {
-        Depth = newDepth;
-        foreach (var entity in CachedEntities)
+        foreach (var entity in levelLayers[oldDepth].CachedEntities)
         {
             world.Set(entity, new Depth(newDepth));
         }
+
+        var prevLayerType = levelLayers[oldDepth].LayerType;
+        var prevLayerName = levelLayers[oldDepth].Name;
+
+        levelLayers.Remove(oldDepth);
+        levelLayers.Add(newDepth, new LevelLayer(prevLayerType, prevLayerName));
     }
 
     public void DeleteLayerImage(int layerImageID, World world)
@@ -181,33 +188,20 @@ public class LevelLayer
         Images.RemoveAt(layerImageID);
     }
 
-    public static void DeleteLayerCleanup(Editor_LevelLayerID levelLayerToRemove,
-        List<LevelLayer> levelLayers, World world)
+    public static void DeleteLayerCleanup(float depthLayerToRemove,
+        Dictionary<float, LevelLayer> levelLayers, World world)
     {
         // FIXME: Undo support!
         // FIXME: If undone, need to re-apply relationship data too.
         // Ex: DebugEntiy DontDraw relation, if the layer was made invisible.
 
         // Deleting a layer deletes all entities in it.
-        foreach (var entity in levelLayers[levelLayerToRemove.ID].CachedEntities)
+        foreach (var entity in levelLayers[depthLayerToRemove].CachedEntities)
         {
             world.Destroy(entity);
         }
-        LevelLayerNames.Remove(levelLayers[levelLayerToRemove.ID].Name);
-        levelLayers.RemoveAt(levelLayerToRemove.ID);
-
-        // Update Editor_LevelLayerID components for entities in other layers, if they had a greater ID.
-        for (int i = 0; i < levelLayers.Count; ++i)
-        {
-            foreach (var entity in levelLayers[i].CachedEntities)
-            {
-                var entityLevelLayer = world.Get<Editor_LevelLayerID>(entity);
-                if (entityLevelLayer.ID > levelLayerToRemove.ID)
-                {
-                    world.Set(entity, new Editor_LevelLayerID(entityLevelLayer.ID - 1));
-                }
-            }
-        }
+        LevelLayerNames.Remove(levelLayers[depthLayerToRemove].Name);
+        levelLayers.Remove(depthLayerToRemove);
     }
     
     public static string LayerTypeToString(LevelLayerTypes layerType)
