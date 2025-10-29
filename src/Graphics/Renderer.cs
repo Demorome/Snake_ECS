@@ -499,25 +499,30 @@ public class Renderer : MoonTools.ECS.Renderer
 			}
 		}
 
-		var selectedSpritesToPaint = EditorSystem.LevelEditor.GetLayerImagesToPaint();
-		foreach (var (selectedSprite, selectedColor, drawPos, _) in selectedSpritesToPaint)
+
+		if (!EditorSystem.LevelEditor.HasSelectedPrefab)
 		{
-			// Draw a transparent version of the sprite that would be painted, as a preview.
-			var depth = -EditorSystem.LevelEditor.ActiveLayerDepth;
-			var sprite = selectedSprite.CurrentSprite;
-			var origin = selectedSprite.Origin;
-			var offset = -origin - new Vector2(sprite.FrameRect.X, sprite.FrameRect.Y);
+            var selectedSpritesToPaint = EditorSystem.LevelEditor.GetLayerImagesToPaint();
+			foreach (var (selectedSprite, selectedColor, drawPos, _) in selectedSpritesToPaint)
+			{
+				// Draw a transparent version of the sprite that would be painted, as a preview.
+				var depth = -EditorSystem.LevelEditor.ActiveLayerDepth;
+				var sprite = selectedSprite.CurrentSprite;
+				var origin = selectedSprite.Origin;
+				var offset = -origin - new Vector2(sprite.FrameRect.X, sprite.FrameRect.Y);
 
-			ArtSpriteBatch.Add(
-				new Vector3(drawPos.X + offset.X, drawPos.Y + offset.Y, depth),
-				0.0f,
-				new Vector2(sprite.SliceRect.W, sprite.SliceRect.H),
-				Color.Lerp(selectedColor, Color.Transparent, 0.25f),
-				sprite.UV.LeftTop,
-				sprite.UV.Dimensions
-			);
+				ArtSpriteBatch.Add(
+					new Vector3(drawPos.X + offset.X, drawPos.Y + offset.Y, depth),
+					0.0f,
+					new Vector2(sprite.SliceRect.W, sprite.SliceRect.H),
+					Color.Lerp(selectedColor, Color.Transparent, 0.25f),
+					sprite.UV.LeftTop,
+					sprite.UV.Dimensions
+				);
 
-		}
+			}
+        }
+
 
 		ArtSpriteBatch.Upload(commandBuffer);
 

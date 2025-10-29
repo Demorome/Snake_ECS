@@ -25,8 +25,9 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         TileManipulator = new(World);
         PrefabManipulator = new(World);
     }
-    
+
     public static bool IsInLevelEditor = false;
+    public bool HasSelectedPrefab = false;
     static bool SnapToGrid = true;
     public static bool ShowGrid = true;
     public Vector2? HoveredOverTilePosition = null;
@@ -64,7 +65,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             return;
         }
 
-        PrefabManipulator.ShowPrefabSpawner();
+        HasSelectedPrefab = PrefabManipulator.ShowPrefabSpawner(debugEntity);
 
         DrawLevelEditorMainWindow();
         ShowLevelLayerOptions(debugEntity);
@@ -87,7 +88,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         }
         var activeLayer = LevelLayers[ActiveLayerID];
         var imagesToPaint = GetLayerImagesToPaint();
-        if (imagesToPaint != null && ImGui.IsMouseDown(ImGuiMouseButton.Left))
+        if (!HasSelectedPrefab && imagesToPaint != null && ImGui.IsMouseDown(ImGuiMouseButton.Left))
         {
             List<Entity> paintedEntities = new();
 
@@ -174,6 +175,8 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             {
                 var mouseHitboxRect = new Rectangle(0, 0, 1, 1);
                 var mouseWorldPosRect = mouseHitboxRect.GetWorldRect(mouseWorldPos);
+
+                // FIXME: Populate CachedEntities with not just tiles, but also Prefabs.
 
                 // Hopefully won't need an acceleration structure for this...
                 foreach (var entity in activeLayer.CachedEntities)
