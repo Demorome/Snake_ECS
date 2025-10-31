@@ -179,9 +179,9 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                 UndoRedo.StoreEntityCreateHistory(entity, World);
             }
         }
-        else if (ImGui.IsMouseDown(ImGuiMouseButton.Right))
+        else if (ImGui.IsMouseDown(ImGuiMouseButton.Right) && !EditorSystem.IsInEntitySelectionMode)
         {
-            // Delete tiles on this level layer!
+            // Erase/Delete tiles on this level layer!
             if (activeLayer.IsTiled || ImGui.IsMouseClicked(ImGuiMouseButton.Right))
             {
                 var mouseHitboxRect = new Rectangle(0, 0, 1, 1);
