@@ -304,11 +304,18 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 
                 if (ImGui.Selectable(layer.Name, SelectedLayerName == name, ImGuiSelectableFlags.AllowDoubleClick))
                 {
-                    SelectedLayerName = name;
                     if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
                     {
                         OpenedLayerName = name;
                         TileLayerMenu.ImagesToPaint = null;
+                    }
+                    else if (SelectedLayerName == name)
+                    {
+                        SelectedLayerName = null;
+                    }
+                    else
+                    {
+                        SelectedLayerName = name;
                     }
                 }
                 if (ImGui.IsItemHovered())
