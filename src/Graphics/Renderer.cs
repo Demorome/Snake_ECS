@@ -481,8 +481,8 @@ public class Renderer : MoonTools.ECS.Renderer
 					}
 					if (EditorSystem.LevelEditor.SelectedLayerName != null)
 					{
-						var entityDepth = Has<Depth>(entity) ? Get<Depth>(entity).Value : (float)DepthLayer.DefaultDepth;
-						if (entityDepth != EditorSystem.LevelEditor.Level.Layers[EditorSystem.LevelEditor.OpenedLayerName].Depth)
+						var layerID = Get<Editor_LevelLayerID>(entity);
+						if (layerID != EditorSystem.LevelEditor.Level.Layers[EditorSystem.LevelEditor.SelectedLayerName].LayerID)
                         {
                             continue;
                         }
@@ -501,8 +501,8 @@ public class Renderer : MoonTools.ECS.Renderer
 					}
 					if (EditorSystem.LevelEditor.SelectedLayerName != null)
 					{
-						var entityDepth = Has<Depth>(entity) ? Get<Depth>(entity).Value : (float)DepthLayer.DefaultDepth;
-						if (entityDepth != EditorSystem.LevelEditor.Level.Layers[EditorSystem.LevelEditor.OpenedLayerName].Depth)
+						var layerID = Get<Editor_LevelLayerID>(entity);
+						if (layerID != EditorSystem.LevelEditor.Level.Layers[EditorSystem.LevelEditor.SelectedLayerName].LayerID)
                         {
                             continue;
                         }

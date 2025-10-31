@@ -47,7 +47,10 @@ public class EditorSystem : MoonTools.ECS.System
 
     public EditorSystem(World world) : base(world)
     {
-        PositionFilter = FilterBuilder.Include<Position2D>().Build();
+        PositionFilter =
+            FilterBuilder
+            .Include<Position2D>()
+            .Build();
 
         LevelEditor = new(World, this);
     }
@@ -127,6 +130,7 @@ public class EditorSystem : MoonTools.ECS.System
             }
 
             maybeLayer.CachedEntities.Add(entity);
+            Set(entity, maybeLayer.LayerID);
         }
 
         // TODO: Delete level layers that no longer contain any entities.
@@ -166,12 +170,24 @@ public class EditorSystem : MoonTools.ECS.System
                     // Ignore entities that aren't in the Level Editor's currently active Editor Layer
                     if (LevelEditor.SelectedLayerName != null)
                     {
-                        var selectedLayer = LevelEditor.Level.Layers[LevelEditor.SelectedLayerName];
-                        var entityLayerID = Get<Editor_LevelLayerID>(entity);
-						if (entityLayerID != selectedLayer.LayerID)
+                        if (Has<Editor_LevelLayerID>(entity))
                         {
-                            continue;
+                            var selectedLayer = LevelEditor.Level.Layers[LevelEditor.SelectedLayerName];
+                            var entityLayerID = Get<Editor_LevelLayerID>(entity);
+                            if (entityLayerID != selectedLayer.LayerID)
+                            {
+                                continue;
+                            }
                         }
+                        else
+                        {
+                            Console.WriteLine($"WTF! Visual entity {entity.ID} doesn't have a level layer! Components:");
+                            foreach (var type in World.Debug_GetAllComponentTypes(entity))
+                            {
+                                Console.WriteLine("*\t" + type.Name);
+                            }
+                        }
+
                     }
 
                     var worldRect = rect.Value.GetWorldRect(Get<Position2D>(entity));
