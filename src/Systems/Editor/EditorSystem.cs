@@ -69,13 +69,13 @@ public class EditorSystem : MoonTools.ECS.System
         DrawDetachedWindows(World);
         DrawComponents.DrawEntitiesWithComponentWindows(World);
 
-        HandleEntitySelectionMode();
         LevelEditor.HandleLevelEditor(DebugEntity.Value);
+        HandleEntitySelectionMode();
     }
 
     void UpdateCachedLevelLayerEntities()
     {
-        foreach (var (_, levelLayer) in LevelEditor.LevelLayers)
+        foreach (var (_, levelLayer) in LevelEditor.Level.Layers)
         {
             levelLayer.CachedEntities.Clear();
         }
@@ -83,29 +83,50 @@ public class EditorSystem : MoonTools.ECS.System
         foreach (var entity in PositionFilter.Entities)
         {
             var depth = Has<Depth>(entity) ? Get<Depth>(entity).Value : (float)DepthLayer.DefaultDepth;
-            if (!LevelEditor.LevelLayers.ContainsKey(depth))
+
+            Level.Layer maybeLayer = null;
+            if (Has<Editor_LevelLayerID>(entity))
             {
+                // FIXME: might be null, if the layer has been deleted this session, then undone.
+                maybeLayer = LevelEditor.Level.GetLayerFromID(Get<Editor_LevelLayerID>(entity));
+
+                if (depth != maybeLayer.Depth)
+                {
+                    // Force a change of layer.
+                    Remove<Editor_LevelLayerID>(entity);
+                    maybeLayer = null;
+                }
+            }
+
+            if (maybeLayer == null)
+            {
+                var layerType = Level.Layer.Types.Unknown;
+                string layerName;
+
                 bool isInteger = depth == float.Floor(depth);
                 if (isInteger && Enum.IsDefined((DepthLayer)(int)depth))
                 {
-                    // Assume the objects here are prefabs.
-                    LevelEditor.LevelLayers.Add(
-                        depth,
-                        new LevelLayer(LevelLayer.LevelLayerTypes.Prefab,
-                            $"{((DepthLayer)(int)depth).ToString()} Layer"
-                        )
-                    );
+                    layerType = Level.Layer.Types.Prefab;
+                    layerName = $"{((DepthLayer)(int)depth).ToString()}";
                 }
                 else
                 {
-                    // Create a new level layer for this unrecognized depth.
-                    LevelEditor.LevelLayers.Add(
-                        depth,
-                        new LevelLayer(LevelLayer.LevelLayerTypes.Unknown, "Unknown/Dynamic Layer")
-                    );
+                    layerName = Level.Layer.LayerTypeToString(layerType);
+                }
+
+                // Try to find an existing layer to group this with, based on depth.
+                if (LevelEditor.Level.Layers.ContainsKey(layerName))
+                {
+                    maybeLayer = LevelEditor.Level.Layers[layerName];
+                }
+                else
+                {
+                    // If not, create one.
+                    maybeLayer = new Level.Layer(layerType, LevelEditor.Level, layerName, depth);
                 }
             }
-            LevelEditor.LevelLayers[depth].CachedEntities.Add(entity);
+
+            maybeLayer.CachedEntities.Add(entity);
         }
 
         // TODO: Delete level layers that no longer contain any entities.
@@ -143,10 +164,11 @@ public class EditorSystem : MoonTools.ECS.System
                 if (rect.HasValue)
                 {
                     // Ignore entities that aren't in the Level Editor's currently active Editor Layer
-                    if (!float.IsNaN(LevelEditor.SelectedLayerDepth))
-					{
-						var entityDepth = Has<Depth>(entity) ? Get<Depth>(entity).Value : (float)DepthLayer.DefaultDepth;
-						if (entityDepth != LevelEditor.SelectedLayerDepth)
+                    if (LevelEditor.SelectedLayerName != null)
+                    {
+                        var selectedLayer = LevelEditor.Level.Layers[LevelEditor.SelectedLayerName];
+                        var entityLayerID = Get<Editor_LevelLayerID>(entity);
+						if (entityLayerID != selectedLayer.LayerID)
                         {
                             continue;
                         }

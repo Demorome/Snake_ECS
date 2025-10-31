@@ -58,7 +58,7 @@ public class TileLayerMenu
     const string TileSpritePrefix = "Tile_";
     const string TileSetPrefix = "TileSet_";
     unsafe ImGuiTextFilterPtr TileSearchFilter = new(ImGui.ImGuiTextFilter(""u8));
-    void DrawTileSetSelectionPopup(LevelLayer levelLayer)
+    void DrawTileSetSelectionPopup(Level.Layer levelLayer)
     {
         if (ImGui.BeginPopup("##AddTileset"))
         {
@@ -97,13 +97,13 @@ public class TileLayerMenu
         }
     }
 
-    private bool IsLayerImageInvalid(int layerImageID, LevelLayer levelLayer)
+    private bool IsLayerImageInvalid(int layerImageID, Level.Layer levelLayer)
     {
         return levelLayer.Images[layerImageID].Item1.SpriteAnimationInfoID
             == SpriteAnimations.EditorTile_InvalidTile.ID;
     }
 
-    void UpdateMultiImagePaintSelection(LevelLayer levelLayer, int? toAddIndex = null, int? toRemoveIndex = null)
+    void UpdateMultiImagePaintSelection(Level.Layer levelLayer, int? toAddIndex = null, int? toRemoveIndex = null)
     {
         // LayerImageIDs may be invalid here, for odd selection schemes.
         // Ex: picking 2 sprites that are diagonal from each other.
@@ -168,7 +168,7 @@ public class TileLayerMenu
         }
     }
 
-    private void HandleMultiSelectRequests(ImGuiMultiSelectIOPtr multiSelectIO, LevelLayer levelLayer)
+    private void HandleMultiSelectRequests(ImGuiMultiSelectIOPtr multiSelectIO, Level.Layer levelLayer)
     {
         for (int requestNum = 0; requestNum < multiSelectIO.Requests.Size; ++requestNum)
         {
@@ -237,7 +237,7 @@ public class TileLayerMenu
         }
     }
 
-    void DrawTileSpriteReplacementsPopup(LevelLayer levelLayer, World World)
+    void DrawTileSpriteReplacementsPopup(Level.Layer levelLayer, World World)
     {
         if (ImGui.BeginPopup("##SelectTileSprite"))
         {
@@ -273,7 +273,7 @@ public class TileLayerMenu
         }
     }
 
-    public void Show(LevelLayer tileLayer, World World)
+    public void Show(Level.Layer tileLayer, World World)
     {
         if (ImGui.InputInt("Tiles per row", ref tileLayer.ImagesPerRow))
         {

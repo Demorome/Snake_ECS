@@ -153,7 +153,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			if (hoveredOverLayer != null)
 			{
 				var depth = Has<Depth>(e) ? Get<Depth>(e).Value : (float)DepthLayer.DefaultDepth;
-				if (depth != EditorSystem.LevelEditor.HoveredOverLayerDepth)
+				if (depth != EditorSystem.LevelEditor.Level.Layers[EditorSystem.LevelEditor.HoveredOverLayerName].Depth)
 				{
 					color = Color.Lerp(color, Color.Transparent, 0.75f);
 				}
@@ -479,10 +479,10 @@ public class Renderer : MoonTools.ECS.Renderer
 					{
 						continue;
 					}
-					if (!float.IsNaN(EditorSystem.LevelEditor.SelectedLayerDepth))
+					if (EditorSystem.LevelEditor.SelectedLayerName != null)
 					{
 						var entityDepth = Has<Depth>(entity) ? Get<Depth>(entity).Value : (float)DepthLayer.DefaultDepth;
-						if (entityDepth != EditorSystem.LevelEditor.SelectedLayerDepth)
+						if (entityDepth != EditorSystem.LevelEditor.Level.Layers[EditorSystem.LevelEditor.OpenedLayerName].Depth)
                         {
                             continue;
                         }
@@ -499,10 +499,10 @@ public class Renderer : MoonTools.ECS.Renderer
 					{
 						continue;
 					}
-					if (!float.IsNaN(EditorSystem.LevelEditor.SelectedLayerDepth))
+					if (EditorSystem.LevelEditor.SelectedLayerName != null)
 					{
 						var entityDepth = Has<Depth>(entity) ? Get<Depth>(entity).Value : (float)DepthLayer.DefaultDepth;
-						if (entityDepth != EditorSystem.LevelEditor.SelectedLayerDepth)
+						if (entityDepth != EditorSystem.LevelEditor.Level.Layers[EditorSystem.LevelEditor.OpenedLayerName].Depth)
                         {
                             continue;
                         }
@@ -521,7 +521,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			foreach (var (selectedSprite, selectedColor, drawPos, _) in selectedSpritesToPaint)
 			{
 				// Draw a transparent version of the sprite that would be painted, as a preview.
-				var depth = -EditorSystem.LevelEditor.OpenedLayerDepth;
+				var depth = -EditorSystem.LevelEditor.Level.Layers[EditorSystem.LevelEditor.OpenedLayerName].Depth;
 				var sprite = selectedSprite.CurrentSprite;
 				var origin = selectedSprite.Origin;
 				var offset = -origin - new Vector2(sprite.FrameRect.X, sprite.FrameRect.Y);
