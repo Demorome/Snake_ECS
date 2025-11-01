@@ -11,24 +11,60 @@ namespace RollAndCash.Editor;
 
 public static class UndoRedo
 {
-        // For Ctrl+Z 'Undo' feature.
-    public static Stack<(Entity, dynamic, bool)> ChangeHistory = new();
-    // For Ctrl+Y 'Redo' feature.
-    public static Stack<(Entity, dynamic, bool)> UndoHistory = new();
+    public enum ChangeType
+    {
+        Entity_Creation = 0,
+        Entity_Deletion,
+        Multiple_Entity_Creations,
+        Multiple_Entity_Deletions,
+        Entity_Component_Modify,
+        Entity_Component_Remove,
+        Entity_Component_Add,
+        ENTITY_CHANGES_COUNT,
 
-    public static void StoreEntityDestroyHistory(Entity entity, World world)
+        // TODO: Level layer changes
+    }
+
+    // For Ctrl+Z 'Undo' feature.
+    public static Stack<(object ChangeSubject, dynamic Value, ChangeType)>
+        ChangeHistory { get; private set; } = new();
+        
+    // For Ctrl+Y 'Redo' feature.
+    public static Stack<(object ChangeSubject, dynamic Value, ChangeType)> 
+        UndoHistory { get; private set; } = new();
+
+    public static void RememberEntityDestruction(Entity entity, World world)
     {
         StoreEntityComponents(entity, world, ChangeHistory, true);
     }
-    public static void StoreEntityCreateHistory(Entity entity, World world)
+    public static void RememberEntityCreation(Entity entity, World world)
     {
         StoreEntityComponents(entity, world, ChangeHistory, false);
     }
 
-    static void StoreEntityComponents(
+    public static void UndoLastChange(World world)
+    {
+        UndoRedoLastChange(world, ChangeHistory, UndoHistory, false);
+    }
+
+    public static void RedoLastChange(World world)
+    {
+        UndoRedoLastChange(world, UndoHistory, ChangeHistory, true);
+    }
+
+    public static void ClearRedoList()
+    {
+        if (UndoHistory.Count != 0)
+        {
+            Logger.LogInfo("Cleared Redo list.");
+            UndoHistory.Clear();
+        }
+    }
+
+    private static void StoreEntityComponents(
         Entity entity,
         World world,
-        Stack<(Entity, dynamic, bool)> ToSaveComponents,
+        Stack<(object, dynamic, ChangeType)> ToAllowUndo,
         bool willBeDestroyed // else, wasCreated
         )
     {
@@ -45,107 +81,124 @@ public static class UndoRedo
         // Also store the tag
         components.Add(world.GetTag(entity));
 
-        ToSaveComponents.Push((entity, components, willBeDestroyed));
+        var changeToUndo = willBeDestroyed ? ChangeType.Entity_Creation : ChangeType.Entity_Deletion;
+
+        ToAllowUndo.Push(
+            ( entity, components, changeToUndo )
+        );
     }
 
-    public static void ClearRedoList()
+    private static bool IsChangeEntityRelated(ChangeType change)
     {
-        if (UndoHistory.Count != 0)
-        {
-            Logger.LogInfo("Cleared Redo list.");
-            UndoHistory.Clear();
-        }
+        return change < ChangeType.ENTITY_CHANGES_COUNT;
     }
 
-    static void UndoRedoLastComponentChange(
+    private static void UndoRedoLastChange(
         World world,
-        Stack<(Entity, dynamic, bool)> ToRestore,
-        Stack<(Entity, dynamic, bool)> ToRememberRestore,
+        Stack<(object, dynamic, ChangeType)> ToUndo,
+        Stack<(object, dynamic, ChangeType)> ToUndoUndo,
         bool isUndoOrRedo
         )
     {
-        if (ToRestore.Count == 0)
+        if (ToUndo.Count == 0)
         {
             return;
         }
 
-        // If componentExisted == false, then `componentPriorToChange` will be a default-instantiated dummy component.
-        // `componentPriorToChange` will never be null. FIXME: Enforce this somehow?
-        var (entity, componentPriorToChange, hadComponent) = ToRestore.Pop();
+        var (changeSubject, changeValue, changeToUndo) = ToUndo.Pop();
 
-        // Handle entity deletion case.
-        if (componentPriorToChange.GetType() == typeof(List<dynamic>))
+        // FIXME: Support for multiple entity creations/deletions!
+        // Split the rest of this off into another func so we can loop this!
+
+        if (IsChangeEntityRelated(changeToUndo))
         {
-            string entityString;
+            var entity = (Entity)changeSubject;
+            var componentChanges = changeValue;
 
-            if (hadComponent)
+            // Handle entity deletion case.
+            if (componentChanges.GetType() == typeof(List<dynamic>))
             {
-                // Entity was deleted; recreate it along with all of its components
-                var componentList = componentPriorToChange as List<dynamic>;
-                var oldTag = componentList[componentList.Count - 1] as string;
-                entity = world.CreateEntity(oldTag);
-                componentList.RemoveAt(componentList.Count - 1);
+                string entityString;
 
-                foreach (var component in componentList)
+                if (changeToUndo == ChangeType.Entity_Creation)
                 {
-                    DynamicComponentManip.Set(world, entity, component);
+                    // Recreate it along with all of its components
+                    var componentList = componentChanges as List<dynamic>;
+                    var oldTag = componentList[componentList.Count - 1] as string;
+                    entity = world.CreateEntity(oldTag);
+                    componentList.RemoveAt(componentList.Count - 1);
+
+                    foreach (var component in componentList)
+                    {
+                        DynamicComponentManip.Set(world, entity, component);
+                    }
+
+                    componentList.Clear();
+                    ToUndoUndo.Push((entity, componentList, ChangeType.Entity_Deletion));
+                    entityString = EditorSystem.EntityToString(world, entity);
+                }
+                else if (changeToUndo == ChangeType.Entity_Deletion)
+                {
+                    // Entity was un-deleted; re-delete it.
+                    entityString = EditorSystem.EntityToString(world, entity);
+                    StoreEntityComponents(entity, world, ToUndoUndo, true);
+                    world.Destroy(entity);
+                }
+                else
+                {
+                    throw new Exception("What??");
                 }
 
-                componentList.Clear();
-                ToRememberRestore.Push((entity, componentList, false));
-                entityString = EditorSystem.EntityToString(world, entity);
+                Logger.LogInfo($"{(!isUndoOrRedo ? "Undid" : "Redid")} {entityString}'s deletion.");
+
+                return;
+            }
+            // Else, handle single component change case.
+
+            Logger.LogInfo($"{(!isUndoOrRedo ? "Undid" : "Redid")} change to {
+                EditorSystem.EntityToString(world, entity)} for {
+                    componentChanges.GetType().Name} : Reset to {
+                        componentChanges.ToString()}");
+
+            // Store current state so we can potentially 'Redo' this 'Undo' change, and vice-versa.
+            if (changeToUndo == ChangeType.Entity_Component_Add)
+            {
+                var type = componentChanges.GetType();
+                var dummyComponent = (dynamic)Activator.CreateInstance(type);
+                ToUndoUndo.Push(
+                    (
+                        entity, dummyComponent,
+                        ChangeType.Entity_Component_Remove
+                    )
+                );
+            }
+            else if (changeToUndo == ChangeType.Entity_Component_Remove
+                || changeToUndo == ChangeType.Entity_Component_Modify)
+            {
+                var componentPriorToUndo = DynamicComponentManip.Get(world, entity, componentChanges);
+                ToUndoUndo.Push(
+                    (
+                        entity, componentPriorToUndo,
+                        changeToUndo == ChangeType.Entity_Component_Remove ?
+                            ChangeType.Entity_Component_Add : ChangeType.Entity_Component_Modify
+                    )
+                );
+            }
+
+            // Apply the change to undo the previous change; our changeType is the opposite.
+            if (changeToUndo == ChangeType.Entity_Component_Remove)
+            {
+                DynamicComponentManip.Remove(world, entity, componentChanges);
             }
             else
             {
-                entityString = EditorSystem.EntityToString(world, entity);
-
-                // Entity was un-deleted; re-delete it.
-                StoreEntityComponents(entity, world, ToRememberRestore, true);
-                world.Destroy(entity);
+                DynamicComponentManip.Set(world, entity, componentChanges);
             }
-
-            Logger.LogInfo($"{(!isUndoOrRedo ? "Undid" : "Redid")} {entityString}'s deletion.");
-
-            return;
-        }
-
-        // Handle single component change case.
-        Logger.LogInfo($"{(!isUndoOrRedo ? "Undid" : "Redid")} change to {EditorSystem.EntityToString(world, entity)} for {componentPriorToChange.GetType().Name} : Reset to {componentPriorToChange.ToString()}");
-
-
-        // Store current state so we can potentially 'Redo' this 'Undo' change.
-        if (!DynamicComponentManip.Has(world, entity, componentPriorToChange))
-        {
-            var type = componentPriorToChange.GetType();
-            var dummyComponent = (dynamic)Activator.CreateInstance(type);
-            ToRememberRestore.Push((entity, dummyComponent, false));
         }
         else
         {
-            // Component didn't exist before the change, so it's safe to assume it must exist now.
-            var componentPriorToUndo = DynamicComponentManip.Get(world, entity, componentPriorToChange);
-            ToRememberRestore.Push((entity, componentPriorToUndo, true));
+            // TODO!   
         }
-
-        // Undo the change.
-        if (!hadComponent)
-        {
-            DynamicComponentManip.Remove(world, entity, componentPriorToChange);
-        }
-        else
-        {
-            DynamicComponentManip.Set(world, entity, componentPriorToChange);
-        }
-    }
-
-    public static void UndoLastComponentChange(World world)
-    {
-        UndoRedoLastComponentChange(world, ChangeHistory, UndoHistory, false);
-    }
-
-    public static void RedoLastComponentChange(World world)
-    {
-        UndoRedoLastComponentChange(world, UndoHistory, ChangeHistory, true);
     }
 }
 

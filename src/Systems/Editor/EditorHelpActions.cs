@@ -93,9 +93,9 @@ public static class EditorHelpActions
 
     public static Dictionary<ImGuiKey, EditorAction> EditorEditKeybinds = new()
     {
-        { ImGuiKey.ModCtrl | ImGuiKey.Z, new("Undo", UndoRedo.UndoLastComponentChange, false, false,
+        { ImGuiKey.ModCtrl | ImGuiKey.Z, new("Undo", UndoRedo.UndoLastChange, false, false,
             () => UndoRedo.ChangeHistory.Count == 0) },
-        { ImGuiKey.ModCtrl | ImGuiKey.Y, new("Redo", UndoRedo.RedoLastComponentChange, false, false,
+        { ImGuiKey.ModCtrl | ImGuiKey.Y, new("Redo", UndoRedo.RedoLastChange, false, false,
             () => UndoRedo.UndoHistory.Count == 0) },
     };
 

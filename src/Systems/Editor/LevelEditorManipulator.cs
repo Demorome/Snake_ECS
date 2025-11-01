@@ -176,7 +176,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                 Set(entity, activeLayer.LayerID);
 
                 // FIXME: Group together multiple entities created in a single paintbrush stroke for Undo.
-                UndoRedo.StoreEntityCreateHistory(entity, World);
+                UndoRedo.RememberEntityCreation(entity, World);
             }
         }
         else if (ImGui.IsMouseDown(ImGuiMouseButton.Right) && !EditorSystem.IsInEntitySelectionMode)
@@ -196,7 +196,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                     if (worldRect.Intersects(mouseWorldPosRect))
                     {
                         // FIXME: Group together deletions done while holding the mouse down!
-                        UndoRedo.StoreEntityDestroyHistory(entity, World);
+                        UndoRedo.RememberEntityDestruction(entity, World);
                         Destroy(entity);
                     }
                 }
