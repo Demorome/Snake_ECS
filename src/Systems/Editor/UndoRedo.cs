@@ -15,8 +15,6 @@ public static class UndoRedo
     {
         Entity_Creation = 0,
         Entity_Deletion,
-        Multiple_Entity_Creations,
-        Multiple_Entity_Deletions,
         Entity_Component_Modify,
         Entity_Component_Remove,
         Entity_Component_Add,
@@ -107,9 +105,32 @@ public static class UndoRedo
 
         var (changeSubject, changeValue, changeToUndo) = ToUndo.Pop();
 
-        // FIXME: Support for multiple entity creations/deletions!
-        // Split the rest of this off into another func so we can loop this!
-
+        // Repeat a change multiple times if there's multiple subjects
+        if (changeSubject.GetType() == typeof(List<Object>))
+        {
+            var changeSubjects = (List<Object>)changeSubject;
+            foreach (var subject in changeSubjects)
+            {
+                UndoRedo_SingleChange(subject, changeValue, changeToUndo,
+                    world, ToUndoUndo, isUndoOrRedo);
+            }
+        }
+        else
+        {
+            UndoRedo_SingleChange(changeSubject, changeValue, changeToUndo,
+                world, ToUndoUndo, isUndoOrRedo);
+        }
+    }
+    
+    private static void UndoRedo_SingleChange(
+        Object changeSubject,
+        dynamic changeValue,
+        ChangeType changeToUndo,
+        World world,
+        Stack<(object, dynamic, ChangeType)> ToUndoUndo,
+        bool isUndoOrRedo
+    )
+    {
         if (IsChangeEntityRelated(changeToUndo))
         {
             var entity = (Entity)changeSubject;
@@ -155,10 +176,7 @@ public static class UndoRedo
             }
             // Else, handle single component change case.
 
-            Logger.LogInfo($"{(!isUndoOrRedo ? "Undid" : "Redid")} change to {
-                EditorSystem.EntityToString(world, entity)} for {
-                    componentChanges.GetType().Name} : Reset to {
-                        componentChanges.ToString()}");
+            Logger.LogInfo($"{(!isUndoOrRedo ? "Undid" : "Redid")} change to {EditorSystem.EntityToString(world, entity)} for {componentChanges.GetType().Name} : Reset to {componentChanges.ToString()}");
 
             // Store current state so we can potentially 'Redo' this 'Undo' change, and vice-versa.
             if (changeToUndo == ChangeType.Entity_Component_Add)
