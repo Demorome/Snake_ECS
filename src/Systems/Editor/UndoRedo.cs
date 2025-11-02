@@ -21,6 +21,8 @@ public static class UndoRedo
         ENTITY_CHANGES_COUNT,
 
         // TODO: Level layer changes
+
+        Placeholder // to wait to determine what the type of the change will be, usually to prep a redo.
     }
 
     public static void RememberEntityDestruction(Entity entity, World world)
@@ -43,12 +45,17 @@ public static class UndoRedo
         Logger.LogInfo($"Stored prior state for {EditorSystem.EntityToString(world, entity)}'s {component.GetType()}: {component}");
     }
 
-    public static void StartGroupedChange(ChangeType changeType)
+    public static void StartGroupedChange(
+        ChangeType changeType,
+        bool isForUndoOrRedo = false // for Undo by default
+        )
     {
-        ChangeHistory.Push((new List<object>(), new List<dynamic>(), changeType));
+        var ToChange = !isForUndoOrRedo ? ChangeHistory : UndoHistory;
+        ToChange.Push((new List<object>(), new List<dynamic>(), changeType));
         ActiveGroupedChangesCount += 1;
     }
-    public static void EndGroupedChange()
+
+    public static void EndGroupedChange(bool isForUndoOrRedo = false)
     {
         ActiveGroupedChangesCount -= 1;
         if (ActiveGroupedChangesCount < 0)
@@ -56,11 +63,17 @@ public static class UndoRedo
             throw new Exception("Nothing to end!");
         }
 
+        var ToChange = !isForUndoOrRedo ? ChangeHistory : UndoHistory;
+
         // Clean up empty grouped change, if needed.
-        var (subject, _, _) = ChangeHistory.Peek();
+        var (subject, _, changeType) = ToChange.Peek();
         if (((List<object>)subject).Count == 0)
         {
-            ChangeHistory.Pop();
+            ToChange.Pop();
+        }
+        if (changeType == ChangeType.Placeholder)
+        {
+            throw new Exception("Should have determined a change type!");
         }
     }
 
@@ -92,15 +105,52 @@ public static class UndoRedo
 
     //======= Private
 
-    private static int ActiveGroupedChangesCount = 0;
-
     // For Ctrl+Z 'Undo' feature.
     private static Stack<(object ChangeSubject, dynamic Value, ChangeType)>
         ChangeHistory = new();
-        
+
     // For Ctrl+Y 'Redo' feature.
-    private static Stack<(object ChangeSubject, dynamic Value, ChangeType)> 
+    private static Stack<(object ChangeSubject, dynamic Value, ChangeType)>
         UndoHistory = new();
+
+    private static int ActiveGroupedChangesCount = 0;
+    
+    private static void PushChange(
+        Stack<(object, dynamic, ChangeType)> ToChange,
+        object subject,
+        dynamic value,
+        ChangeType changeToUndo
+        )
+    {
+        if (ActiveGroupedChangesCount != 0)
+        {
+            var (changeSubject, changeValue, changeToUndo_Cached) = ToChange.Pop();
+            var changeSubjects = (List<object>)changeSubject;
+            var changeValues = (List<dynamic>)changeValue;
+
+            if (changeToUndo_Cached == ChangeType.Placeholder)
+            {
+                changeToUndo_Cached = changeToUndo;
+            }
+            else if (changeToUndo_Cached != changeToUndo)
+            {
+                throw new Exception("Grouped changes must be of the same type!");
+            }
+
+            changeSubjects.Add(subject);
+            changeValues.Add(value);
+
+            // Just to update the value of changeToUndo_Cached, in case it was a placeholder.
+            // Very inneficient but whatever, it's editor code.
+            ToChange.Push((changeSubjects, changeValues, changeToUndo_Cached));
+        }
+        else
+        {
+            ToChange.Push(
+                ( subject, value, changeToUndo )
+            );
+        }
+    }
 
     private static void StoreEntityComponents(
         Entity entity,
@@ -122,30 +172,10 @@ public static class UndoRedo
         // Also store the tag
         components.Add(world.GetTag(entity));
 
-        var changeToUndo = willBeDestroyed ? ChangeType.Entity_Deletion : ChangeType.Entity_Creation;
-
         Logger.LogInfo((willBeDestroyed ? "Destroyed" : "Created") + $" {EditorSystem.EntityToString(world, entity)}");
 
-        if (ActiveGroupedChangesCount != 0)
-        {
-            var (changeSubject, changeValue, changeToUndo_Cached) = ToAllowUndo.Peek();
-            var changeSubjects = (List<object>)changeSubject;
-            var changeValues = (List<dynamic>)changeValue;
-
-            if (changeToUndo_Cached != changeToUndo)
-            {
-                throw new Exception("Grouped changes must be of the same type!");
-            }
-
-            changeSubjects.Add(entity);
-            changeValues.Add(components);
-        }
-        else
-        {
-            ToAllowUndo.Push(
-                ( entity, components, changeToUndo )
-            );
-        }
+        var changeToUndo = willBeDestroyed ? ChangeType.Entity_Deletion : ChangeType.Entity_Creation;
+        PushChange(ToAllowUndo, entity, components, changeToUndo);
     }
 
     private static bool IsChangeEntityRelated(ChangeType change)
@@ -170,9 +200,12 @@ public static class UndoRedo
         // Repeat a change multiple times if there's multiple subjects
         if (changeSubject.GetType() == typeof(List<object>))
         {
-            var i = 0;
             var changeSubjects = (List<object>)changeSubject;
             var changeValues = (List<dynamic>)changeValue;
+
+            // Group the Redo changes together as well.
+            StartGroupedChange(ChangeType.Placeholder, !isUndoOrRedo);
+            var i = 0;
             foreach (var subject in changeSubjects)
             {
                 UndoRedo_SingleChange(
@@ -181,6 +214,7 @@ public static class UndoRedo
                 );
                 ++i;
             }
+            EndGroupedChange(!isUndoOrRedo);
         }
         else
         {
@@ -222,7 +256,9 @@ public static class UndoRedo
                     }
 
                     componentList.Clear();
-                    ToUndoUndo.Push((entity, componentList, ChangeType.Entity_Creation));
+
+                    PushChange(ToUndoUndo, entity, componentList, ChangeType.Entity_Creation);
+
                     entityString = EditorSystem.EntityToString(world, entity);
                 }
                 else if (changeToUndo == ChangeType.Entity_Creation)
@@ -250,23 +286,15 @@ public static class UndoRedo
             {
                 var type = componentChanges.GetType();
                 var dummyComponent = (dynamic)Activator.CreateInstance(type);
-                ToUndoUndo.Push(
-                    (
-                        entity, dummyComponent,
-                        ChangeType.Entity_Component_Add // since we'll be re-adding the component below, to undo its removal.
-                    )
-                );
+                PushChange(ToUndoUndo, entity, dummyComponent, ChangeType.Entity_Component_Add);
             }
             else if (changeToUndo == ChangeType.Entity_Component_Add
                 || changeToUndo == ChangeType.Entity_Component_Modify)
             {
                 var componentPriorToUndo = DynamicComponentManip.Get(world, entity, componentChanges);
-                ToUndoUndo.Push(
-                    (
-                        entity, componentPriorToUndo,
-                        changeToUndo == ChangeType.Entity_Component_Add ?
+                PushChange(ToUndoUndo, entity, componentPriorToUndo,
+                    changeToUndo == ChangeType.Entity_Component_Add ?
                             ChangeType.Entity_Component_Remove : ChangeType.Entity_Component_Modify
-                    )
                 );
             }
 
