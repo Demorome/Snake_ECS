@@ -55,6 +55,13 @@ public static class UndoRedo
         {
             throw new Exception("Nothing to end!");
         }
+
+        // Clean up empty grouped change, if needed.
+        var (subject, _, _) = ChangeHistory.Peek();
+        if (((List<object>)subject).Count == 0)
+        {
+            ChangeHistory.Pop();
+        }
     }
 
     public static void UndoLastChange(World world)

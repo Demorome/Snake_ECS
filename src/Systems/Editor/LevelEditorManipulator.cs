@@ -170,13 +170,18 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                     break;
             }
 
-            foreach (var entity in paintedEntities)
+            if (paintedEntities.Count != 0)
             {
-                Set(entity, new Depth(activeLayer.Depth));
-                Set(entity, activeLayer.LayerID);
+                // Group together multiple entities created in a single paintbrush stroke for Undo.
+                UndoRedo.StartGroupedChange(UndoRedo.ChangeType.Entity_Creation);
+                foreach (var entity in paintedEntities)
+                {
+                    Set(entity, new Depth(activeLayer.Depth));
+                    Set(entity, activeLayer.LayerID);
 
-                // FIXME: Group together multiple entities created in a single paintbrush stroke for Undo.
-                UndoRedo.RememberEntityCreation(entity, World);
+                    UndoRedo.RememberEntityCreation(entity, World);
+                }
+                UndoRedo.EndGroupedChange();
             }
         }
         else if (ImGui.IsMouseDown(ImGuiMouseButton.Right) && !EditorSystem.IsInEntitySelectionMode)
