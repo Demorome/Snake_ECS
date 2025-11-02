@@ -108,11 +108,16 @@ public static class UndoRedo
         // Repeat a change multiple times if there's multiple subjects
         if (changeSubject.GetType() == typeof(List<Object>))
         {
+            var i = 0;
             var changeSubjects = (List<Object>)changeSubject;
+            var changeValues = (List<dynamic>)changeValue;
             foreach (var subject in changeSubjects)
             {
-                UndoRedo_SingleChange(subject, changeValue, changeToUndo,
-                    world, ToUndoUndo, isUndoOrRedo);
+                UndoRedo_SingleChange(
+                    subject, changeValues[i], changeToUndo,
+                    world, ToUndoUndo, isUndoOrRedo
+                );
+                ++i;
             }
         }
         else
