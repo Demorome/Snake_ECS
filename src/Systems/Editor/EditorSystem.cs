@@ -292,7 +292,6 @@ public class EditorSystem : MoonTools.ECS.System
 
                 if (ImGui.IsKeyDown(ImGuiKey.Delete))
                 {
-                    Logger.LogInfo($"Deleted {EntityToString(selectedEntity)}");
                     UndoRedo.RememberEntityDestruction(selectedEntity, World);
                     Destroy(selectedEntity);
                     UndoRedo.ClearRedoList();

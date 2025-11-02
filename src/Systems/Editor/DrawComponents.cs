@@ -136,17 +136,7 @@ public static class DrawComponents
                 }
                 else if (!doingChanges && !ImGui.IsAnyItemActive())
                 {
-                    UndoRedo.ChangeHistory.Push(
-                        (
-                            entity, ComponentPriorToChange_Cached,
-                            UndoRedo.ChangeType.Entity_Component_Modify
-                        )
-                    );
-                    Logger.LogInfo($"Stored prior state for {
-                        EditorSystem.EntityToString(world, entity)}'s {
-                        ComponentPriorToChange_Cached.GetType()}: {
-                            ComponentPriorToChange_Cached}")
-                    ;
+                    UndoRedo.RememberEntityComponentChange(entity, world, ComponentPriorToChange_Cached);
                     ComponentPriorToChange_Cached = null;
                 }
             }
