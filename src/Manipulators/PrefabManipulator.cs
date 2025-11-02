@@ -7,7 +7,17 @@ using RollAndCash.Components;
 using RollAndCash.Systems;
 using RollAndCash.Utility;
 
-namespace RollAndCash.Editor;
+#if DEBUG
+using RollAndCash.Editor;
+#endif
+
+public enum Prefab
+{
+    None = 0,
+    StaticLevelMirror,
+    FrogEnemy
+}
+public readonly record struct PrefabID(Prefab ID);
 
 public class PrefabManipulator : MoonTools.ECS.Manipulator
 {
@@ -20,34 +30,35 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
         EnemySpawner = new(world);
     }
 
-    private enum Prefab
+    public Entity SpawnPrefab(Prefab prefabType, Position2D pos)
     {
-        None = 0,
-        StaticLevelMirror,
-        FrogEnemy
-    }
-    private Prefab PrefabToSpawn = Prefab.None;
-
-    private Entity SpawnPrefab(Position2D pos)
-    {
-        // FIXME: Add to change history!
-
-        switch (PrefabToSpawn)
+        Entity result;
+        switch (prefabType)
         {
             case Prefab.StaticLevelMirror:
-                return MirrorManipulator.CreateStaticLevelMirror(pos);
+                result = MirrorManipulator.CreateStaticLevelMirror(pos);
+                break;
             case Prefab.FrogEnemy:
-                return EnemySpawner.SpawnFrog(pos);
+                result = EnemySpawner.SpawnFrog(pos);
+                break;
+            default:
+                throw new Exception("Failed to spawn prefab");
         }
-        throw new Exception("Failed to spawn prefab");
+
+        Set(result, new PrefabID(prefabType));
+        UndoRedo.RememberEntityCreation(result, World);
+        return result;
     }
+
+#if DEBUG
+    private Prefab PrefabToSpawn_ForPreview = Prefab.None;
 
     private void SetUpSelectedPrefabPreviewVisuals(Entity debugEntity)
     {
         if (!ImGui.GetIO().WantCaptureMouse)
         {
             // Spawn a copy of the prefab, then extract its visual info.
-            var dummyPrefab = SpawnPrefab(Input.WorldMousePosition);
+            var dummyPrefab = SpawnPrefab(PrefabToSpawn_ForPreview, Input.WorldMousePosition);
 
             Set(debugEntity, Get<Position2D>(dummyPrefab));
             if (Has<SpriteScale>(dummyPrefab))
@@ -119,32 +130,33 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
                     continue;
                 }
 
-                bool isSelected = PrefabToSpawn == prefab;
+                bool isSelected = PrefabToSpawn_ForPreview == prefab;
                 ImGui.PushStyleColor(ImGuiCol.Header, Color.Green.ToVector4());
                 if (ImGui.Selectable(prefab.ToString(), isSelected))
                 {
-                    PrefabToSpawn = isSelected ? Prefab.None : prefab;
+                    PrefabToSpawn_ForPreview = isSelected ? Prefab.None : prefab;
                 }
                 ImGui.PopStyleColor();
             }
 
             // TODO: Once button to spawn a prefab entity is pressed, make it appear transparent below cursor.
-            if (PrefabToSpawn != Prefab.None)
+            if (PrefabToSpawn_ForPreview != Prefab.None)
             {
                 if (!ImGui.GetIO().WantCaptureMouse
                     && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                 {
-                    SpawnPrefab(Input.WorldMousePosition);
+                    SpawnPrefab(PrefabToSpawn_ForPreview, Input.WorldMousePosition);
                 }
             }
         }
         ImGui.End();
 
-        if (PrefabToSpawn != Prefab.None)
+        if (PrefabToSpawn_ForPreview != Prefab.None)
         {
             SetUpSelectedPrefabPreviewVisuals(debugEntity);
             return true;
         }
         return false;
     }
+#endif
 }
