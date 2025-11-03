@@ -45,13 +45,19 @@ public static class UndoRedo
         Logger.LogInfo($"Stored prior state for {EditorSystem.EntityToString(world, entity)}'s {component.GetType()}: {component}");
     }
 
-    public static void StartGroupedChange(
+    public static void BeginGroupedChange(
         ChangeType changeType,
         bool isForUndoOrRedo = false // for Undo by default
         )
     {
         var ToChange = !isForUndoOrRedo ? ChangeHistory : UndoHistory;
-        ToChange.Push((new List<object>(), new List<dynamic>(), changeType));
+
+        if (ActiveGroupedChangesCount == 0)
+        {
+            ToChange.Push((new List<object>(), new List<dynamic>(), changeType));
+        }
+        // Else, group together nested grouped changes as one group.
+
         ActiveGroupedChangesCount += 1;
     }
 
@@ -66,14 +72,18 @@ public static class UndoRedo
         var ToChange = !isForUndoOrRedo ? ChangeHistory : UndoHistory;
 
         // Clean up empty grouped change, if needed.
-        var (subject, _, changeType) = ToChange.Peek();
-        if (((List<object>)subject).Count == 0)
+        // For nested group changes, wait until end of nesting to make a determination.
+        if (ActiveGroupedChangesCount == 0)
         {
-            ToChange.Pop();
-        }
-        if (changeType == ChangeType.Placeholder)
-        {
-            throw new Exception("Should have determined a change type!");
+            var (subject, _, changeType) = ToChange.Peek();
+            if (((List<object>)subject).Count == 0)
+            {
+                ToChange.Pop();
+            }
+            else if (changeType == ChangeType.Placeholder)
+            {
+                throw new Exception("Should have determined a change type!");
+            }
         }
     }
 
@@ -204,7 +214,7 @@ public static class UndoRedo
             var changeValues = (List<dynamic>)changeValue;
 
             // Group the Redo changes together as well.
-            StartGroupedChange(ChangeType.Placeholder, !isUndoOrRedo);
+            BeginGroupedChange(ChangeType.Placeholder, !isUndoOrRedo);
             var i = 0;
             foreach (var subject in changeSubjects)
             {

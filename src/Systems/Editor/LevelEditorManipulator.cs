@@ -59,8 +59,22 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         }
     }
 
+    private bool IsDragDeleting = false;
+    private bool IsDragCreating = false;
+
     public void HandleLevelEditor(Entity debugEntity)
     {
+        if (IsDragCreating && !ImGui.IsMouseDown(ImGuiMouseButton.Left))
+        {
+            IsDragCreating = false;
+            UndoRedo.EndGroupedChange();
+        }
+        if (IsDragDeleting && !ImGui.IsMouseDown(ImGuiMouseButton.Right))
+        {
+            IsDragDeleting = false;
+            UndoRedo.EndGroupedChange();
+        }
+
         if (!IsInLevelEditor)
         {
             return;
@@ -109,6 +123,12 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                 case Level.Layer.Types.SolidTile:
                     if (imagesToPaint.Count == 1 || ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                     {
+                        if (imagesToPaint.Count == 1 && !IsDragCreating)
+                        {
+                            IsDragCreating = true;
+                            UndoRedo.BeginGroupedChange(UndoRedo.ChangeType.Entity_Creation);
+                        }
+
                         foreach (var (imageSprite, imageColor, imagePos, layerImageID) in imagesToPaint)
                         {
                             var tileWorldPos = TileManipulator.TilePosToWorldPos_Centered(HoveredOverTilePosition.Value);
@@ -173,7 +193,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             if (paintedEntities.Count != 0)
             {
                 // Group together multiple entities created in a single paintbrush stroke for Undo.
-                UndoRedo.StartGroupedChange(UndoRedo.ChangeType.Entity_Creation);
+                UndoRedo.BeginGroupedChange(UndoRedo.ChangeType.Entity_Creation);
                 foreach (var entity in paintedEntities)
                 {
                     Set(entity, new Depth(activeLayer.Depth));
@@ -189,6 +209,12 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             // Erase/Delete tiles on this level layer!
             if (activeLayer.IsTiled || ImGui.IsMouseClicked(ImGuiMouseButton.Right))
             {
+                if (activeLayer.IsTiled && !IsDragDeleting)
+                {
+                    IsDragDeleting = true;
+                    UndoRedo.BeginGroupedChange(UndoRedo.ChangeType.Entity_Deletion);
+                }
+
                 var mouseHitboxRect = new Rectangle(0, 0, 1, 1);
                 var mouseWorldPosRect = mouseHitboxRect.GetWorldRect(mouseWorldPos);
 
@@ -200,7 +226,6 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 
                     if (worldRect.Intersects(mouseWorldPosRect))
                     {
-                        // FIXME: Group together deletions done while holding the mouse down!
                         UndoRedo.RememberEntityDestruction(entity, World);
                         Destroy(entity);
                     }
