@@ -19,6 +19,7 @@ public class TileManipulator : MoonTools.ECS.Manipulator
     public Entity SpawnSolidTile(Position2D position, SpriteAnimation sprite)
     {
         var entity = CreateEntity("Solid Tile");
+        Set(entity, new PrefabID(Prefabs.SolidTile));
         Set(entity, position);
         Set(entity, sprite);
         Set(entity, new Rectangle(-Dimensions.TILE_SIZE / 2, -Dimensions.TILE_SIZE / 2,

@@ -27,7 +27,7 @@ public struct FiledEditorLevel
         {
             public Position2D StartPosition { get; set; }
             public Color ColorBlend { get; set; }
-            public Prefab PrefabID { get; set; }
+            public Prefabs PrefabID { get; set; }
             public string SpriteAnimOverrideName { get; set; }
             public float Angle { get; set; }
 

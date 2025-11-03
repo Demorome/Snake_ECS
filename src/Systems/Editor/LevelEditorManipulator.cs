@@ -204,6 +204,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                                 else
                                 {
                                     newEntity = CreateEntity("Visual Tile");
+                                    Set(newEntity, new PrefabID(Prefabs.VisualTile));
                                     Set(newEntity, tileWorldPos);
                                     Set(newEntity, imageSprite);
                                 }
@@ -223,6 +224,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                         var (spriteAnim, color, position, layerImageID) = imagesToPaint[0];
 
                         Entity newEntity = CreateEntity("Image");
+                        Set(newEntity, new PrefabID(Prefabs.Image));
                         Set(newEntity, spriteAnim);
                         Set(newEntity, new ColorBlend(color));
                         Set(newEntity, position);

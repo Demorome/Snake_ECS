@@ -6,19 +6,29 @@ using MoonWorks.Graphics;
 using RollAndCash.Components;
 using RollAndCash.Systems;
 using RollAndCash.Utility;
+using RollAndCash;
+
 
 #if DEBUG
 using RollAndCash.Editor;
 #endif
 
-public enum Prefab
+public enum Prefabs
 {
     None = 0,
     StaticLevelMirror,
-    FrogEnemy
-    // TODO: Support tiles as prefabs!
+    FrogEnemy,
+    SolidRectangle,
+    InvisibleSolidRectangle,
+    SPAWNED_NORMALLY_COUNT,
+
+    //== These shouldn't be spawned manually, since they rely on vital info from another source anyways.
+    // They are here solely to tag special entities for save/loading.
+    SolidTile,
+    VisualTile,
+    Image
 }
-public readonly record struct PrefabID(Prefab ID);
+public readonly record struct PrefabID(Prefabs ID);
 
 public class PrefabManipulator : MoonTools.ECS.Manipulator
 {
@@ -31,21 +41,49 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
         EnemySpawner = new(world);
     }
 
-    public Entity SpawnPrefab(Prefab prefabType, Position2D pos, bool isDummy = false, bool persistent = false)
+    public Entity SpawnPrefab(Prefabs prefabType, Position2D pos,
+        bool isDummy = false, bool persistent = false)
     {
         Entity result;
         switch (prefabType)
         {
-            case Prefab.StaticLevelMirror:
+            case Prefabs.StaticLevelMirror:
                 result = MirrorManipulator.CreateStaticLevelMirror(pos);
                 break;
-            case Prefab.FrogEnemy:
+            case Prefabs.FrogEnemy:
                 result = EnemySpawner.SpawnFrog(pos);
                 break;
+            case Prefabs.SolidRectangle:
+                result = CreateEntity();
+                Set(result, new Rectangle(0, 0, Dimensions.TILE_SIZE, Dimensions.TILE_SIZE));
+                Set(result, new DrawAsRectangle());
+                Set(result, new ColorBlend(Color.White));
+                break;
+            case Prefabs.InvisibleSolidRectangle:
+                result = CreateEntity();
+                Set(result, new Rectangle(0, 0, Dimensions.TILE_SIZE, Dimensions.TILE_SIZE));
+                break;
+                
+            //=== These rely upon something else setting up their appearance.
+            case Prefabs.SolidTile:
+                result = CreateEntity();
+                Set(result, new Rectangle(0, 0, Dimensions.TILE_SIZE, Dimensions.TILE_SIZE));
+                break;
+            case Prefabs.VisualTile:
+                result = CreateEntity();
+                break;
+            case Prefabs.Image:
+                result = CreateEntity();
+                break;
+
             default:
                 throw new Exception("Failed to spawn prefab");
         }
 
+        if (GetTag(result).Length == 0)
+        {
+            Tag(result, prefabType.ToString());
+        }
         Set(result, new PrefabID(prefabType));
         
         if (!persistent)
@@ -63,7 +101,7 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
 
 #if DEBUG
 
-    public bool IsDefaultSprite(SpriteAnimation spriteToCheck, Prefab prefabType)
+    public bool IsDefaultSprite(SpriteAnimation spriteToCheck, Prefabs prefabType)
     {
         bool result;
         var dummyPrefab = SpawnPrefab(prefabType, Input.WorldMousePosition);
@@ -80,7 +118,7 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
         return result;
     }
 
-    private Prefab PrefabToSpawn_ForPreview = Prefab.None;
+    private Prefabs PrefabToSpawn_ForPreview = Prefabs.None;
 
     private void SetUpSelectedPrefabPreviewVisuals(Entity debugEntity)
     {
@@ -152,9 +190,13 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
     {
         if (ImGui.Begin("Prefab Objects"u8))
         {
-            foreach (Prefab prefab in Enum.GetValues(typeof(Prefab)))
+            foreach (Prefabs prefab in Enum.GetValues(typeof(Prefabs)))
             {
-                if (prefab == Prefab.None)
+                if (prefab == Prefabs.None)
+                {
+                    continue;
+                }
+                if (prefab >= Prefabs.SPAWNED_NORMALLY_COUNT)
                 {
                     continue;
                 }
@@ -163,13 +205,13 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
                 ImGui.PushStyleColor(ImGuiCol.Header, Color.Green.ToVector4());
                 if (ImGui.Selectable(prefab.ToString(), isSelected))
                 {
-                    PrefabToSpawn_ForPreview = isSelected ? Prefab.None : prefab;
+                    PrefabToSpawn_ForPreview = isSelected ? Prefabs.None : prefab;
                 }
                 ImGui.PopStyleColor();
             }
 
             // TODO: Once button to spawn a prefab entity is pressed, make it appear transparent below cursor.
-            if (PrefabToSpawn_ForPreview != Prefab.None)
+            if (PrefabToSpawn_ForPreview != Prefabs.None)
             {
                 if (!ImGui.GetIO().WantCaptureMouse
                     && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
@@ -180,7 +222,7 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
         }
         ImGui.End();
 
-        if (PrefabToSpawn_ForPreview != Prefab.None)
+        if (PrefabToSpawn_ForPreview != Prefabs.None)
         {
             SetUpSelectedPrefabPreviewVisuals(debugEntity);
             return true;
