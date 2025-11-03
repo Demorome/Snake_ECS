@@ -31,7 +31,7 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
         EnemySpawner = new(world);
     }
 
-    public Entity SpawnPrefab(Prefab prefabType, Position2D pos, bool isDummy = false)
+    public Entity SpawnPrefab(Prefab prefabType, Position2D pos, bool isDummy = false, bool persistent = false)
     {
         Entity result;
         switch (prefabType)
@@ -47,6 +47,11 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
         }
 
         Set(result, new PrefabID(prefabType));
+        
+        if (!persistent)
+        {
+            Set(result, new DestroyOnLevelReset());
+        }
 
         if (!isDummy)
         {
