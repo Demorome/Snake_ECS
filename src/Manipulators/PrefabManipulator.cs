@@ -16,6 +16,7 @@ public enum Prefab
     None = 0,
     StaticLevelMirror,
     FrogEnemy
+    // TODO: Support tiles as prefabs!
 }
 public readonly record struct PrefabID(Prefab ID);
 

@@ -1,5 +1,8 @@
 #if DEBUG
+
 using System.Collections.Generic;
+using System.IO;
+using System.Text.Json;
 using MoonTools.ECS;
 using MoonWorks;
 using MoonWorks.Graphics;
@@ -12,65 +15,82 @@ namespace RollAndCash.Editor;
 
 public readonly record struct Editor_LevelLayerID(int ID);
 
-public class Level
+// Represents a work-in-progress level while inside the editor.
+public class LiveEditorLevel
 {
+    public string Name = "";
     private List<Layer> LayerIDs = new();
     public readonly Dictionary<string, Layer> Layers = new();
 
-    public void ValidateLayerName(ref string name)
+    static JsonSerializerOptions levelSerializerOptions = new JsonSerializerOptions
     {
-        if (!Layers.ContainsKey(name))
-        {
-            return;
-        }
+        IncludeFields = true,
+        WriteIndented = true
+    };
 
-        name += " ";
-        int i = 1;
-        var testName = name + i.ToString();
+    // FIXME: Create two files: one for the editor, one optimized for just the game.
+    public void SaveToFile(string levelContentPath, World world)
+    {
+        var filedLevel = new FiledEditorLevel();
+        filedLevel.Name = Name;
 
-        lock (Layers)
+        List<FiledEditorLevel.Layer> filedLayers = new();
+        foreach (var (_, layer) in Layers)
         {
-            while (Layers.ContainsKey(testName))
+            var filedLayer = new FiledEditorLevel.Layer();
+            filedLayer.ColorBlend = layer.ColorBlend;
+            filedLayer.Depth = layer.Depth;
+            filedLayer.ImagesPerRow = layer.ImagesPerRow;
+            filedLayer.Name = layer.Name;
+
+            var filedImages = new List<(string SpriteAnimName, Color)>();
+            foreach (var (spriteAnim, colorBlend) in layer.Images)
             {
-                ++i;
-                testName = name + i.ToString();
+                filedImages.Add(new(spriteAnim.SpriteAnimationInfo.Name, colorBlend));
             }
+            filedLayer.Images = filedImages.ToArray();
+
+            var filedEntities = new List<FiledEditorLevel.Layer.Entity>();
+            foreach (var entity in layer.CachedEntities)
+            {
+                if (!world.Has<PrefabID>(entity))
+                {
+                    Logger.LogWarn($"{EditorSystem.EntityToString(world, entity)} in layer {layer.Name} couldn't be saved; it had no PrefabID.");
+                    continue;
+                }
+
+                var filedEntity = new FiledEditorLevel.Layer.Entity();
+                // FIXME: Get a "StartPosition" component instead?
+                filedEntity.StartPosition = world.Get<Position2D>(entity);
+                filedEntity.ColorBlend = world.Has<ColorBlend>(entity) ? world.Get<ColorBlend>(entity).Color : Color.White;
+                filedEntity.PrefabID = world.Get<PrefabID>(entity).ID;
+                // TODO: Set this to an empty string if we have the same sprite as the default prefab.
+                filedEntity.SpriteAnimName = world.Get<SpriteAnimation>(entity).SpriteAnimationInfo.Name;
+                filedEntity.Angle = world.Has<Angle>(entity) ? world.Get<Angle>(entity).Value : 0.0f;
+
+                filedEntities.Add(filedEntity);
+            }
+            filedLayer.Entities = filedEntities.ToArray();
+
+            filedLayers.Add(filedLayer);
         }
-        name = testName;
-    }
 
-    public void DeleteLayerCleanup(string layerToRemove, World world)
-    {
-        // FIXME: Undo support!
-        // FIXME: If undone, need to re-apply relationship data too.
-        // Ex: DebugEntiy DontDraw relation, if the layer was made invisible.
+        filedLevel.Layers = filedLayers.ToArray();
 
-        // Deleting a layer deletes all entities in it.
-        foreach (var entity in Layers[layerToRemove].CachedEntities)
-        {
-            world.Destroy(entity);
-        }
-
-        // Preserve the ID in the lookup, in case we want to undo this change.
-        // May as well preserve the LevelLayer here too...?
-        //IDLookup[LevelLayers[layerToRemove].LayerID.ID] = null;
-
-        Layers.Remove(layerToRemove);
-    }
-
-    public Layer GetLayerFromID(Editor_LevelLayerID layerID)
-    {
-        return LayerIDs[layerID.ID];
+        var json = JsonSerializer.Serialize(filedLevel, levelSerializerOptions);
+        Directory.CreateDirectory(levelContentPath);
+        var jsonOutputPath = Path.Combine(levelContentPath, Name + ".json");
+        File.WriteAllText(jsonOutputPath, json);
     }
 
     public class Layer
     {
         public readonly Editor_LevelLayerID LayerID;
-        public readonly Level Level;
+        public readonly LiveEditorLevel Level;
 
         public Layer(
             Types layerType,
-            Level level,
+            LiveEditorLevel level,
             string name = null,
             float depth = (float)DepthLayer.DefaultDepth
             )
@@ -93,7 +113,7 @@ public class Level
             lock (Level.LayerIDs)
             {
                 LayerID = new Editor_LevelLayerID(Level.LayerIDs.Count);
-			    Level.LayerIDs.Add(this);
+                Level.LayerIDs.Add(this);
             }
         }
 
@@ -249,6 +269,52 @@ public class Level
                 _ => "Invalid level layer type!"
             };
         }
+    }
+
+    public void ValidateLayerName(ref string name)
+    {
+        if (!Layers.ContainsKey(name))
+        {
+            return;
+        }
+
+        name += " ";
+        int i = 1;
+        var testName = name + i.ToString();
+
+        lock (Layers)
+        {
+            while (Layers.ContainsKey(testName))
+            {
+                ++i;
+                testName = name + i.ToString();
+            }
+        }
+        name = testName;
+    }
+
+    public void DeleteLayerCleanup(string layerToRemove, World world)
+    {
+        // FIXME: Undo support!
+        // FIXME: If undone, need to re-apply relationship data too.
+        // Ex: DebugEntiy DontDraw relation, if the layer was made invisible.
+
+        // Deleting a layer deletes all entities in it.
+        foreach (var entity in Layers[layerToRemove].CachedEntities)
+        {
+            world.Destroy(entity);
+        }
+
+        // Preserve the ID in the lookup, in case we want to undo this change.
+        // May as well preserve the LevelLayer here too...?
+        //IDLookup[LevelLayers[layerToRemove].LayerID.ID] = null;
+
+        Layers.Remove(layerToRemove);
+    }
+
+    public Layer GetLayerFromID(Editor_LevelLayerID layerID)
+    {
+        return LayerIDs[layerID.ID];
     }
 }
 

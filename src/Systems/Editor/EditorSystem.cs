@@ -87,7 +87,7 @@ public class EditorSystem : MoonTools.ECS.System
         {
             var depth = Has<Depth>(entity) ? Get<Depth>(entity).Value : (float)DepthLayer.DefaultDepth;
 
-            Level.Layer maybeLayer = null;
+            LiveEditorLevel.Layer maybeLayer = null;
             if (Has<Editor_LevelLayerID>(entity))
             {
                 // FIXME: might be null, if the layer has been deleted this session, then undone.
@@ -103,18 +103,18 @@ public class EditorSystem : MoonTools.ECS.System
 
             if (maybeLayer == null)
             {
-                var layerType = Level.Layer.Types.Unknown;
+                var layerType = LiveEditorLevel.Layer.Types.Unknown;
                 string layerName;
 
                 bool isInteger = depth == float.Floor(depth);
                 if (isInteger && Enum.IsDefined((DepthLayer)(int)depth))
                 {
-                    layerType = Level.Layer.Types.Prefab;
+                    layerType = LiveEditorLevel.Layer.Types.Prefab;
                     layerName = $"{((DepthLayer)(int)depth).ToString()}";
                 }
                 else
                 {
-                    layerName = Level.Layer.LayerTypeToString(layerType);
+                    layerName = LiveEditorLevel.Layer.LayerTypeToString(layerType);
                 }
 
                 // Try to find an existing layer to group this with, based on depth.
@@ -125,7 +125,7 @@ public class EditorSystem : MoonTools.ECS.System
                 else
                 {
                     // If not, create one.
-                    maybeLayer = new Level.Layer(layerType, LevelEditor.Level, layerName, depth);
+                    maybeLayer = new LiveEditorLevel.Layer(layerType, LevelEditor.Level, layerName, depth);
                 }
             }
 
