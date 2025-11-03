@@ -24,12 +24,12 @@ public class LiveEditorLevel
 
     static JsonSerializerOptions levelSerializerOptions = new JsonSerializerOptions
     {
-        IncludeFields = true,
+        //IncludeFields = true,
         WriteIndented = true
     };
 
     // FIXME: Create two files: one for the editor, one optimized for just the game.
-    public void SaveToFile(string levelContentPath, World world)
+    public void SaveToFile(string levelContentPath, World world, PrefabManipulator prefabManipulator)
     {
         var filedLevel = new FiledEditorLevel();
         filedLevel.Name = Name;
@@ -41,7 +41,7 @@ public class LiveEditorLevel
             filedLayer.ColorBlend = layer.ColorBlend;
             filedLayer.Depth = layer.Depth;
             filedLayer.ImagesPerRow = layer.ImagesPerRow;
-            filedLayer.Name = layer.Name;
+            filedLayer.Name = layer.Name + " Layer";
 
             var filedImages = new List<(string SpriteAnimName, Color)>();
             foreach (var (spriteAnim, colorBlend) in layer.Images)
@@ -64,8 +64,14 @@ public class LiveEditorLevel
                 filedEntity.StartPosition = world.Get<Position2D>(entity);
                 filedEntity.ColorBlend = world.Has<ColorBlend>(entity) ? world.Get<ColorBlend>(entity).Color : Color.White;
                 filedEntity.PrefabID = world.Get<PrefabID>(entity).ID;
-                // TODO: Set this to an empty string if we have the same sprite as the default prefab.
-                filedEntity.SpriteAnimName = world.Get<SpriteAnimation>(entity).SpriteAnimationInfo.Name;
+                if (world.Has<SpriteAnimation>(entity))
+                {
+                    var spriteAnim = world.Get<SpriteAnimation>(entity);
+                    if (!prefabManipulator.IsDefaultSprite(spriteAnim, filedEntity.PrefabID))
+                    {
+                        filedEntity.SpriteAnimOverrideName = spriteAnim.SpriteAnimationInfo.Name;
+                    }
+                }
                 filedEntity.Angle = world.Has<Angle>(entity) ? world.Get<Angle>(entity).Value : 0.0f;
 
                 filedEntities.Add(filedEntity);

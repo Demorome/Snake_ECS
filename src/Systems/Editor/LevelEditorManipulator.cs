@@ -65,12 +65,21 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 
             ImGui.InputText("Name"u8, ref Level.Name, 30);
 
+            if (Level.Name == null || Level.Name.Length == 0)
+            {
+                ImGui.BeginDisabled();
+            }
             if (ImGui.Button("Save"u8))
             {
                 // TODO: Create backups of previous level file if possible!
 
-                Level.SaveToFile(LevelContentPath, World);
+                Level.SaveToFile(LevelContentPath, World, PrefabManipulator);
             }
+            if (Level.Name == null || Level.Name.Length == 0)
+            {
+                ImGui.EndDisabled();
+            }
+
             ImGui.SameLine();
             if (ImGui.Button("Load"u8))
             {

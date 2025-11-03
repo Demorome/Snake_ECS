@@ -31,7 +31,7 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
         EnemySpawner = new(world);
     }
 
-    public Entity SpawnPrefab(Prefab prefabType, Position2D pos)
+    public Entity SpawnPrefab(Prefab prefabType, Position2D pos, bool isDummy = false)
     {
         Entity result;
         switch (prefabType)
@@ -47,11 +47,34 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
         }
 
         Set(result, new PrefabID(prefabType));
-        UndoRedo.RememberEntityCreation(result, World);
+
+        if (!isDummy)
+        {
+            UndoRedo.RememberEntityCreation(result, World);
+        }
+
         return result;
     }
 
 #if DEBUG
+
+    public bool IsDefaultSprite(SpriteAnimation spriteToCheck, Prefab prefabType)
+    {
+        bool result;
+        var dummyPrefab = SpawnPrefab(prefabType, Input.WorldMousePosition);
+        if (!Has<SpriteAnimation>(dummyPrefab))
+        {
+            result = false;
+        }
+        else
+        {
+            result = Get<SpriteAnimation>(dummyPrefab).SpriteAnimationInfoID == spriteToCheck.SpriteAnimationInfoID;
+        }
+
+        Destroy(dummyPrefab);
+        return result;
+    }
+
     private Prefab PrefabToSpawn_ForPreview = Prefab.None;
 
     private void SetUpSelectedPrefabPreviewVisuals(Entity debugEntity)
@@ -59,7 +82,7 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
         if (!ImGui.GetIO().WantCaptureMouse)
         {
             // Spawn a copy of the prefab, then extract its visual info.
-            var dummyPrefab = SpawnPrefab(PrefabToSpawn_ForPreview, Input.WorldMousePosition);
+            var dummyPrefab = SpawnPrefab(PrefabToSpawn_ForPreview, Input.WorldMousePosition, true);
 
             Set(debugEntity, Get<Position2D>(dummyPrefab));
             if (Has<SpriteScale>(dummyPrefab))

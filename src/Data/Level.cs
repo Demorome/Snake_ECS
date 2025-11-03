@@ -28,7 +28,7 @@ public struct FiledEditorLevel
             public Position2D StartPosition { get; set; }
             public Color ColorBlend { get; set; }
             public Prefab PrefabID { get; set; }
-            public string SpriteAnimName { get; set; }
+            public string SpriteAnimOverrideName { get; set; }
             public float Angle { get; set; }
 
             // TODO: Option to delay spawn / start off invisible, if needed.
