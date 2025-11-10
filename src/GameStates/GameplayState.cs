@@ -121,7 +121,8 @@ public class GameplayState : GameState
         World.Set(scoreOne, new Text(Fonts.KosugiID, FontSizes.SCORE, "0"));
         */
 
-        var playerOne = PlayerController.SpawnPlayer(0);
+        var pos = new Position2D(Dimensions.GAME_W / 2, Dimensions.GAME_H / 2);
+        var playerOne = PlayerController.SpawnPlayer(0, pos);
 
         var gameInProgressEntity = World.CreateEntity();
         World.Set(gameInProgressEntity, new GameInProgress());

@@ -499,8 +499,10 @@ public class TileLayerMenu
                 {
                     if (isNotFiller)
                     {
-                        tileLayer.ChangeTileColorBlend(new Editor_LayerImageID(layerImageID),
-                            new Color(tileColor), World);
+                        tileLayer.ChangeImageColorBlend(
+                            new Editor_LayerImageID(layerImageID),
+                            new Color(tileColor), World
+                        );
                     }
                 }
             }

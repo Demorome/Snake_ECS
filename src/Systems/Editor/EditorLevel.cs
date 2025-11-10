@@ -1,17 +1,33 @@
 #if DEBUG
 
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using MoonTools.ECS;
 using MoonWorks;
 using MoonWorks.Graphics;
 using RollAndCash.Components;
+using RollAndCash.Content;
 using RollAndCash.Data;
 using RollAndCash.Relations;
 using RollAndCash.Systems;
+using RollAndCash.Utility;
 
 namespace RollAndCash.Editor;
+
+// TODO: Optimize this by switching to discriminated unions, whenever C# supports those.
+
+// This is to optimize JSON serializing w/ source generation: 
+// https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/source-generation
+[JsonSerializable(typeof(FiledEditorLevel))]
+[JsonSerializable(typeof(float))]
+[JsonSerializable(typeof(uint))]
+internal partial class LevelContext : JsonSerializerContext
+{
+}
 
 public readonly record struct Editor_LevelLayerID(int ID);
 
@@ -22,17 +38,29 @@ public class LiveEditorLevel
     private List<Layer> LayerIDs = new();
     public readonly Dictionary<string, Layer> Layers = new();
 
-    static JsonSerializerOptions levelSerializerOptions = new JsonSerializerOptions
+    static JsonSerializerOptions LevelSerializerOptions = new JsonSerializerOptions
     {
         //IncludeFields = true,
-        WriteIndented = true
+        WriteIndented = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
+
+    static LevelContext JsonLevelContext = new(LevelSerializerOptions);
 
     // FIXME: Create two files: one for the editor, one optimized for just the game.
     public void SaveToFile(string levelContentPath, World world, PrefabManipulator prefabManipulator)
     {
         var filedLevel = new FiledEditorLevel();
         filedLevel.Name = Name;
+
+        var AddExtraData = (ref FiledEditorLevel.Layer.Entity entity, FiledEntityExtraDataTypes type, object value) =>
+        {
+            if (entity.ExtraDataList == null)
+            {
+                entity.ExtraDataList = new();
+            }
+            entity.ExtraDataList.Add(type, value);
+        };
 
         List<FiledEditorLevel.Layer> filedLayers = new();
         foreach (var (_, layer) in Layers)
@@ -60,19 +88,43 @@ public class LiveEditorLevel
                 }
 
                 var filedEntity = new FiledEditorLevel.Layer.Entity();
+                filedEntity.PrefabID = world.Get<PrefabID>(entity).ID;
                 // FIXME: Get a "StartPosition" component instead?
                 filedEntity.StartPosition = world.Get<Position2D>(entity);
-                filedEntity.ColorBlend = world.Has<ColorBlend>(entity) ? world.Get<ColorBlend>(entity).Color : Color.White;
-                filedEntity.PrefabID = world.Get<PrefabID>(entity).ID;
+
+                if (world.Has<ColorBlend>(entity))
+                {
+                    var colorBlend = world.Get<ColorBlend>(entity).Color;
+                    if (!prefabManipulator.IsDefaultColorBlend(colorBlend, filedEntity.PrefabID))
+                    {
+                        AddExtraData(ref filedEntity,
+                            FiledEntityExtraDataTypes.ColorBlend, colorBlend.PackedValue()
+                        );
+                    }
+                }
+
                 if (world.Has<SpriteAnimation>(entity))
                 {
                     var spriteAnim = world.Get<SpriteAnimation>(entity);
                     if (!prefabManipulator.IsDefaultSprite(spriteAnim, filedEntity.PrefabID))
                     {
-                        filedEntity.SpriteAnimOverrideName = spriteAnim.SpriteAnimationInfo.Name;
+                        AddExtraData(ref filedEntity,
+                            FiledEntityExtraDataTypes.SpriteAnim, spriteAnim.SpriteAnimationInfo.Name
+                        );
                     }
                 }
-                filedEntity.Angle = world.Has<Angle>(entity) ? world.Get<Angle>(entity).Value : 0.0f;
+
+                var angle = world.Has<Angle>(entity) ? world.Get<Angle>(entity).Value : 0.0f;
+                if (world.Has<RotatesWithDirection>(entity))
+                {
+                    angle = MathUtilities.AngleFromUnitVector(world.Get<Direction2D>(entity).Value);
+                }
+                if (angle != 0.0f)
+                {
+                    AddExtraData(ref filedEntity,
+                        FiledEntityExtraDataTypes.Angle, float.RadiansToDegrees(angle)
+                    );
+                }
 
                 filedEntities.Add(filedEntity);
             }
@@ -83,10 +135,76 @@ public class LiveEditorLevel
 
         filedLevel.Layers = filedLayers.ToArray();
 
-        var json = JsonSerializer.Serialize(filedLevel, levelSerializerOptions);
+        var json = JsonSerializer.Serialize(filedLevel, typeof(FiledEditorLevel), JsonLevelContext);
         Directory.CreateDirectory(levelContentPath);
         var jsonOutputPath = Path.Combine(levelContentPath, Name + ".json");
         File.WriteAllText(jsonOutputPath, json);
+
+        // DEBUG!!!!!!!!!!!!!!!!!!!!
+        LoadFromFile(jsonOutputPath, world, prefabManipulator);
+    }
+    
+    public static LiveEditorLevel LoadFromFile(string jsonPath, World world, PrefabManipulator prefabManipulator)
+    {
+        var filedLevel = (FiledEditorLevel)JsonSerializer.Deserialize(
+            File.ReadAllText(jsonPath),
+            typeof(FiledEditorLevel),
+            JsonLevelContext
+        );
+
+        var result = new LiveEditorLevel();
+        result.Name = filedLevel.Name;
+
+        foreach (var filedLayer in filedLevel.Layers)
+        {
+            var liveLayer = new Layer(filedLayer, result); // adds itself to lists in the ctor
+
+            foreach (var filedEntity in filedLayer.Entities)
+            {
+                // De-serialize ambiguously-typed values.
+                if (filedEntity.ExtraDataList != null)
+                {
+                    foreach (var (type, value) in filedEntity.ExtraDataList)
+                    {
+                        switch (type)
+                        {
+                            case FiledEntityExtraDataTypes.Angle:
+                                filedEntity.ExtraDataList[type] =
+                                    ((JsonElement)value).Deserialize(typeof(float), JsonLevelContext);
+                                break;
+                            case FiledEntityExtraDataTypes.ColorBlend:
+                                filedEntity.ExtraDataList[type] = Unsafe.BitCast<uint, Color>(
+                                    (uint)(
+                                        (JsonElement)value).Deserialize(typeof(uint), JsonLevelContext
+                                    )
+                                );
+                                break;
+                            case FiledEntityExtraDataTypes.SpriteAnim:
+                                // FIXME: Optimize! Tiles probably don't need a unique SpriteAnimation, unless animated!
+                                filedEntity.ExtraDataList[type] = new SpriteAnimation(
+                                    SpriteAnimations.NameToInfoMap[
+                                        (string)((JsonElement)value).Deserialize(typeof(string), JsonLevelContext)
+                                    ]
+                                );
+                                break;
+                            default:
+                                Logger.LogError($"Unknown/unused extra data type: {type}");
+                                break;
+                        }
+                    }
+                }
+
+                // TODO: Spawn the entities here!!!!
+                var maybeLiveEntity = prefabManipulator.TrySpawnFiledPrefab(filedEntity);
+                if (maybeLiveEntity.HasValue)
+                {
+                    world.Set(maybeLiveEntity.Value, liveLayer.LayerID);
+                    liveLayer.CachedEntities.Add(maybeLiveEntity.Value);
+                }
+            }
+        }
+
+        return result;
     }
 
     public class Layer
@@ -136,6 +254,40 @@ public class LiveEditorLevel
         public bool IsVisible { get; private set; } = true;
         public List<Entity> CachedEntities = new();
 
+        public Layer(
+            FiledEditorLevel.Layer filedLayer,
+            LiveEditorLevel level
+            )
+        {
+            LayerType = filedLayer.TypeID;
+            Level = level;
+            Depth = filedLayer.Depth;
+            Name = filedLayer.Name;
+            ColorBlend = filedLayer.ColorBlend;
+
+            foreach (var (spriteAnimName, color) in filedLayer.Images)
+            {
+                Images.Add(
+                    (new SpriteAnimation(SpriteAnimations.NameToInfoMap[spriteAnimName]),
+                        color
+                    )
+                );
+            }
+
+            ImagesPerRow = filedLayer.ImagesPerRow;
+            //PreviewScaleMult = filedLayer.
+
+            lock (Level.Layers)
+            {
+                Level.Layers.Add(Name, this);
+            }
+            lock (Level.LayerIDs)
+            {
+                LayerID = new Editor_LevelLayerID(Level.LayerIDs.Count);
+                Level.LayerIDs.Add(this);
+            }
+        }
+
         public void ReplaceImage(int tileSpriteID, SpriteAnimation newImage, World world)
         {
             Images[tileSpriteID] = (newImage, Color.White);
@@ -178,9 +330,9 @@ public class LiveEditorLevel
             }
         }
 
-        public Color MixLayerColorWithImageColor(Color tileColorBlend)
+        public Color MixLayerColorWithImageColor(Color imageColorBlend)
         {
-            return Color.Lerp(ColorBlend, tileColorBlend, 0.5f);
+            return Color.Lerp(ColorBlend, imageColorBlend, 0.5f);
         }
 
         public void ChangeLayerColorBlend(Color newColor, World world)
@@ -190,24 +342,27 @@ public class LiveEditorLevel
             // Recalculate the color blend for each entity in this layer.
             foreach (var entity in CachedEntities)
             {
-                if (!world.Has<Editor_LayerImageID>(entity))
+                if (world.Has<Editor_LayerImageID>(entity))
                 {
-                    Logger.LogError("Entity should have a Editor_LayerImageID component here!");
-                    continue;
+                    var tileSpriteIndex = world.Get<Editor_LayerImageID>(entity).ID;
+                    var imageColorBlend = Images[tileSpriteIndex].Item2;
+                    world.Set(entity, new ColorBlend(MixLayerColorWithImageColor(imageColorBlend)));
                 }
-                var tileSpriteIndex = world.Get<Editor_LayerImageID>(entity).ID;
-                var tileColorBlend = Images[tileSpriteIndex].Item2;
-
-                world.Set(entity, new ColorBlend(MixLayerColorWithImageColor(tileColorBlend)));
+                else
+                {
+                    // Just override the entity's colorblend.
+                    // TODO: Could get fancier here, but we'd need to remember "original" colorblend.
+                    world.Set(entity, new ColorBlend(newColor));
+                }
             }
         }
 
-        public void ChangeTileColorBlend(Editor_LayerImageID tileSpriteID, Color newColor, World world)
+        public void ChangeImageColorBlend(Editor_LayerImageID layerImageID, Color newColor, World world)
         {
-            var (spriteID, oldTileColorBlend) = Images[tileSpriteID.ID];
-            Images[tileSpriteID.ID] = (spriteID, newColor);
+            var (spriteID, oldTileColorBlend) = Images[layerImageID.ID];
+            Images[layerImageID.ID] = (spriteID, newColor);
 
-            // Recalculate the color blend for each entity in this layer that uses this tile sprite.
+            // Recalculate the color blend for each entity in this layer that uses this image sprite.
             foreach (var entity in CachedEntities)
             {
                 if (!world.Has<Editor_LayerImageID>(entity))
@@ -216,7 +371,7 @@ public class LiveEditorLevel
                     continue;
                 }
 
-                if (world.Get<Editor_LayerImageID>(entity).ID == tileSpriteID.ID)
+                if (world.Get<Editor_LayerImageID>(entity).ID == layerImageID.ID)
                 {
                     world.Set(entity, new ColorBlend(MixLayerColorWithImageColor(newColor)));
                 }

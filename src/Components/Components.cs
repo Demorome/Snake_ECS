@@ -138,8 +138,7 @@ public readonly record struct DirectionalSprites(
     );
 
 public readonly record struct AccelerateToPosition(Position2D Target, float Acceleration, float MotionDampFactor);
-public readonly record struct DestroyAtGameEnd();
-public readonly record struct DestroyOnLevelReset();
+public readonly record struct DestroyOnTransition(); // Name from Samurai Gunn 2 code
 public readonly record struct DealsDamageOnContact(int Damage);
 public readonly record struct CanDetect(float ConeRadius, float MaxDistance);
 public readonly record struct DrawDetectionCone();

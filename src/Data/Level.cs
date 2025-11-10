@@ -5,6 +5,14 @@ using RollAndCash.Components;
 
 namespace RollAndCash.Data;
 
+public enum FiledEntityExtraDataTypes
+{
+    ColorBlend = 0,
+    SpriteAnim,
+    Depth, // FIXME: Make a separate enum for optimized filed entities, since this isn't needed otherwise!
+    Angle,
+}
+
 #if DEBUG
 public struct FiledEditorLevel
 {
@@ -17,7 +25,7 @@ public struct FiledEditorLevel
     {
         public string Name { get; set; }
         public float Depth { get; set; }
-        public Editor.LiveEditorLevel.Layer.Types Type { get; set; }
+        public Editor.LiveEditorLevel.Layer.Types TypeID { get; set; }
         public Color ColorBlend { get; set; }
         public (string SpriteAnimName, Color)[] Images { get; set; }
         public int ImagesPerRow { get; set; }
@@ -25,13 +33,9 @@ public struct FiledEditorLevel
 
         public struct Entity
         {
-            public Position2D StartPosition { get; set; }
-            public Color ColorBlend { get; set; }
             public Prefabs PrefabID { get; set; }
-            public string SpriteAnimOverrideName { get; set; }
-            public float Angle { get; set; }
-
-            // TODO: Option to delay spawn / start off invisible, if needed.
+            public Position2D StartPosition { get; set; }
+            public Dictionary<FiledEntityExtraDataTypes, object> ExtraDataList { get; set; }
         }
     }
 }

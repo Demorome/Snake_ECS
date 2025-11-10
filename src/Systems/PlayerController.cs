@@ -34,11 +34,11 @@ public class PlayerController : MoonTools.ECS.System
 		ProjectileManipulator = new(world);
 	}
 
-	public Entity SpawnPlayer(int index)
+	public Entity SpawnPlayer(int index, Position2D pos)
 	{
 		var player = World.CreateEntity($"Player {index}");
 		Set(player, new Player(index));
-		Set(player, new Position2D(Dimensions.GAME_W / 2, Dimensions.GAME_H / 2));
+		Set(player, pos);
 		//Set(player, new SpriteAnimation(index == 0 ? Content.SpriteAnimations.Char_Walk_Down : Content.SpriteAnimations.Char2_Walk_Down, 0));
 		//Set(player, new DrawAsRectangle());
 		Set(player, new SpriteAnimation(Content.SpriteAnimations.Heart));

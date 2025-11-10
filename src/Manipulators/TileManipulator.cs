@@ -12,22 +12,16 @@ using RollAndCash.Utility;
 
 public class TileManipulator : MoonTools.ECS.Manipulator
 {
+    PrefabManipulator PrefabManipulator;
     public TileManipulator(World world) : base(world)
     {
+        PrefabManipulator = new(world);
     }
 
     public Entity SpawnSolidTile(Position2D position, SpriteAnimation sprite)
     {
-        var entity = CreateEntity("Solid Tile");
-        Set(entity, new PrefabID(Prefabs.SolidTile));
-        Set(entity, position);
+        var entity = PrefabManipulator.SpawnPrefab(Prefabs.SolidTile, position);
         Set(entity, sprite);
-        Set(entity, new Rectangle(-Dimensions.TILE_SIZE / 2, -Dimensions.TILE_SIZE / 2,
-            Dimensions.TILE_SIZE, Dimensions.TILE_SIZE));
-
-        Set(entity, new Layer(CollisionLayer.Level, CollisionLayer.StaticLevelCollider_CollidesWith));
-        Set(entity, new Depth(DepthLayer.Tile_Solid));
-
         return entity;
     }
 

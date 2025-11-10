@@ -7,6 +7,8 @@ using RollAndCash.Components;
 using RollAndCash.Systems;
 using RollAndCash.Utility;
 using RollAndCash;
+using System.Collections.Generic;
+
 
 
 #if DEBUG
@@ -20,6 +22,8 @@ public enum Prefabs
     FrogEnemy,
     SolidRectangle,
     InvisibleSolidRectangle,
+    Player,
+
     SPAWNED_NORMALLY_COUNT,
 
     //== These shouldn't be spawned manually, since they rely on vital info from another source anyways.
@@ -42,7 +46,8 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
     }
 
     public Entity SpawnPrefab(Prefabs prefabType, Position2D pos,
-        bool isDummy = false, bool persistent = false)
+        bool isDummy = false, bool persistent = false,
+        Dictionary<string, object> extraData = null)
     {
         Entity result;
         switch (prefabType)
@@ -53,27 +58,41 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
             case Prefabs.FrogEnemy:
                 result = EnemySpawner.SpawnFrog(pos);
                 break;
-            case Prefabs.SolidRectangle:
-                result = CreateEntity();
-                Set(result, new Rectangle(0, 0, Dimensions.TILE_SIZE, Dimensions.TILE_SIZE));
-                Set(result, new DrawAsRectangle());
-                Set(result, new ColorBlend(Color.White));
-                break;
             case Prefabs.InvisibleSolidRectangle:
                 result = CreateEntity();
-                Set(result, new Rectangle(0, 0, Dimensions.TILE_SIZE, Dimensions.TILE_SIZE));
+                Set(result, pos);
+                Set(result, new Rectangle(0, 0, 32, 32));
+                Set(result, new Layer(CollisionLayer.Level, CollisionLayer.StaticLevelCollider_CollidesWith));
                 break;
+            case Prefabs.SolidRectangle:
+                result = CreateEntity();
+                Set(result, pos);
+                Set(result, new Rectangle(0, 0, 32, 32));
+                Set(result, new DrawAsRectangle());
+                Set(result, new ColorBlend(Color.White));
+                Set(result, new Layer(CollisionLayer.Level, CollisionLayer.StaticLevelCollider_CollidesWith));
+                break;
+            //case Prefabs.Player:
+                //result = ;
+                //break;
                 
             //=== These rely upon something else setting up their appearance.
             case Prefabs.SolidTile:
                 result = CreateEntity();
-                Set(result, new Rectangle(0, 0, Dimensions.TILE_SIZE, Dimensions.TILE_SIZE));
+                Set(result, new Rectangle(-Dimensions.TILE_SIZE / 2, -Dimensions.TILE_SIZE / 2,
+                    Dimensions.TILE_SIZE, Dimensions.TILE_SIZE));
+                Set(result, new Layer(CollisionLayer.Level, CollisionLayer.StaticLevelCollider_CollidesWith));
+                Set(result, new Depth(DepthLayer.Tile_Solid));
+                // FIXME: Set TilePos!
                 break;
             case Prefabs.VisualTile:
                 result = CreateEntity();
+                Set(result, pos);
+                // FIXME: Set TilePos!
                 break;
             case Prefabs.Image:
                 result = CreateEntity();
+                Set(result, pos);
                 break;
 
             default:
@@ -88,7 +107,7 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
         
         if (!persistent)
         {
-            Set(result, new DestroyOnLevelReset());
+            Set(result, new DestroyOnTransition());
         }
 
         if (!isDummy)
@@ -113,7 +132,21 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
         {
             result = Get<SpriteAnimation>(dummyPrefab).SpriteAnimationInfoID == spriteToCheck.SpriteAnimationInfoID;
         }
-
+        Destroy(dummyPrefab);
+        return result;
+    }
+    public bool IsDefaultColorBlend(Color colorBlend, Prefabs prefabType)
+    {
+        bool result;
+        var dummyPrefab = SpawnPrefab(prefabType, Input.WorldMousePosition);
+        if (!Has<ColorBlend>(dummyPrefab))
+        {
+            result = false;
+        }
+        else
+        {
+            result = Get<ColorBlend>(dummyPrefab).Color == colorBlend;
+        }
         Destroy(dummyPrefab);
         return result;
     }
