@@ -39,6 +39,8 @@ public class GameplayState : GameState
     EnemySystem EnemySystem;
     TrailVisualSystem TrailVisualSystem;
 
+    ActorManipulator ActorManipulator;
+
 #if DEBUG
     EditorSystem ImGuiEditor;
 
@@ -84,6 +86,8 @@ public class GameplayState : GameState
         EnemySystem = new(World);
         TrailVisualSystem = new(World);
 
+        ActorManipulator = new(World);
+
 #if DEBUG
         ImGuiEditor = new(World);
 #endif
@@ -122,7 +126,7 @@ public class GameplayState : GameState
         */
 
         var pos = new Position2D(Dimensions.GAME_W / 2, Dimensions.GAME_H / 2);
-        var playerOne = PlayerController.SpawnPlayer(0, pos);
+        var playerOne = ActorManipulator.SpawnPlayer(pos, 0);
 
         var gameInProgressEntity = World.CreateEntity();
         World.Set(gameInProgressEntity, new GameInProgress());

@@ -16,7 +16,7 @@ namespace RollAndCash.Systems;
 public class PlayerController : MoonTools.ECS.System
 {
 	MoonTools.ECS.Filter PlayerFilter;
-	float MaxSpeedBase = 200f;
+	public static float MaxPlayerSpeedBase = 200f;
 
 	ProjectileManipulator ProjectileManipulator;
 
@@ -32,49 +32,6 @@ public class PlayerController : MoonTools.ECS.System
 		.Build();
 
 		ProjectileManipulator = new(world);
-	}
-
-	public Entity SpawnPlayer(int index, Position2D pos)
-	{
-		var player = World.CreateEntity($"Player {index}");
-		Set(player, new Player(index));
-		Set(player, pos);
-		//Set(player, new SpriteAnimation(index == 0 ? Content.SpriteAnimations.Char_Walk_Down : Content.SpriteAnimations.Char2_Walk_Down, 0));
-		//Set(player, new DrawAsRectangle());
-		Set(player, new SpriteAnimation(Content.SpriteAnimations.Heart));
-		Set(player, new Rectangle(-12, -12, 24, 24));
-		Set(player, new Layer(CollisionLayer.PlayerActor_ExistsOn, CollisionLayer.PlayerActor_CollidesWith));
-		Set(player, new CanMoveThroughDespiteCollision(CollisionLayer.Projectile));
-		//Set(player, index == 0 ? Color.Green : Color.Blue);
-		Set(player, new ColorBlend(Color.Red));
-		Set(player, new Depth(DepthLayer.Player));
-		Set(player, new MaxSpeed(MaxSpeedBase));
-		Set(player, new Speed(0f));
-		Set(player, new Direction2D(Vector2.Zero));
-		//Set(player, new AdjustFramerateToSpeed());
-		Set(player, new InputState());
-		Set(player, new CursorPosition());
-		Set(player, new HasHealth(5));
-		Set(player, new BecomeInvincibleOnDamage(1f));
-		Set(player, new CanBeDetected());
-		Set(player, new SpriteScale(new Vector2(1, 1)));
-
-		// For debugging raycasts
-		//Set(player, new CanDetect(float.DegreesToRadians(45f), 30f));
-
-		/*
-		Set(player, new DirectionalSprites(
-			index == 0 ? Content.SpriteAnimations.Char_Walk_Up.ID : Content.SpriteAnimations.Char2_Walk_Up.ID,
-			index == 0 ? Content.SpriteAnimations.Char_Walk_UpRight.ID : Content.SpriteAnimations.Char2_Walk_UpRight.ID,
-			index == 0 ? Content.SpriteAnimations.Char_Walk_Right.ID : Content.SpriteAnimations.Char2_Walk_Right.ID,
-			index == 0 ? Content.SpriteAnimations.Char_Walk_DownRight.ID : Content.SpriteAnimations.Char2_Walk_DownRight.ID,
-			index == 0 ? Content.SpriteAnimations.Char_Walk_Down.ID : Content.SpriteAnimations.Char2_Walk_Down.ID,
-			index == 0 ? Content.SpriteAnimations.Char_Walk_DownLeft.ID : Content.SpriteAnimations.Char2_Walk_DownLeft.ID,
-			index == 0 ? Content.SpriteAnimations.Char_Walk_Left.ID : Content.SpriteAnimations.Char2_Walk_Left.ID,
-			index == 0 ? Content.SpriteAnimations.Char_Walk_UpLeft.ID : Content.SpriteAnimations.Char2_Walk_UpLeft.ID
-		));*/
-
-		return player;
 	}
 
 	public override void Update(System.TimeSpan delta)

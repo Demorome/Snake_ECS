@@ -23,6 +23,9 @@ namespace RollAndCash.Editor;
 // This is to optimize JSON serializing w/ source generation: 
 // https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/source-generation
 [JsonSerializable(typeof(FiledEditorLevel))]
+[JsonSerializable(typeof(FiledEditorLevel.Layer))]
+[JsonSerializable(typeof(FiledEditorLevel.Layer.Entity))]
+[JsonSerializable(typeof(EntityExtraDataTypes))]
 [JsonSerializable(typeof(float))]
 [JsonSerializable(typeof(uint))]
 internal partial class LevelContext : JsonSerializerContext
@@ -51,9 +54,10 @@ public class LiveEditorLevel
     public void SaveToFile(string levelContentPath, World world, PrefabManipulator prefabManipulator)
     {
         var filedLevel = new FiledEditorLevel();
+        filedLevel.SerializedVersion = 1;
         filedLevel.Name = Name;
 
-        var AddExtraData = (ref FiledEditorLevel.Layer.Entity entity, FiledEntityExtraDataTypes type, object value) =>
+        var AddExtraData = (ref FiledEditorLevel.Layer.Entity entity, EntityExtraDataTypes type, object value) =>
         {
             if (entity.ExtraDataList == null)
             {
@@ -98,7 +102,7 @@ public class LiveEditorLevel
                     if (!prefabManipulator.IsDefaultColorBlend(colorBlend, filedEntity.PrefabID))
                     {
                         AddExtraData(ref filedEntity,
-                            FiledEntityExtraDataTypes.ColorBlend, colorBlend.PackedValue()
+                            EntityExtraDataTypes.ColorBlendOverride, colorBlend.PackedValue()
                         );
                     }
                 }
@@ -109,7 +113,7 @@ public class LiveEditorLevel
                     if (!prefabManipulator.IsDefaultSprite(spriteAnim, filedEntity.PrefabID))
                     {
                         AddExtraData(ref filedEntity,
-                            FiledEntityExtraDataTypes.SpriteAnim, spriteAnim.SpriteAnimationInfo.Name
+                            EntityExtraDataTypes.SpriteAnim, spriteAnim.SpriteAnimationInfo.Name
                         );
                     }
                 }
@@ -122,7 +126,7 @@ public class LiveEditorLevel
                 if (angle != 0.0f)
                 {
                     AddExtraData(ref filedEntity,
-                        FiledEntityExtraDataTypes.Angle, float.RadiansToDegrees(angle)
+                        EntityExtraDataTypes.AngleOverride, float.RadiansToDegrees(angle)
                     );
                 }
 
@@ -139,18 +143,20 @@ public class LiveEditorLevel
         Directory.CreateDirectory(levelContentPath);
         var jsonOutputPath = Path.Combine(levelContentPath, Name + ".json");
         File.WriteAllText(jsonOutputPath, json);
-
-        // DEBUG!!!!!!!!!!!!!!!!!!!!
-        LoadFromFile(jsonOutputPath, world, prefabManipulator);
     }
     
     public static LiveEditorLevel LoadFromFile(string jsonPath, World world, PrefabManipulator prefabManipulator)
     {
+        UndoRedo.ClearChangeHistoryList();
+        UndoRedo.ClearRedoList();
+
         var filedLevel = (FiledEditorLevel)JsonSerializer.Deserialize(
             File.ReadAllText(jsonPath),
             typeof(FiledEditorLevel),
             JsonLevelContext
         );
+
+        // filedLevel.SerializedVersion can be used here, if needed
 
         var result = new LiveEditorLevel();
         result.Name = filedLevel.Name;
@@ -168,18 +174,18 @@ public class LiveEditorLevel
                     {
                         switch (type)
                         {
-                            case FiledEntityExtraDataTypes.Angle:
+                            case EntityExtraDataTypes.AngleOverride:
                                 filedEntity.ExtraDataList[type] =
                                     ((JsonElement)value).Deserialize(typeof(float), JsonLevelContext);
                                 break;
-                            case FiledEntityExtraDataTypes.ColorBlend:
+                            case EntityExtraDataTypes.ColorBlendOverride:
                                 filedEntity.ExtraDataList[type] = Unsafe.BitCast<uint, Color>(
                                     (uint)(
                                         (JsonElement)value).Deserialize(typeof(uint), JsonLevelContext
                                     )
                                 );
                                 break;
-                            case FiledEntityExtraDataTypes.SpriteAnim:
+                            case EntityExtraDataTypes.SpriteAnim:
                                 // FIXME: Optimize! Tiles probably don't need a unique SpriteAnimation, unless animated!
                                 filedEntity.ExtraDataList[type] = new SpriteAnimation(
                                     SpriteAnimations.NameToInfoMap[
@@ -194,8 +200,14 @@ public class LiveEditorLevel
                     }
                 }
 
-                // TODO: Spawn the entities here!!!!
-                var maybeLiveEntity = prefabManipulator.TrySpawnFiledPrefab(filedEntity);
+                // Spawn the entities
+                var maybeLiveEntity = prefabManipulator.TrySpawnPrefab(
+                    filedEntity.PrefabID,
+                    filedEntity.StartPosition,
+                    false,
+                    filedEntity.ExtraDataList
+                );
+
                 if (maybeLiveEntity.HasValue)
                 {
                     world.Set(maybeLiveEntity.Value, liveLayer.LayerID);
@@ -203,7 +215,7 @@ public class LiveEditorLevel
                 }
             }
         }
-
+        
         return result;
     }
 

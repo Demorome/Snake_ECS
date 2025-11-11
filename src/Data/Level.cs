@@ -5,12 +5,13 @@ using RollAndCash.Components;
 
 namespace RollAndCash.Data;
 
-public enum FiledEntityExtraDataTypes
+// NOTE: NEVER change the ordering here!!
+public enum EntityExtraDataTypes
 {
-    ColorBlend = 0,
+    ColorBlendOverride = 0,
     SpriteAnim,
-    Depth, // FIXME: Make a separate enum for optimized filed entities, since this isn't needed otherwise!
-    Angle,
+    AngleOverride,
+    DepthOverride, // TODO: Make a separate enum for optimized filed entities, since this isn't needed otherwise!
 }
 
 #if DEBUG
@@ -18,6 +19,7 @@ public struct FiledEditorLevel
 {
     // I'm spamming properties everywhere to make JSON serialize it. 
     // Yes, there's other ways, but this is the way Cosmo & Co. were doing it.
+    public int SerializedVersion;
     public string Name { get; set; }
     public Layer[] Layers { get; set; }
 
@@ -35,7 +37,7 @@ public struct FiledEditorLevel
         {
             public Prefabs PrefabID { get; set; }
             public Position2D StartPosition { get; set; }
-            public Dictionary<FiledEntityExtraDataTypes, object> ExtraDataList { get; set; }
+            public Dictionary<EntityExtraDataTypes, object> ExtraDataList { get; set; }
         }
     }
 }

@@ -84,12 +84,26 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             if (ImGui.Button("Load"u8))
             {
                 // TODO: add a warning if there's unsaved changes!
-                // TODO: Pop-up with level selection, based on existing level files in Content/Data
+                ImGui.OpenPopup("##LoadLevelPopup"u8);
             }
             ImGui.SameLine();
             if (ImGui.Button("New"u8))
             {
                 // TODO: add a warning if there's unsaved changes!
+            }
+
+            if (ImGui.BeginPopup("##LoadLevelPopup"u8))
+            {
+                foreach (var ??)
+                {
+                    // TODO: based on existing level files in Content/Levels
+                    if (ImGui.Button())
+                    {
+                        LoadFromFile
+                        
+                    }
+                }
+                ImGui.EndPopup();
             }
         }
         ImGui.End();
@@ -443,7 +457,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                         var newLayerDepth = (float)DepthLayer.DefaultDepth;
                         if (layerType == LiveEditorLevel.Layer.Types.SolidTile)
                         {
-                            newLayerDepth = (float)DepthLayer.Tile_Solid;
+                            newLayerDepth = (float)DepthLayer.SolidObject;
                         }
 
                         var newLayer = new LiveEditorLevel.Layer(layerType, Level, layerTypeStr, newLayerDepth);

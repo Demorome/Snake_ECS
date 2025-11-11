@@ -8,6 +8,10 @@ using RollAndCash.Systems;
 using RollAndCash.Utility;
 using RollAndCash;
 using System.Collections.Generic;
+using RollAndCash.Data;
+using MoonWorks;
+
+
 
 
 
@@ -37,17 +41,24 @@ public readonly record struct PrefabID(Prefabs ID);
 public class PrefabManipulator : MoonTools.ECS.Manipulator
 {
     MirrorManipulator MirrorManipulator;
-    EnemySpawner EnemySpawner;
+    ActorManipulator PlayerManipulator;
+    LevelObjectManipulator LevelObjectManipulator;
+    TileManipulator TileManipulator;
 
     public PrefabManipulator(World world) : base(world)
     {
         MirrorManipulator = new(world);
-        EnemySpawner = new(world);
+        PlayerManipulator = new(world);
+        LevelObjectManipulator = new(world);
+        TileManipulator = new(world);
     }
 
-    public Entity SpawnPrefab(Prefabs prefabType, Position2D pos,
-        bool isDummy = false, bool persistent = false,
-        Dictionary<string, object> extraData = null)
+    public Entity? TrySpawnPrefab(
+        Prefabs prefabType,
+        Position2D pos,
+        bool rememberCreationForUndo = true,
+        Dictionary<EntityExtraDataTypes, object> ExtraSpawnInfo = null
+        )
     {
         Entity result;
         switch (prefabType)
@@ -56,61 +67,93 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
                 result = MirrorManipulator.CreateStaticLevelMirror(pos);
                 break;
             case Prefabs.FrogEnemy:
-                result = EnemySpawner.SpawnFrog(pos);
+                result = PlayerManipulator.SpawnFrog(pos);
                 break;
             case Prefabs.InvisibleSolidRectangle:
-                result = CreateEntity();
-                Set(result, pos);
-                Set(result, new Rectangle(0, 0, 32, 32));
-                Set(result, new Layer(CollisionLayer.Level, CollisionLayer.StaticLevelCollider_CollidesWith));
+                result = LevelObjectManipulator.SpawnInvisibleSolidRectangle(pos);
                 break;
             case Prefabs.SolidRectangle:
-                result = CreateEntity();
-                Set(result, pos);
-                Set(result, new Rectangle(0, 0, 32, 32));
-                Set(result, new DrawAsRectangle());
-                Set(result, new ColorBlend(Color.White));
-                Set(result, new Layer(CollisionLayer.Level, CollisionLayer.StaticLevelCollider_CollidesWith));
+                result = LevelObjectManipulator.SpawnSolidRectangle(pos, Color.White);
                 break;
-            //case Prefabs.Player:
-                //result = ;
-                //break;
-                
-            //=== These rely upon something else setting up their appearance.
+            case Prefabs.Player:
+                result = PlayerManipulator.SpawnPlayer(pos, 0);
+                break;
             case Prefabs.SolidTile:
-                result = CreateEntity();
-                Set(result, new Rectangle(-Dimensions.TILE_SIZE / 2, -Dimensions.TILE_SIZE / 2,
-                    Dimensions.TILE_SIZE, Dimensions.TILE_SIZE));
-                Set(result, new Layer(CollisionLayer.Level, CollisionLayer.StaticLevelCollider_CollidesWith));
-                Set(result, new Depth(DepthLayer.Tile_Solid));
-                // FIXME: Set TilePos!
+                if (ExtraSpawnInfo == null || !ExtraSpawnInfo.ContainsKey(EntityExtraDataTypes.SpriteAnim))
+                {
+                    goto default;
+                }
+                result = TileManipulator.SpawnSolidTile(pos,
+                    (SpriteAnimation)ExtraSpawnInfo[EntityExtraDataTypes.SpriteAnim]
+                );
                 break;
             case Prefabs.VisualTile:
-                result = CreateEntity();
-                Set(result, pos);
-                // FIXME: Set TilePos!
+                if (ExtraSpawnInfo == null || !ExtraSpawnInfo.ContainsKey(EntityExtraDataTypes.SpriteAnim))
+                {
+                    goto default;
+                }
+                result = TileManipulator.SpawnVisualTile(pos,
+                    (SpriteAnimation)ExtraSpawnInfo[EntityExtraDataTypes.SpriteAnim]
+                );
                 break;
             case Prefabs.Image:
+                if (ExtraSpawnInfo == null || !ExtraSpawnInfo.ContainsKey(EntityExtraDataTypes.SpriteAnim))
+                {
+                    goto default;
+                }
                 result = CreateEntity();
                 Set(result, pos);
+                Set(result, (SpriteAnimation)ExtraSpawnInfo[EntityExtraDataTypes.SpriteAnim]);
                 break;
 
             default:
-                throw new Exception("Failed to spawn prefab");
+                Logger.LogError($"Failed to spawn prefab {prefabType}!");
+                return null;
         }
 
+#if DEBUG
         if (GetTag(result).Length == 0)
         {
             Tag(result, prefabType.ToString());
         }
-        Set(result, new PrefabID(prefabType));
-        
-        if (!persistent)
+
+        if (!Has<Depth>(result)
+            && prefabType != Prefabs.VisualTile
+            && prefabType != Prefabs.Image
+            && prefabType != Prefabs.InvisibleSolidRectangle
+            )
         {
-            Set(result, new DestroyOnTransition());
+            Logger.LogWarn($"Spawned prefab {prefabType} should have received a Depth!");
+        }
+        
+        if (!Has<PrefabID>(result))
+        {
+            //Logger.LogError($"Spawned prefab {prefabType} should have received a prefabID!");
+            Set(result, new PrefabID(prefabType));
+        }
+#endif
+
+        if (ExtraSpawnInfo != null)
+        {
+            /*if (ExtraSpawnInfo.ContainsKey(EntityExtraDataTypes.SpriteAnimOverride))
+            {
+                Set(result, (SpriteAnimation)ExtraSpawnInfo[EntityExtraDataTypes.SpriteAnimOverride]);
+            }*/
+            if (ExtraSpawnInfo.ContainsKey(EntityExtraDataTypes.DepthOverride))
+            {
+                Set(result, new Depth((float)ExtraSpawnInfo[EntityExtraDataTypes.DepthOverride]));
+            }
+            if (ExtraSpawnInfo.ContainsKey(EntityExtraDataTypes.ColorBlendOverride))
+            {
+                Set(result, new ColorBlend((Color)ExtraSpawnInfo[EntityExtraDataTypes.ColorBlendOverride]));
+            }
+            if (ExtraSpawnInfo.ContainsKey(EntityExtraDataTypes.AngleOverride))
+            {
+                Set(result, new Angle((float)ExtraSpawnInfo[EntityExtraDataTypes.AngleOverride]));
+            }
         }
 
-        if (!isDummy)
+        if (rememberCreationForUndo)
         {
             UndoRedo.RememberEntityCreation(result, World);
         }
@@ -123,7 +166,7 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
     public bool IsDefaultSprite(SpriteAnimation spriteToCheck, Prefabs prefabType)
     {
         bool result;
-        var dummyPrefab = SpawnPrefab(prefabType, Input.WorldMousePosition);
+        var dummyPrefab = TrySpawnPrefab(prefabType, Input.WorldMousePosition).Value;
         if (!Has<SpriteAnimation>(dummyPrefab))
         {
             result = false;
@@ -138,7 +181,7 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
     public bool IsDefaultColorBlend(Color colorBlend, Prefabs prefabType)
     {
         bool result;
-        var dummyPrefab = SpawnPrefab(prefabType, Input.WorldMousePosition);
+        var dummyPrefab = TrySpawnPrefab(prefabType, Input.WorldMousePosition).Value;
         if (!Has<ColorBlend>(dummyPrefab))
         {
             result = false;
@@ -158,7 +201,7 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
         if (!ImGui.GetIO().WantCaptureMouse)
         {
             // Spawn a copy of the prefab, then extract its visual info.
-            var dummyPrefab = SpawnPrefab(PrefabToSpawn_ForPreview, Input.WorldMousePosition, true);
+            var dummyPrefab = TrySpawnPrefab(PrefabToSpawn_ForPreview, Input.WorldMousePosition, true).Value;
 
             Set(debugEntity, Get<Position2D>(dummyPrefab));
             if (Has<SpriteScale>(dummyPrefab))
@@ -249,7 +292,7 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
                 if (!ImGui.GetIO().WantCaptureMouse
                     && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                 {
-                    SpawnPrefab(PrefabToSpawn_ForPreview, Input.WorldMousePosition);
+                    TrySpawnPrefab(PrefabToSpawn_ForPreview, Input.WorldMousePosition);
                 }
             }
         }

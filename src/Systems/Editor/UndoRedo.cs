@@ -9,6 +9,7 @@ using RollAndCash.Systems;
 
 namespace RollAndCash.Editor;
 
+// TODO: Make changes history contextual to separate tabs, instead of global?
 public static class UndoRedo
 {
     public enum ChangeType
@@ -103,6 +104,14 @@ public static class UndoRedo
             UndoHistory.Clear();
         }
     }
+    public static void ClearChangeHistoryList()
+    {
+        if (ChangeHistory.Count != 0)
+        {
+            Logger.LogInfo("Cleared Changes list.");
+            ChangeHistory.Clear();
+        }
+    }
 
     public static bool HasChangesToUndo()
     {
@@ -124,7 +133,7 @@ public static class UndoRedo
         UndoHistory = new();
 
     private static int ActiveGroupedChangesCount = 0;
-    
+
     private static void PushChange(
         Stack<(object, dynamic, ChangeType)> ToChange,
         object subject,
@@ -157,7 +166,7 @@ public static class UndoRedo
         else
         {
             ToChange.Push(
-                ( subject, value, changeToUndo )
+                (subject, value, changeToUndo)
             );
         }
     }
@@ -232,7 +241,7 @@ public static class UndoRedo
                 world, ToUndoUndo, isUndoOrRedo);
         }
     }
-    
+
     private static void UndoRedo_SingleChange(
         object changeSubject,
         dynamic changeValue,

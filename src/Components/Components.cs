@@ -95,7 +95,7 @@ public enum DepthLayer
     DefaultDepth = 1,
     Player = 5,
     Enemy = Player + 1,
-    Tile_Solid = Enemy + 1, // draw below actors
+    SolidObject = Enemy + 1, // draw below actors
 
 #if DEBUG
     Editor_TileOutline = -50,

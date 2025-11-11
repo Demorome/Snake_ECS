@@ -10,7 +10,7 @@ namespace RollAndCash.Systems;
 public class EnemySystem : MoonTools.ECS.System
 {
     MoonTools.ECS.Filter EnemyFilter;
-    EnemySpawner EnemySpawner;
+    ActorManipulator EnemySpawner;
     ProjectileManipulator ProjectileManipulator;
     VFXManipulator VFXManipulator;
 
