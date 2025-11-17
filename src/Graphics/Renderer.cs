@@ -28,6 +28,7 @@ public class Renderer : MoonTools.ECS.Renderer
 
 	SpriteBatch ArtSpriteBatch;
 #if DEBUG
+	SpriteBatch EditorSpriteBatch;
 	EditorSystem EditorSystem;
 	public static bool DrawDebugColliders = false;
 	TileManipulator TileManipulator;
@@ -119,6 +120,9 @@ public class Renderer : MoonTools.ECS.Renderer
 		PointSampler = Sampler.Create(GraphicsDevice, SamplerCreateInfo.PointClamp);
 
 		ArtSpriteBatch = new SpriteBatch(GraphicsDevice, titleStorage, swapchainFormat, TextureFormat.D16Unorm);
+#if DEBUG
+		EditorSpriteBatch = new SpriteBatch(GraphicsDevice, titleStorage, swapchainFormat, TextureFormat.D16Unorm);
+#endif
 
 		TriangleBatch = new TriangleBatch(GraphicsDevice, titleStorage, swapchainFormat, TextureFormat.D16Unorm);
 	}
@@ -383,13 +387,13 @@ public class Renderer : MoonTools.ECS.Renderer
 		TextBatch.Render(renderPass, GetCameraMatrix() * GetProjectionMatrix());
 
 		commandBuffer.EndRenderPass(renderPass);
-		#endregion
+		#endregion RENDER PASS START
 
 		commandBuffer.Blit(RenderTexture, swapchainTexture, MoonWorks.Graphics.Filter.Nearest);
 
 		#region EDITOR RENDERING
 #if DEBUG
-		ArtSpriteBatch.Start();
+		EditorSpriteBatch.Start();
 
 		if (LevelEditorManipulator.IsInLevelEditor && LevelEditorManipulator.ShowGrid)
 		{
@@ -526,7 +530,7 @@ public class Renderer : MoonTools.ECS.Renderer
 				var origin = selectedSprite.Origin;
 				var offset = -origin - new Vector2(sprite.FrameRect.X, sprite.FrameRect.Y);
 
-				ArtSpriteBatch.Add(
+				EditorSpriteBatch.Add(
 					new Vector3(drawPos.X + offset.X, drawPos.Y + offset.Y, depth),
 					0.0f,
 					new Vector2(sprite.SliceRect.W, sprite.SliceRect.H),
@@ -539,7 +543,7 @@ public class Renderer : MoonTools.ECS.Renderer
         }
 
 
-		ArtSpriteBatch.Upload(commandBuffer);
+		EditorSpriteBatch.Upload(commandBuffer);
 
 		// FIXME: Support depth texture somehow? Eh, drawing over everything is fine for now.
 		var editorRenderPass = commandBuffer.BeginRenderPass(
@@ -547,14 +551,14 @@ public class Renderer : MoonTools.ECS.Renderer
 			new ColorTargetInfo(swapchainTexture, LoadOp.Load)
 		);
 
-		if (ArtSpriteBatch.InstanceCount > 0)
+		if (EditorSpriteBatch.InstanceCount > 0)
 		{
-			ArtSpriteBatch.Render(renderPass, SpriteAtlasTexture, PointSampler, viewProjectionMatrices);
+			EditorSpriteBatch.Render(renderPass, SpriteAtlasTexture, PointSampler, viewProjectionMatrices);
 		}
 
 		commandBuffer.EndRenderPass(renderPass);
 #endif
-		#endregion
+		#endregion EDITOR RENDERING
 	}
 
 	// World-to-View matrix
@@ -598,7 +602,7 @@ public class Renderer : MoonTools.ECS.Renderer
 		{
 			var sprite = SpriteAnimations.EditorTile_Outline.Frames[0];
 
-			ArtSpriteBatch.Add(
+			EditorSpriteBatch.Add(
 				new Vector3(position.X + rect.X, position.Y + rect.Y, depth),
 				orientation,
 				new Vector2(rect.Width, rect.Height),
@@ -615,7 +619,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			var verticalLineSize = new Vector2(lineThickness, rect.Height);
 
 			// Horizontal Top
-			ArtSpriteBatch.Add(
+			EditorSpriteBatch.Add(
 				new Vector3(position.X + rect.X, position.Y + rect.Y, depth),
 				orientation,
 				horizontalLineSize,
@@ -625,7 +629,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			);
 
 			// Horizontal Bottom
-			ArtSpriteBatch.Add(
+			EditorSpriteBatch.Add(
 				new Vector3(position.X + rect.X, position.Y + rect.Y + rect.Height - lineThickness, depth),
 				orientation,
 				horizontalLineSize,
@@ -635,7 +639,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			);
 
 			// Vertical Left
-			ArtSpriteBatch.Add(
+			EditorSpriteBatch.Add(
 				new Vector3(position.X + rect.X, position.Y + rect.Y, depth),
 				orientation,
 				verticalLineSize,
@@ -645,7 +649,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			);
 
 			// Vertical Right
-			ArtSpriteBatch.Add(
+			EditorSpriteBatch.Add(
 				new Vector3(position.X + rect.X + rect.Width - lineThickness, position.Y + rect.Y, depth),
 				orientation,
 				verticalLineSize,
@@ -678,7 +682,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			scale = new Vector2(length, thickness);
 		}
 			
-		ArtSpriteBatch.Add(
+		EditorSpriteBatch.Add(
 			new Vector3(position.X, position.Y, depth),
 			orientation,
 			scale,
