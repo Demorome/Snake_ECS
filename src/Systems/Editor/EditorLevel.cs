@@ -18,221 +18,53 @@ using RollAndCash.Utility;
 
 namespace RollAndCash.Editor;
 
-// TODO: Optimize this by switching to discriminated unions, whenever C# supports those.
-
-// This is to optimize JSON serializing w/ source generation: 
-// https://learn.microsoft.com/en-us/dotnet/standard/serialization/system-text-json/source-generation
-[JsonSerializable(typeof(FiledEditorLevel))]
-[JsonSerializable(typeof(FiledEditorLevel.Layer))]
-[JsonSerializable(typeof(FiledEditorLevel.Layer.Entity))]
-[JsonSerializable(typeof(EntityExtraDataTypes))]
-[JsonSerializable(typeof(float))]
-[JsonSerializable(typeof(uint))]
-internal partial class LevelContext : JsonSerializerContext
-{
-}
-
+public readonly record struct Editor_LevelRoomID(int ID);
 public readonly record struct Editor_LevelLayerID(int ID);
 
 // Represents a work-in-progress level while inside the editor.
+// TODO: Optimize this by switching to discriminated unions, whenever C# supports those.
 public class LiveEditorLevel
 {
     public string Name = "";
-    private List<Layer> LayerIDs = new();
-    public readonly Dictionary<string, Layer> Layers = new();
+    public readonly List<Room> Rooms = new();
 
-    static JsonSerializerOptions LevelSerializerOptions = new JsonSerializerOptions
+    public class Room
     {
-        //IncludeFields = true,
-        WriteIndented = true,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-    };
+        public string Name;
+        public Position2D Position; // top-left corner
+        public int Width = Dimensions.GAME_W;
+        public int Height = Dimensions.GAME_H;
 
-    static LevelContext JsonLevelContext = new(LevelSerializerOptions);
-
-    // FIXME: Create two files: one for the editor, one optimized for just the game.
-    public void SaveToFile(string levelContentPath, World world, PrefabManipulator prefabManipulator)
-    {
-        var filedLevel = new FiledEditorLevel();
-        filedLevel.SerializedVersion = 1;
-        filedLevel.Name = Name;
-
-        var AddExtraData = (ref FiledEditorLevel.Layer.Entity entity, EntityExtraDataTypes type, object value) =>
-        {
-            if (entity.ExtraDataList == null)
-            {
-                entity.ExtraDataList = new();
-            }
-            entity.ExtraDataList.Add(type, value);
-        };
-
-        List<FiledEditorLevel.Layer> filedLayers = new();
-        foreach (var (_, layer) in Layers)
-        {
-            var filedLayer = new FiledEditorLevel.Layer();
-            filedLayer.ColorBlend = layer.ColorBlend;
-            filedLayer.Depth = layer.Depth;
-            filedLayer.ImagesPerRow = layer.ImagesPerRow;
-            filedLayer.Name = layer.Name + " Layer";
-
-            var filedImages = new List<(string SpriteAnimName, Color)>();
-            foreach (var (spriteAnim, colorBlend) in layer.Images)
-            {
-                filedImages.Add(new(spriteAnim.SpriteAnimationInfo.Name, colorBlend));
-            }
-            filedLayer.Images = filedImages.ToArray();
-
-            var filedEntities = new List<FiledEditorLevel.Layer.Entity>();
-            foreach (var entity in layer.CachedEntities)
-            {
-                if (!world.Has<PrefabID>(entity))
-                {
-                    Logger.LogWarn($"{EditorSystem.EntityToString(world, entity)} in layer {layer.Name} couldn't be saved; it had no PrefabID.");
-                    continue;
-                }
-
-                var filedEntity = new FiledEditorLevel.Layer.Entity();
-                filedEntity.PrefabID = world.Get<PrefabID>(entity).ID;
-                // FIXME: Get a "StartPosition" component instead?
-                filedEntity.StartPosition = world.Get<Position2D>(entity);
-
-                if (world.Has<ColorBlend>(entity))
-                {
-                    var colorBlend = world.Get<ColorBlend>(entity).Color;
-                    if (!prefabManipulator.IsDefaultColorBlend(colorBlend, filedEntity.PrefabID))
-                    {
-                        AddExtraData(ref filedEntity,
-                            EntityExtraDataTypes.ColorBlendOverride, colorBlend.PackedValue()
-                        );
-                    }
-                }
-
-                if (world.Has<SpriteAnimation>(entity))
-                {
-                    var spriteAnim = world.Get<SpriteAnimation>(entity);
-                    if (!prefabManipulator.IsDefaultSprite(spriteAnim, filedEntity.PrefabID))
-                    {
-                        AddExtraData(ref filedEntity,
-                            EntityExtraDataTypes.SpriteAnim, spriteAnim.SpriteAnimationInfo.Name
-                        );
-                    }
-                }
-
-                var angle = world.Has<Angle>(entity) ? world.Get<Angle>(entity).Value : 0.0f;
-                if (world.Has<RotatesWithDirection>(entity))
-                {
-                    angle = MathUtilities.AngleFromUnitVector(world.Get<Direction2D>(entity).Value);
-                }
-                if (angle != 0.0f)
-                {
-                    AddExtraData(ref filedEntity,
-                        EntityExtraDataTypes.AngleOverride, float.RadiansToDegrees(angle)
-                    );
-                }
-
-                filedEntities.Add(filedEntity);
-            }
-            filedLayer.Entities = filedEntities.ToArray();
-
-            filedLayers.Add(filedLayer);
-        }
-
-        filedLevel.Layers = filedLayers.ToArray();
-
-        var json = JsonSerializer.Serialize(filedLevel, typeof(FiledEditorLevel), JsonLevelContext);
-        Directory.CreateDirectory(levelContentPath);
-        var jsonOutputPath = Path.Combine(levelContentPath, Name + ".json");
-        File.WriteAllText(jsonOutputPath, json);
-    }
-    
-    public static LiveEditorLevel LoadFromFile(string jsonPath, World world, PrefabManipulator prefabManipulator)
-    {
-        UndoRedo.ClearChangeHistoryList();
-        UndoRedo.ClearRedoList();
-
-        var filedLevel = (FiledEditorLevel)JsonSerializer.Deserialize(
-            File.ReadAllText(jsonPath),
-            typeof(FiledEditorLevel),
-            JsonLevelContext
-        );
-
-        // filedLevel.SerializedVersion can be used here, if needed
-
-        var result = new LiveEditorLevel();
-        result.Name = filedLevel.Name;
-
-        foreach (var filedLayer in filedLevel.Layers)
-        {
-            var liveLayer = new Layer(filedLayer, result); // adds itself to lists in the ctor
-
-            foreach (var filedEntity in filedLayer.Entities)
-            {
-                // De-serialize ambiguously-typed values.
-                if (filedEntity.ExtraDataList != null)
-                {
-                    foreach (var (type, value) in filedEntity.ExtraDataList)
-                    {
-                        switch (type)
-                        {
-                            case EntityExtraDataTypes.AngleOverride:
-                                filedEntity.ExtraDataList[type] =
-                                    ((JsonElement)value).Deserialize(typeof(float), JsonLevelContext);
-                                break;
-                            case EntityExtraDataTypes.ColorBlendOverride:
-                                filedEntity.ExtraDataList[type] = Unsafe.BitCast<uint, Color>(
-                                    (uint)(
-                                        (JsonElement)value).Deserialize(typeof(uint), JsonLevelContext
-                                    )
-                                );
-                                break;
-                            case EntityExtraDataTypes.SpriteAnim:
-                                // FIXME: Optimize! Tiles probably don't need a unique SpriteAnimation, unless animated!
-                                filedEntity.ExtraDataList[type] = new SpriteAnimation(
-                                    SpriteAnimations.NameToInfoMap[
-                                        (string)((JsonElement)value).Deserialize(typeof(string), JsonLevelContext)
-                                    ]
-                                );
-                                break;
-                            default:
-                                Logger.LogError($"Unknown/unused extra data type: {type}");
-                                break;
-                        }
-                    }
-                }
-
-                // Spawn the entities
-                var maybeLiveEntity = prefabManipulator.TrySpawnPrefab(
-                    filedEntity.PrefabID,
-                    filedEntity.StartPosition,
-                    false,
-                    filedEntity.ExtraDataList
-                );
-
-                if (maybeLiveEntity.HasValue)
-                {
-                    world.Set(maybeLiveEntity.Value, liveLayer.LayerID);
-                    liveLayer.CachedEntities.Add(maybeLiveEntity.Value);
-                }
-            }
-        }
-        
-        return result;
+        public readonly Dictionary<string, Layer> Layers = new();
+        private List<Layer> LayerIDs = new();
     }
 
     public class Layer
     {
         public readonly Editor_LevelLayerID LayerID;
-        public readonly LiveEditorLevel Level;
+        public readonly Room Level;
+        public string Name;
+        public LevelLayerTypes LayerType { get; private set; }
+        public bool IsTiled => LayerType == LevelLayerTypes.VisualTileSet || LayerType == LevelLayerTypes.SolidTileSet;
+        // Applies to all images.
+        public Color ColorBlend { get; private set; } = Color.White;
+        public List<(SpriteAnimation, Color)> Images { get; private set; } = new();
+        public int ImagesPerRow = 8;
+        public float PreviewScaleMult = 1;
+        public float Depth { get; private set; } = (float)DepthLayer.DefaultDepth;
+        public bool IsDepthLocked => LayerType == LevelLayerTypes.SolidTileSet;
+        public bool IsVisible { get; private set; } = true;
+        public List<Entity> CachedEntities = new();
 
         public Layer(
-            Types layerType,
-            LiveEditorLevel level,
+            LevelLayerTypes layerType,
+            LiveEditorLevel.Room room,
             string name = null,
             float depth = (float)DepthLayer.DefaultDepth
             )
         {
             LayerType = layerType;
-            Level = level;
+            Room = room;
             Depth = depth;
 
             if (name == null)
@@ -253,23 +85,7 @@ public class LiveEditorLevel
             }
         }
 
-        public string Name;
-        public Types LayerType { get; private set; }
-        public bool IsTiled => LayerType == Types.VisualTile || LayerType == Types.SolidTile;
-        // Applies to all images.
-        public Color ColorBlend { get; private set; } = Color.White;
-        public List<(SpriteAnimation, Color)> Images { get; private set; } = new();
-        public int ImagesPerRow = 8;
-        public float PreviewScaleMult = 1;
-        public float Depth { get; private set; } = (float)DepthLayer.DefaultDepth;
-        public bool IsDepthLocked => LayerType == Types.SolidTile;
-        public bool IsVisible { get; private set; } = true;
-        public List<Entity> CachedEntities = new();
-
-        public Layer(
-            FiledEditorLevel.Layer filedLayer,
-            LiveEditorLevel level
-            )
+        public Layer(FiledLevel.Layer filedLayer, LiveEditorLevel level)
         {
             LayerType = filedLayer.TypeID;
             Level = level;
@@ -277,7 +93,7 @@ public class LiveEditorLevel
             Name = filedLayer.Name;
             ColorBlend = filedLayer.ColorBlend;
 
-            foreach (var (spriteAnimName, color) in filedLayer.Images)
+            foreach (var (spriteAnimName, color) in filedLayer.ColoredTileVariants)
             {
                 Images.Add(
                     (new SpriteAnimation(SpriteAnimations.NameToInfoMap[spriteAnimName]),
@@ -420,25 +236,14 @@ public class LiveEditorLevel
             Images.RemoveAt(layerImageID);
         }
 
-        public enum Types
-        {
-            Prefab = 0,
-            Image,
-            VisualTile,
-            SolidTile,
-            SELECTABLE_COUNT,
-            Unknown
-        }
-
-        public static string LayerTypeToString(Types layerType)
+        public static string LayerTypeToString(LevelLayerTypes layerType)
         {
             return layerType switch
             {
-                Types.Image => "Image",
-                Types.VisualTile => "Visual Tile",
-                Types.SolidTile => "Solid Tile",
-                Types.Prefab => "Prefab",
-                Types.Unknown => "Unknown/Dynamic",
+                LevelLayerTypes.Prefabs => "Prefab",
+                LevelLayerTypes.VisualTileSet => "Visual",
+                LevelLayerTypes.SolidTileSet =>  "Solid",
+                LevelLayerTypes.Unknown => "Unknown/Dynamic",
                 _ => "Invalid level layer type!"
             };
         }
@@ -488,6 +293,184 @@ public class LiveEditorLevel
     public Layer GetLayerFromID(Editor_LevelLayerID layerID)
     {
         return LayerIDs[layerID.ID];
+    }
+
+        static JsonSerializerOptions LevelSerializerOptions = new JsonSerializerOptions
+    {
+        IncludeFields = true,
+        WriteIndented = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
+
+    static FiledWorldContext JsonLevelContext = new(LevelSerializerOptions);
+
+    // FIXME: Create two files: one for the editor, one optimized for just the game.
+    public void SaveToFile(string levelContentPath, World world, PrefabManipulator prefabManipulator)
+    {
+        var filedLevel = new FiledLevel();
+        filedLevel.SerializedVersion = 1;
+        filedLevel.Name = Name;
+
+        var AddExtraData = (ref FiledLevel.Entity entity, EntityExtraDataTypes type, object value) =>
+        {
+            if (entity.ExtraDataList == null)
+            {
+                entity.ExtraDataList = new();
+            }
+            entity.ExtraDataList.Add(type, value);
+        };
+
+        List<FiledLevel.Layer> filedLayers = new();
+        foreach (var (_, layer) in Layers)
+        {
+            var filedLayer = new FiledLevel.Layer();
+            filedLayer.ColorBlend = layer.ColorBlend;
+            filedLayer.Depth = layer.Depth;
+            filedLayer.ImagesPerRow = layer.ImagesPerRow;
+            filedLayer.Name = layer.Name + " Layer";
+
+            var filedImages = new List<(string SpriteAnimName, Color)>();
+            foreach (var (spriteAnim, colorBlend) in layer.Images)
+            {
+                filedImages.Add(new(spriteAnim.SpriteAnimationInfo.Name, colorBlend));
+            }
+            filedLayer.ColoredTileVariants = filedImages.ToArray();
+
+            var filedEntities = new List<FiledLevel.Entity>();
+            foreach (var entity in layer.CachedEntities)
+            {
+                if (!world.Has<PrefabID>(entity))
+                {
+                    Logger.LogWarn($"{EditorSystem.EntityToString(world, entity)} in layer {layer.Name} couldn't be saved; it had no PrefabID.");
+                    continue;
+                }
+
+                var filedEntity = new FiledLevel.Entity();
+                filedEntity.PrefabID = world.Get<PrefabID>(entity).ID;
+                // FIXME: Get a "StartPosition" component instead?
+                filedEntity.StartPosition = world.Get<Position2D>(entity);
+
+                if (world.Has<ColorBlend>(entity))
+                {
+                    var colorBlend = world.Get<ColorBlend>(entity).Color;
+                    if (!prefabManipulator.IsDefaultColorBlend(colorBlend, filedEntity.PrefabID))
+                    {
+                        AddExtraData(ref filedEntity,
+                            EntityExtraDataTypes.ColorBlendOverride, colorBlend.PackedValue()
+                        );
+                    }
+                }
+
+                if (world.Has<SpriteAnimation>(entity))
+                {
+                    var spriteAnim = world.Get<SpriteAnimation>(entity);
+                    if (!prefabManipulator.IsDefaultSprite(spriteAnim, filedEntity.PrefabID))
+                    {
+                        AddExtraData(ref filedEntity,
+                            EntityExtraDataTypes.SpriteAnim, spriteAnim.SpriteAnimationInfo.Name
+                        );
+                    }
+                }
+
+                var angle = world.Has<Angle>(entity) ? world.Get<Angle>(entity).Value : 0.0f;
+                if (world.Has<RotatesWithDirection>(entity))
+                {
+                    angle = MathUtilities.AngleFromUnitVector(world.Get<Direction2D>(entity).Value);
+                }
+                if (angle != 0.0f)
+                {
+                    AddExtraData(ref filedEntity,
+                        EntityExtraDataTypes.AngleOverride, float.RadiansToDegrees(angle)
+                    );
+                }
+
+                filedEntities.Add(filedEntity);
+            }
+            filedLayer.Entities = filedEntities.ToArray();
+
+            filedLayers.Add(filedLayer);
+        }
+
+        filedLevel.Layers = filedLayers.ToArray();
+
+        var json = JsonSerializer.Serialize(filedLevel, typeof(FiledLevel), JsonLevelContext);
+        Directory.CreateDirectory(levelContentPath);
+        var jsonOutputPath = Path.Combine(levelContentPath, Name + ".json");
+        File.WriteAllText(jsonOutputPath, json);
+    }
+    
+    public static LiveEditorLevel LoadFromFile(string jsonPath, World world, PrefabManipulator prefabManipulator)
+    {
+        UndoRedo.ClearChangeHistoryList();
+        UndoRedo.ClearRedoList();
+
+        var filedLevel = (FiledLevel)JsonSerializer.Deserialize(
+            File.ReadAllText(jsonPath),
+            typeof(FiledLevel),
+            JsonLevelContext
+        );
+
+        // filedLevel.SerializedVersion can be used here, if needed
+
+        var result = new LiveEditorLevel();
+        result.Name = filedLevel.Name;
+
+        foreach (var filedLayer in filedLevel.Layers)
+        {
+            var liveLayer = new Layer(filedLayer, result); // adds itself to lists in the ctor
+
+            foreach (var filedEntity in filedLayer.Entities)
+            {
+                // De-serialize ambiguously-typed values.
+                if (filedEntity.ExtraDataList != null)
+                {
+                    foreach (var (type, value) in filedEntity.ExtraDataList)
+                    {
+                        switch (type)
+                        {
+                            case EntityExtraDataTypes.AngleOverride:
+                                filedEntity.ExtraDataList[type] =
+                                    ((JsonElement)value).Deserialize(typeof(float), JsonLevelContext);
+                                break;
+                            case EntityExtraDataTypes.ColorBlendOverride:
+                                filedEntity.ExtraDataList[type] = Unsafe.BitCast<uint, Color>(
+                                    (uint)(
+                                        (JsonElement)value).Deserialize(typeof(uint), JsonLevelContext
+                                    )
+                                );
+                                break;
+                            case EntityExtraDataTypes.SpriteAnim:
+                                // FIXME: Optimize! Tiles probably don't need a unique SpriteAnimation, unless animated!
+                                filedEntity.ExtraDataList[type] = new SpriteAnimation(
+                                    SpriteAnimations.NameToInfoMap[
+                                        (string)((JsonElement)value).Deserialize(typeof(string), JsonLevelContext)
+                                    ]
+                                );
+                                break;
+                            default:
+                                Logger.LogError($"Unknown/unused extra data type: {type}");
+                                break;
+                        }
+                    }
+                }
+
+                // Spawn the entities
+                var maybeLiveEntity = prefabManipulator.TrySpawnPrefab(
+                    filedEntity.PrefabID,
+                    filedEntity.StartPosition,
+                    false,
+                    filedEntity.ExtraDataList
+                );
+
+                if (maybeLiveEntity.HasValue)
+                {
+                    world.Set(maybeLiveEntity.Value, liveLayer.LayerID);
+                    liveLayer.CachedEntities.Add(maybeLiveEntity.Value);
+                }
+            }
+        }
+        
+        return result;
     }
 }
 

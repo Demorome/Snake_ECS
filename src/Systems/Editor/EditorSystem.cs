@@ -103,13 +103,13 @@ public class EditorSystem : MoonTools.ECS.System
 
             if (maybeLayer == null)
             {
-                var layerType = LiveEditorLevel.Layer.Types.Unknown;
+                var layerType = LevelLayerTypes.Unknown;
                 string layerName;
 
                 bool isInteger = depth == float.Floor(depth);
                 if (isInteger && Enum.IsDefined((DepthLayer)(int)depth))
                 {
-                    layerType = LiveEditorLevel.Layer.Types.Prefab;
+                    layerType = LevelLayerTypes.Prefabs;
                     layerName = $"{((DepthLayer)(int)depth).ToString()}";
                 }
                 else

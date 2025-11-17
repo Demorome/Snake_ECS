@@ -39,8 +39,11 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 
     // To write outside of bin/Debug, in order to get to .csproj location. For editor use only; never ship this!
     // FIXME: This may break on you if you have a different deployment structure!
-    private static string LevelContentPath =
+    private static string OptimizedLevelContentPath =
         Path.Combine(@"../../../", Path.Combine("Content", "Levels"))
+    ;
+    private static string EditorLevelContentPath =
+        Path.Combine(@"../../../", Path.Combine("EditorContent", "Levels"))
     ;
 
     // Layout inspired by Elias Daler's tutorial series: https://edw.is/using-imgui-with-sfml-pt1/
@@ -73,7 +76,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             {
                 // TODO: Create backups of previous level file if possible!
 
-                Level.SaveToFile(LevelContentPath, World, PrefabManipulator);
+                Level.SaveToFile(EditorLevelContentPath, World, PrefabManipulator);
             }
             if (Level.Name == null || Level.Name.Length == 0)
             {
@@ -94,13 +97,12 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 
             if (ImGui.BeginPopup("##LoadLevelPopup"u8))
             {
-                foreach (var ??)
+                foreach (var levelPathStr in Directory.GetFiles(EditorLevelContentPath))
                 {
-                    // TODO: based on existing level files in Content/Levels
-                    if (ImGui.Button())
+                    if (ImGui.Button(levelPathStr))
                     {
-                        LoadFromFile
-                        
+                        // FIXME: Unload everything from the current level first!!!
+                        Level = LiveEditorLevel.LoadFromFile(levelPathStr, World, PrefabManipulator);
                     }
                 }
                 ImGui.EndPopup();
@@ -174,8 +176,8 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 
             switch (activeLayer.LayerType)
             {
-                case LiveEditorLevel.Layer.Types.VisualTile:
-                case LiveEditorLevel.Layer.Types.SolidTile:
+                case LevelLayerTypes.VisualTileSet:
+                case LevelLayerTypes.SolidTileSet:
                     if (imagesToPaint.Count == 1 || ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                     {
                         if (imagesToPaint.Count == 1 && !IsDragCreating)
@@ -211,7 +213,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                             if (spawn)
                             {
                                 Entity newEntity;
-                                if (activeLayer.LayerType == LiveEditorLevel.Layer.Types.SolidTile)
+                                if (activeLayer.LayerType == LevelLayerTypes.SolidTileSet)
                                 {
                                     newEntity = TileManipulator.SpawnSolidTile(tileWorldPos, imageSprite);
                                 }
@@ -232,7 +234,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                         }
                     }
                     break;
-                case LiveEditorLevel.Layer.Types.Image:
+                case LevelLayerTypes.Image:
                     if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                     {
                         var (spriteAnim, color, position, layerImageID) = imagesToPaint[0];
@@ -448,14 +450,14 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             if (ImGui.BeginPopup("ChooseLayerType"u8))
             {
                 ImGui.SeparatorText("Layer Type"u8);
-                for (int i = 0; i < (int)LiveEditorLevel.Layer.Types.SELECTABLE_COUNT; ++i)
+                for (int i = 0; i < (int)LevelLayerTypes.SELECTABLE_IN_EDITOR_MAX; ++i)
                 {
-                    var layerType = (LiveEditorLevel.Layer.Types)i;
+                    var layerType = (LevelLayerTypes)i;
                     var layerTypeStr = LiveEditorLevel.Layer.LayerTypeToString(layerType);
                     if (ImGui.Selectable(layerTypeStr))
                     {
                         var newLayerDepth = (float)DepthLayer.DefaultDepth;
-                        if (layerType == LiveEditorLevel.Layer.Types.SolidTile)
+                        if (layerType == LevelLayerTypes.SolidTileSet)
                         {
                             newLayerDepth = (float)DepthLayer.SolidObject;
                         }
@@ -535,8 +537,8 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             {
                 switch (layer.LayerType)
                 {
-                    case LiveEditorLevel.Layer.Types.SolidTile:
-                    case LiveEditorLevel.Layer.Types.VisualTile:
+                    case LevelLayerTypes.SolidTileSet:
+                    case LevelLayerTypes.VisualTileSet:
                         TileLayerMenuStatic.Show(layer, World);
                         break;
                     default:
