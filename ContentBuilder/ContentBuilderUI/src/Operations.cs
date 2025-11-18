@@ -19,7 +19,8 @@ public enum DirectoryType
     Fonts,
     Shaders,
     Textures,
-    Data
+    Data,
+    TileSets
 }
 
 public class TrackedDirectory
@@ -99,6 +100,7 @@ public class Preferences
 public static class Operations
 {
     public static ContentGroup Sprites;
+    public static ContentGroup TileSets;
     public static ContentGroup Audio;
     public static ContentGroup Fonts;
     public static ContentGroup Other;
@@ -121,6 +123,7 @@ public static class Operations
         Directory.CreateDirectory(PreferencesFolderLocation);
         LoadPreferences();
         Sprites = new ContentGroup("Sprites");
+        TileSets = new ContentGroup("TileSets");
         Audio = new ContentGroup("Audio");
         Fonts = new ContentGroup("Fonts");
         Other = new ContentGroup("Other");
@@ -179,6 +182,7 @@ public static class Operations
         AllTrackedDirectories.Clear();
         Sprites.Clear();
         Audio.Clear();
+        TileSets.Clear();
 
         var contentDir = Preferences.SourceContentDirectoryPath;
 
@@ -205,6 +209,13 @@ public static class Operations
 
         // Data
         TrackDirectory(Path.Combine(contentDir, "Data"), DirectoryType.Data);
+
+        // TileSets
+        var tileSetDir = new DirectoryInfo(Path.Combine(contentDir, "TileSets"));
+        foreach (var directory in tileSetDir.GetDirectories())
+        {
+            TrackDirectory(directory.FullName, DirectoryType.TileSets);
+        }
     }
 
     private static void TrackDirectory(string path, DirectoryType directoryType)
@@ -226,6 +237,10 @@ public static class Operations
         else if (directoryType == DirectoryType.Fonts)
         {
             Fonts.Add(trackedDirectory);
+        }
+        else if (directoryType == DirectoryType.TileSets)
+        {
+            TileSets.Add(trackedDirectory);
         }
         else
         {
@@ -319,6 +334,11 @@ public static class Operations
 
             case DirectoryType.Data:
                 Processor.CopyData(source, output);
+                break;
+
+            case DirectoryType.TileSets:
+                WriteOutput("Processing a TileSet: " + subFolderName);
+                Processor.ProcessTileSet(source, output, classOutput, subFolderName);
                 break;
 
             default:

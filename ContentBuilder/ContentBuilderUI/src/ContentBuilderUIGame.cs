@@ -173,6 +173,8 @@ namespace ContentBuilderUI
 			{
 				DrawContentGroup(Operations.Sprites);
 				ImGui.Separator();
+				DrawContentGroup(Operations.TileSets);
+				ImGui.Separator();
 				DrawContentGroup(Operations.Audio);
 				ImGui.Separator();
 				DrawContentGroup(Operations.Fonts);

@@ -128,6 +128,19 @@ namespace ContentProcessor
 			GenerateSpriteAnimationsClass(spriteDir, outputDir, classOutputDir);
 		}
 
+		public static void ProcessSpriteFolder(DirectoryInfo sourceDir, DirectoryInfo outputDir, DirectoryInfo classOutputDir, string subFolder)
+		{
+			var spriteDir = new DirectoryInfo(Path.Combine(sourceDir.FullName, "Sprites"));
+			var textureOutputDir = new DirectoryInfo(Path.Combine(outputDir.FullName, "Textures"));
+
+			var subdirectory = new DirectoryInfo(Path.Combine(spriteDir.FullName, subFolder));
+
+			ProcessTexturePage(subdirectory, textureOutputDir);
+
+			GenerateTextureAtlasesClass(outputDir, classOutputDir);
+			GenerateSpriteAnimationsClass(spriteDir, outputDir, classOutputDir);
+		}
+
 		public static void ProcessTextures(DirectoryInfo sourceDir, DirectoryInfo outputDir)
 		{
 			WriteOutput("Processing textures...");
@@ -155,17 +168,66 @@ namespace ContentProcessor
 			}
 		}
 
-		public static void ProcessSpriteFolder(DirectoryInfo sourceDir, DirectoryInfo outputDir, DirectoryInfo classOutputDir, string subFolder)
+		public static void ProcessTileSet(
+			DirectoryInfo sourceDir, 
+			DirectoryInfo outputDir, 
+			DirectoryInfo classOutputDir,
+			string subFolder 
+			)
 		{
-			var spriteDir = new DirectoryInfo(Path.Combine(sourceDir.FullName, "Sprites"));
-			var textureOutputDir = new DirectoryInfo(Path.Combine(outputDir.FullName, "Textures"));
+			WriteOutput("Processing tilesets...");
 
-			var subdirectory = new DirectoryInfo(Path.Combine(spriteDir.FullName, subFolder));
+			var sourceTileSetDir = new DirectoryInfo(Path.Combine(sourceDir.FullName, "TileSets"));
+			var sourceSubDir = new DirectoryInfo(Path.Combine(sourceTileSetDir.FullName, subFolder));
+			var tileTextureOutputDir = new DirectoryInfo(Path.Combine(outputDir.FullName, Path.Combine("Textures", "TileSets")));
+			
+			if (!tileTextureOutputDir.Exists)
+            {
+                CreateOrClearDirectory(tileTextureOutputDir);
+            }
 
-			ProcessTexturePage(subdirectory, textureOutputDir);
+			if (sourceTileSetDir.Exists)
+			{
+				var pngs = sourceSubDir.GetFiles("*.png");
+				if (pngs.Length == 0)
+                {
+                    Logger.LogWarn($"No PNG detected for tileset in folder '{subFolder}' !");
+					return;
+                }
 
-			GenerateTextureAtlasesClass(outputDir, classOutputDir);
-			GenerateSpriteAnimationsClass(spriteDir, outputDir, classOutputDir);
+				var tileSetName = Path.GetFileNameWithoutExtension(pngs[0].FullName);
+
+				if (sourceSubDir.GetFiles("*.json").Length == 0)
+                {
+					var tileSetImagePath = pngs[0].FullName;
+					var (width, height) = GetPNGSize(tileSetImagePath);
+
+                    // Auto-generate a default JSON file.
+					TileSetAtlasData data = new();
+					data.Name = tileSetName;
+					data.TileSize = 16;  // TODO: Don't hardcode this?
+					data.PixelHeight = height;
+					data.PixelWidth = width;
+
+					TileSetAtlasWriter.Write(data, Path.Join(sourceSubDir.FullName, tileSetName + ".json"));
+                	Logger.LogWarn($"Auto-generated a tileset's json metadata in '{subFolder}', for {tileSetName}.");
+				}
+
+				foreach (var file in sourceSubDir.EnumerateFiles())
+				{
+					var destination = Path.Combine(tileTextureOutputDir.FullName, file.Name);
+
+					if (File.Exists(destination))
+					{
+						File.Delete(destination);
+					}
+
+					File.Copy(file.FullName, destination);
+				}
+
+				GenerateTileSetAtlasesClass(outputDir, classOutputDir);
+				GenerateTileSetsClass(outputDir, classOutputDir);
+			}
 		}
 
 		public static void ProcessLevels(DirectoryInfo sourceDir, DirectoryInfo outputDir, DirectoryInfo classOutputDir)
@@ -929,6 +991,102 @@ namespace RollAndCash.Content
 
 			var classPath = Path.Combine(classOutputDir.FullName, "SpriteAnimations.cs");
 			File.WriteAllText(classPath, spriteAnimationsClassCode);
+		}
+
+		private static void GenerateTileSetAtlasesClass(DirectoryInfo outputDir, DirectoryInfo classOutputDir)
+		{
+			var tileTextureDir = new DirectoryInfo(Path.Combine(outputDir.FullName, Path.Combine("Textures", "TileSets")));
+
+			var readStrings = new List<string>();
+			var definitionStrings = new List<string>();
+			var assignmentStrings = new List<string>();
+
+			foreach (var file in tileTextureDir.GetFiles("*.json"))
+			{
+				var name = Path.GetFileNameWithoutExtension(file.Name);
+				readStrings.Add($"TileSetAtlasReader.ReadTileSetAtlas(GraphicsDevice, {name});");
+				assignmentStrings.Add($"asyncFileLoader.EnqueueCompressedImageLoad(Path.ChangeExtension({name}.JsonFilePath, \".png\"), {name}.Texture);");
+				definitionStrings.Add($"public static TileSet {name} = new TileSet(Path.Combine(TileTextureContentPath, \"{file.Name}\"));");
+			}
+
+			var tileSetAtlasesClassCode = $@"
+using System.IO;
+using RollAndCash.Data;
+using MoonWorks.AsyncIO;
+using MoonWorks.Graphics;
+
+namespace RollAndCash.Content
+{{
+	public static class TileSetAtlases
+	{{
+		public static GraphicsDevice GraphicsDevice {{ get; private set; }}
+		public static string TileTextureContentPath = Path.Combine(System.AppContext.BaseDirectory, ""Content"", Path.Combine(""Textures"", ""TileSets""));
+		
+		public static void Init(GraphicsDevice graphicsDevice)
+		{{
+			GraphicsDevice = graphicsDevice;
+			{string.Join("\n\t\t\t", readStrings)}
+		}}
+
+		public static void EnqueueLoadAllImages(AsyncFileLoader asyncFileLoader)
+		{{
+			{string.Join("\n\t\t\t", assignmentStrings)}
+		}}
+
+		{string.Join("\n\t\t", definitionStrings)}
+	}}
+}}
+			";
+
+			classOutputDir.Create();
+
+			var classPath = Path.Combine(classOutputDir.FullName, "TileSetsAtlases.cs");
+			File.WriteAllText(classPath, tileSetAtlasesClassCode);
+		}
+
+		private static void GenerateTileSetsClass(DirectoryInfo outputDir, DirectoryInfo classOutputDir)
+		{
+			var tileTextureDir = new DirectoryInfo(Path.Combine(outputDir.FullName, Path.Combine("Textures", "TileSets")));
+
+			var lookupStrings = new List<string>();
+
+			foreach (var file in tileTextureDir.GetFiles("*.json"))
+			{
+				var name = Path.GetFileNameWithoutExtension(file.Name);
+
+				var lookupString = $"{{ \"{name}\", {"TileSetAtlases." + name} }}";
+				lookupStrings.Add(lookupString);
+			}
+
+			var tileSetsClassCode = $@"
+using System.Collections.Generic;
+using RollAndCash.Data;
+
+namespace RollAndCash.Content
+{{
+	public static class TileSets
+	{{
+		public static bool Loaded = false;
+		public static Dictionary<string, TileSet> NameToTileSet {{get; private set;}}
+
+		public static IEnumerable<string> Names => NameToTileSet.Keys;
+
+		public static void LoadAll()
+		{{
+			NameToTileSet = new Dictionary<string, TileSet>
+			{{
+				{string.Join(",\n\t\t\t\t", lookupStrings)}
+			}};
+			Loaded = true;
+		}}
+	}}
+}}
+			";
+
+			classOutputDir.Create();
+
+			var classPath = Path.Combine(classOutputDir.FullName, "TileSets.cs");
+			File.WriteAllText(classPath, tileSetsClassCode);
 		}
 
 		static void GenerateLevelsClass(DirectoryInfo levelDir, DirectoryInfo levelOutputDir, DirectoryInfo classOutputDir)
