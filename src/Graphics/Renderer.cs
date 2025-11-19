@@ -626,6 +626,11 @@ public class Renderer : MoonTools.ECS.Renderer
 		ArtSpriteBatch.Upload(commandBuffer); // Copy and Compute passes happen here!
 		TextBatch.UploadBufferData(commandBuffer);
 		TriangleBatch.Upload(commandBuffer);
+		
+		foreach (var (texture, batch) in TileSpriteBatches)
+        {        
+			batch.Upload(commandBuffer);
+        }
 
 		#region RENDER PASS
 		var renderPass = commandBuffer.BeginRenderPass(
