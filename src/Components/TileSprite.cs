@@ -10,12 +10,15 @@ namespace RollAndCash.Components;
 public struct TileSprite
 {
 	public TileSetID TileSetID { get; }
+	public TileSetVariantID TileSetVariantID;
 	public Vector2 PixelPos { get; } // the pixel position on the texture
+	public Vector2 Origin => PixelPos;
     public Vector2 TilePos => new Vector2(PixelPos.X, PixelPos.Y) / TileSize;
 	public UV UV { get; }
 
+	public static TileSprite FromID(TileID TileID) => TileSet.GetTileSprite(TileID);
 	public TileSet TileSet => TileSet.FromID(TileSetID);
-	public Texture Texture => TileSet.Texture;
+	public Texture Texture => TileSet.GetTextureForVariant(TileSetVariantID);
 	public int TileSize => TileSet.TileSize;
 
 	public TileSprite(
@@ -24,6 +27,7 @@ public struct TileSprite
 	)
 	{
 		TileSetID = tileSet.ID;
+		TileSetVariantID = new(0);
 		PixelPos = pixelPos;
 		UV = new UV(
 			new Vector2((float)PixelPos.X / tileSet.PixelWidth, (float)PixelPos.Y / tileSet.PixelHeight),

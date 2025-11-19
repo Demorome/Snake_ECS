@@ -16,6 +16,7 @@ using MoonWorks.Input;
 using RollAndCash.Systems;
 using Hexa.NET.ImGui;
 using RollAndCash.Editor;
+using RollAndCash.Data;
 
 namespace RollAndCash;
 
@@ -25,8 +26,12 @@ public class Renderer : MoonTools.ECS.Renderer
 	GraphicsPipeline TextPipeline;
 	TextBatch TextBatch;
 	TriangleBatch TriangleBatch;
-
 	SpriteBatch ArtSpriteBatch;
+
+	// Its size should only change if a TileSet or TileSetVariant is added/removed from the Editor.
+	// Otherwise, creating new SpriteBatches could slow things down, unless we really need the GPU space.
+	List<(Texture, SpriteBatch)> TileSpriteBatches;
+
 #if DEBUG
 	SpriteBatch EditorSpriteBatch;
 	EditorSystem EditorSystem;
@@ -45,6 +50,8 @@ public class Renderer : MoonTools.ECS.Renderer
 	MoonTools.ECS.Filter TextFilter;
 	MoonTools.ECS.Filter SpriteAnimationFilter;
 	MoonTools.ECS.Filter DetectionConeFilter;
+	MoonTools.ECS.Filter TileFilter; 
+	// TODO: Support TileAnimations here too!
 #if DEBUG
 	MoonTools.ECS.Filter ColliderFilter;
 #endif
@@ -65,6 +72,8 @@ public class Renderer : MoonTools.ECS.Renderer
 		TextFilter = FilterBuilder.Include<Text>().Include<Position2D>().Build();
 		SpriteAnimationFilter = FilterBuilder.Include<SpriteAnimation>().Include<Position2D>().Build();
 		DetectionConeFilter = FilterBuilder.Include<CanDetect>().Include<Position2D>().Include<DrawDetectionCone>().Build();
+		TileFilter = FilterBuilder.Include<TileID>().Include<Position2D>().Build();
+
 #if DEBUG
 		ColliderFilter = FilterBuilder.Include<Rectangle>().Include<Position2D>().Build();
 		EditorSystem = editorSystem;
@@ -125,6 +134,28 @@ public class Renderer : MoonTools.ECS.Renderer
 #endif
 
 		TriangleBatch = new TriangleBatch(GraphicsDevice, titleStorage, swapchainFormat, TextureFormat.D16Unorm);
+
+		TileSpriteBatches = new();
+		foreach (var (_, tileSet) in TileSets.NameToTileSet)
+        {
+			TileSpriteBatches.Add(
+				new (tileSet.DefaultTexture, 
+					new SpriteBatch(GraphicsDevice, titleStorage, swapchainFormat, TextureFormat.D16Unorm)
+				)
+			);
+            
+			foreach (var variantTileSet in tileSet.VariantTileSets)
+            {
+                if (variantTileSet.Texture != tileSet.DefaultTexture)
+                {
+                    TileSpriteBatches.Add(
+						new (variantTileSet.Texture, 
+							new SpriteBatch(GraphicsDevice, titleStorage, swapchainFormat, TextureFormat.D16Unorm)
+						)
+					);
+                }
+            }
+        }
 	}
 
 	private Color GetColorBlend(Entity e)
@@ -195,6 +226,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			);
 		}
 
+		#region SPRITE RENDERING
 		foreach (var entity in SpriteAnimationFilter.Entities)
 		{
 			if (HasOutRelation<DontDraw>(entity))
@@ -262,7 +294,82 @@ public class Renderer : MoonTools.ECS.Renderer
 				sprite.UV.Dimensions
 			);
 		}
+		#endregion SPRITE RENDERING
 
+		#region TILE RENDERING
+		foreach (var entity in TileFilter.Entities)
+        {
+            if (HasOutRelation<DontDraw>(entity))
+				continue;
+
+			var position = Get<Position2D>(entity);
+			var tileID = Get<TileID>(entity);
+			var tileSprite = TileSprite.FromID(tileID);
+			var origin = tileSprite.Origin;
+			var depth = -(float)DepthLayer.DefaultDepth;
+			var orientation = Has<Angle>(entity) ? Get<Angle>(entity).Value : 0.0f;
+			var color = GetColorBlend(entity);
+
+			Vector2 scale = Vector2.One;
+			if (Has<SpriteScale>(entity))
+			{
+				scale = Get<SpriteScale>(entity).Scale;
+			}
+			/* I doubt this will actually be used here.
+			if ((OutRelationCount<FlippedHorizontally>(entity) % 2) == 1)
+			{
+				scale.X *= -1;
+			}
+			if ((OutRelationCount<FlippedVertically>(entity) % 2) == 1)
+			{
+				scale.Y *= -1;
+			}*/
+			origin *= scale;
+
+			if (orientation != 0.0f)
+			{
+				origin = MathUtilities.Rotate(origin, orientation);
+			}
+
+			var offset = -origin - new Vector2(tileSprite.PixelPos.X, tileSprite.PixelPos.Y) * scale;
+
+			if (Has<Alpha>(entity))
+			{
+				color.A = Get<Alpha>(entity).Value;
+			}
+
+			if (Has<Depth>(entity))
+			{
+				depth = -Get<Depth>(entity).Value;
+			}
+
+			bool found = false;
+			foreach (var (texture, batch) in TileSpriteBatches)
+            {
+				// We shouldn't have many textures to check, so O(n) should be fine.
+                if (tileSprite.Texture.Handle == texture.Handle)
+                {
+                    batch.Add(
+						new Vector3(position.X + offset.X, position.Y + offset.Y, depth),
+						orientation,
+						new Vector2(tileSprite.TileSize, tileSprite.TileSize) * scale,
+						color,
+						tileSprite.UV.LeftTop,
+						tileSprite.UV.Dimensions
+					);
+
+					found = true;
+					break;
+                }
+            }
+			if (!found)
+            {
+                Logger.LogError($"Couldn't find texture for a tile sprite: {tileID}");
+            }
+        }
+		#endregion TILE RENDERING
+
+		#region TEXT RENDERING
 		TextBatch.Start();
 		foreach (var entity in TextFilter.Entities)
 		{
@@ -315,6 +422,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			);
 
 		}
+		#endregion TEXT RENDERING
 
 		TriangleBatch.Start();
 		foreach (var entity in DetectionConeFilter.Entities)
@@ -360,36 +468,6 @@ public class Renderer : MoonTools.ECS.Renderer
 				prevOther = other;
 			}
 		}
-
-		ArtSpriteBatch.Upload(commandBuffer); // Copy and Compute passes happen here!
-		TextBatch.UploadBufferData(commandBuffer);
-		TriangleBatch.Upload(commandBuffer);
-
-		#region RENDER PASS START
-		var renderPass = commandBuffer.BeginRenderPass(
-			new DepthStencilTargetInfo(DepthTexture, 1, 0),
-			new ColorTargetInfo(RenderTexture, Color.Black)
-		);
-
-		var viewProjectionMatrices = new ViewProjectionMatrices(GetCameraMatrix(), GetProjectionMatrix());
-
-		if (ArtSpriteBatch.InstanceCount > 0)
-		{
-			ArtSpriteBatch.Render(renderPass, SpriteAtlasTexture, PointSampler, viewProjectionMatrices);
-		}
-
-		if (TriangleBatch.InstanceCount > 0)
-		{
-			TriangleBatch.Render(renderPass, viewProjectionMatrices);
-		}
-
-		renderPass.BindGraphicsPipeline(TextPipeline);
-		TextBatch.Render(renderPass, GetCameraMatrix() * GetProjectionMatrix());
-
-		commandBuffer.EndRenderPass(renderPass);
-		#endregion RENDER PASS START
-
-		commandBuffer.Blit(RenderTexture, swapchainTexture, MoonWorks.Graphics.Filter.Nearest);
 
 		#region EDITOR RENDERING
 #if DEBUG
@@ -518,7 +596,6 @@ public class Renderer : MoonTools.ECS.Renderer
 			}
 		}
 
-
 		if (!EditorSystem.LevelEditor.HasSelectedPrefab)
 		{
             var selectedSpritesToPaint = EditorSystem.LevelEditor.GetLayerImagesToPaint();
@@ -542,23 +619,52 @@ public class Renderer : MoonTools.ECS.Renderer
 			}
         }
 
-
 		EditorSpriteBatch.Upload(commandBuffer);
+#endif
+		#endregion EDITOR RENDERING
 
-		// FIXME: Support depth texture somehow? Eh, drawing over everything is fine for now.
-		var editorRenderPass = commandBuffer.BeginRenderPass(
-			/*new DepthStencilTargetInfo(DepthTexture, 1, 0),*/
-			new ColorTargetInfo(swapchainTexture, LoadOp.Load)
+		ArtSpriteBatch.Upload(commandBuffer); // Copy and Compute passes happen here!
+		TextBatch.UploadBufferData(commandBuffer);
+		TriangleBatch.Upload(commandBuffer);
+
+		#region RENDER PASS
+		var renderPass = commandBuffer.BeginRenderPass(
+			new DepthStencilTargetInfo(DepthTexture, 1, 0),
+			new ColorTargetInfo(RenderTexture, Color.Black)
 		);
 
+		var viewProjectionMatrices = new ViewProjectionMatrices(GetCameraMatrix(), GetProjectionMatrix());
+
+		if (ArtSpriteBatch.InstanceCount > 0)
+		{
+			ArtSpriteBatch.Render(renderPass, SpriteAtlasTexture, PointSampler, viewProjectionMatrices);
+		}
+		if (TriangleBatch.InstanceCount > 0)
+		{
+			TriangleBatch.Render(renderPass, viewProjectionMatrices);
+		}
+#if DEBUG
 		if (EditorSpriteBatch.InstanceCount > 0)
 		{
 			EditorSpriteBatch.Render(renderPass, SpriteAtlasTexture, PointSampler, viewProjectionMatrices);
 		}
+#endif
+
+		foreach (var (texture, batch) in TileSpriteBatches)
+        {        
+			if (batch.InstanceCount > 0)
+			{
+				batch.Render(renderPass, texture, PointSampler, viewProjectionMatrices);
+			}
+        }
+
+		renderPass.BindGraphicsPipeline(TextPipeline);
+		TextBatch.Render(renderPass, GetCameraMatrix() * GetProjectionMatrix());
 
 		commandBuffer.EndRenderPass(renderPass);
-#endif
-		#endregion EDITOR RENDERING
+		#endregion RENDER PASS
+
+		commandBuffer.Blit(RenderTexture, swapchainTexture, MoonWorks.Graphics.Filter.Nearest);
 	}
 
 	// World-to-View matrix
