@@ -58,7 +58,7 @@ public class TileLayerMenu
     const string TileSpritePrefix = "Tile_";
     const string TileSetPrefix = "TileSet_";
     unsafe ImGuiTextFilterPtr TileSearchFilter = new(ImGui.ImGuiTextFilter(""u8));
-    void DrawTileSetSelectionPopup(LiveEditorLevel.Layer levelLayer)
+    void DrawTileSetSelectionPopup(LiveLevel.EditorLayer levelLayer)
     {
         if (ImGui.BeginPopup("##AddTileset"))
         {
@@ -97,13 +97,13 @@ public class TileLayerMenu
         }
     }
 
-    private bool IsLayerImageInvalid(int layerImageID, LiveEditorLevel.Layer levelLayer)
+    private bool IsLayerImageInvalid(int layerImageID, LiveLevel.EditorLayer levelLayer)
     {
         return levelLayer.Images[layerImageID].Item1.SpriteAnimationInfoID
             == SpriteAnimations.EditorTile_InvalidTile.ID;
     }
 
-    void UpdateMultiImagePaintSelection(LiveEditorLevel.Layer levelLayer, int? toAddIndex = null, int? toRemoveIndex = null)
+    void UpdateMultiImagePaintSelection(LiveLevel.EditorLayer levelLayer, int? toAddIndex = null, int? toRemoveIndex = null)
     {
         // LayerImageIDs may be invalid here, for odd selection schemes.
         // Ex: picking 2 sprites that are diagonal from each other.
@@ -168,7 +168,7 @@ public class TileLayerMenu
         }
     }
 
-    private void HandleMultiSelectRequests(ImGuiMultiSelectIOPtr multiSelectIO, LiveEditorLevel.Layer levelLayer)
+    private void HandleMultiSelectRequests(ImGuiMultiSelectIOPtr multiSelectIO, LiveLevel.EditorLayer levelLayer)
     {
         for (int requestNum = 0; requestNum < multiSelectIO.Requests.Size; ++requestNum)
         {
@@ -237,7 +237,7 @@ public class TileLayerMenu
         }
     }
 
-    void DrawTileSpriteReplacementsPopup(LiveEditorLevel.Layer levelLayer, World World)
+    void DrawTileSpriteReplacementsPopup(LiveLevel.EditorLayer levelLayer, World World)
     {
         if (ImGui.BeginPopup("##SelectTileSprite"))
         {
@@ -259,7 +259,7 @@ public class TileLayerMenu
                         var spriteID = SpriteAnimations.NameToInfoMap[spriteName].ID;
                         var spriteAnimInfo = SpriteAnimationInfo.FromID(spriteID);
                         var sprite = new SpriteAnimation(spriteAnimInfo);
-                        levelLayer.ReplaceImage(LayerImageToReplaceID, sprite, World);
+                        levelLayer.ReplaceVisualSet(LayerImageToReplaceID, sprite, World);
                         LayerImageToReplaceID = -1;
                         break;
                     }
@@ -273,7 +273,7 @@ public class TileLayerMenu
         }
     }
 
-    public void Show(LiveEditorLevel.Layer tileLayer, World World)
+    public void Show(LiveLevel.EditorLayer tileLayer, World World)
     {
         if (ImGui.InputInt("Tiles per row", ref tileLayer.ImagesPerRow))
         {
@@ -474,7 +474,7 @@ public class TileLayerMenu
             ImGui.EndDisabled();
         }
 
-        var colorBlendVec = tileLayer.ColorBlend.ToVector4();
+        var colorBlendVec = tileLayer.Color.ToVector4();
         if (ImGui.ColorEdit4("Layer Color Blend", ref colorBlendVec))
         {
             tileLayer.ChangeLayerColorBlend(new Color(colorBlendVec), World);

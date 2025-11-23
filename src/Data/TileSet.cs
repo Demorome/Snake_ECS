@@ -9,21 +9,13 @@ using RollAndCash.Content;
 
 namespace RollAndCash.Data;
 
-// In non-debug builds, this is only used when instantiating tiles.
-// Otherwise, in the debug-mode Editor, tiles can be 'painted' with this metadata.
-[Flags]
-public enum FiledTileMetadata 
-{
-    IsAnimated              = 1 << 0,
-    // Ex: "IsWater", "IsLava", "IsSpike", "HasUniqueColliderShape", etc.
-}
-
 public readonly record struct TileSetID(ushort ID);
 
 // A TileSetVariantID of 0 means using the default TileSet.
 public readonly record struct TileSetVariantID(byte ID);
+public readonly record struct PositionInVisualSet(ushort X, ushort Y);
 
-public readonly record struct TileID(ushort TileX, ushort TileY, TileSetID TileSetID, TileSetVariantID VariantID = default);
+public readonly record struct TileID(PositionInVisualSet PosInSet, TileSetID TileSetID, TileSetVariantID VariantID = default);
 
 public class TileSet
 {
@@ -38,11 +30,11 @@ public class TileSet
     public int TileHeight, TileWidth;
     public Texture DefaultTexture { get; private set; } = null;
 
-#if DEBUG
-    public List<List<FiledTileMetadata>> PerTileMetadata = new();
-
-    // TODO: Support per-tile collision shapes, should we need it.
-#endif
+    // So that we can automatically assign a PrefabID, flags & extradata to certain tiles when we spawn them.
+    // Tiles not contained here must automatically be purely visual with nothing special going on.
+    public Dictionary<PositionInVisualSet, 
+        (PrefabID, FiledEntity.Flags, FiledEntity.ExtraSpawnInfo?)> 
+        TileMetadata = new();
 
     private TileSprite[,] TileSprites = null;
 
@@ -68,16 +60,54 @@ public class TileSet
     public static TileSprite GetTileSprite(TileID TileID)
     {
         var tileSet = IDLookup[TileID.TileSetID.ID];
-        var tileSprite = tileSet.TileSprites[TileID.TileX, TileID.TileY];
+        var tileSprite = tileSet.TileSprites[TileID.PosInSet.X, TileID.PosInSet.Y];
         tileSprite.TileSetVariantID = TileID.VariantID;
         return tileSprite;
+    }
+
+    public static (PrefabID, FiledEntity.Flags, FiledEntity.ExtraSpawnInfo?) 
+        GetTileMetadata(TileID TileID)
+    {
+        var tileSet = IDLookup[TileID.TileSetID.ID];
+
+        (PrefabID, FiledEntity.Flags, FiledEntity.ExtraSpawnInfo?) result;
+        if (tileSet.TileMetadata.ContainsKey(TileID.PosInSet))
+        {
+            result = tileSet.TileMetadata[TileID.PosInSet];
+        }
+        else
+        {
+            result = (new PrefabID(Prefabs.VisualTile), FiledEntity.Flags.None, null);
+        }
+
+        if (TileID.VariantID.ID != 0)
+        {
+            var variantTileSet = tileSet.VariantTileSets[TileID.VariantID.ID];
+            var maybeMetadataOverride = variantTileSet.GetTileTileMetadataOverride(TileID.PosInSet);
+            if (maybeMetadataOverride.HasValue)
+            {
+                if (maybeMetadataOverride.Value.Item1.HasValue)
+                {
+                    result.Item1 = maybeMetadataOverride.Value.Item1.Value;
+                }
+                if (maybeMetadataOverride.Value.Item2.HasValue)
+                {
+                    result.Item2 = maybeMetadataOverride.Value.Item2.Value;
+                }
+                if (maybeMetadataOverride.Value.Item3 != null)
+                {
+                    result.Item3 = maybeMetadataOverride.Value.Item3;
+                }
+            }
+        }
+        return result;
     }
 
     // Only used when loading a TileSprite as an entity, to set initial ColorBlend.
     public static (TileSprite, Color) GetTileSpriteAndColor(TileID TileID)
     {
         var tileSet = IDLookup[TileID.TileSetID.ID];
-        var tileSprite = tileSet.TileSprites[TileID.TileX, TileID.TileY];
+        var tileSprite = tileSet.TileSprites[TileID.PosInSet.X, TileID.PosInSet.Y];
         tileSprite.TileSetVariantID = TileID.VariantID;
 
         if (TileID.VariantID.ID == 0)
@@ -87,7 +117,7 @@ public class TileSet
         else
         {
             var variantTileSet = tileSet.VariantTileSets[TileID.VariantID.ID];
-            return new(tileSprite, variantTileSet.GetTileColorOverride(TileID.TileX, TileID.TileY));
+            return new(tileSprite, variantTileSet.GetTileColorOverride(TileID.PosInSet));
         }
     }
 
@@ -141,6 +171,7 @@ public class TileSet
 		resourceUploader.Dispose();
 	}*/
 
+    // FIXME: Auto-unload when this TileSet is disposed?
 	private void Unload()
 	{
         foreach (var variant in VariantTileSets)
@@ -153,14 +184,26 @@ public class TileSet
 	}
 }
 
-// Also known as Palette Swaps.
+// Also known as Palette Swaps, though in rare cases it may also have different per-tile metadata.
 public class TileSetVariant
 {
     public TileSetVariantID ID;
 
+#if DEBUG
+    // Only used as an optional describer for the Editor.
+    public string Name;
+#endif
+
     // Might be the same as the default TileSet, if we just want to create some tile color variants in-editor.
+    // Or if we just want to have other different metadata per tile, such as as version of a tile that isn't solid for secret walls.
     public Texture Texture { get; private set; } = null;
+
     public List<List<Color>> TileColorOverrides = null;
+
+    // NOTE: If any field is non-null, it completely overrides the base field (like Flags).
+    public Dictionary<PositionInVisualSet, 
+        (PrefabID?, FiledEntity.Flags?, FiledEntity.ExtraSpawnInfo?)>  
+        TileMetadataOverrides = null;
 
     public TileSetVariant(Texture texture, List<TileSetVariant> list)
     {
@@ -172,16 +215,29 @@ public class TileSetVariant
         }
     }
 
-    public Color GetTileColorOverride(ushort TileX, ushort TileY)
+    public Color GetTileColorOverride(PositionInVisualSet tilePosInSet)
     {
         if (TileColorOverrides != null)
         {
-            return TileColorOverrides[TileX][TileY];
+            return TileColorOverrides[tilePosInSet.X][tilePosInSet.Y];
         }
         else
         {
             return Color.White;
         }
+    }
+
+    public (PrefabID?, FiledEntity.Flags?, FiledEntity.ExtraSpawnInfo?)? 
+        GetTileTileMetadataOverride(PositionInVisualSet tilePosInSet)
+    {
+        if (TileMetadataOverrides != null)
+        {
+            if (TileMetadataOverrides.ContainsKey(tilePosInSet))
+            {
+                return TileMetadataOverrides[tilePosInSet];
+            }
+        }
+        return null;
     }
 
     public void UnloadUnlessDefaultTexture(Texture DefaultTexture)

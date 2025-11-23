@@ -30,7 +30,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
     }
 
     public static bool IsInLevelEditor = false;
-    public LiveEditorLevel Level = new();
+    public LiveLevel Level = new();
     public bool HasSelectedPrefab = false;
     static bool SnapToGrid = true;
     public static bool ShowGrid = true;
@@ -102,7 +102,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                     if (ImGui.Button(levelPathStr))
                     {
                         // FIXME: Unload everything from the current level first!!!
-                        Level = LiveEditorLevel.LoadFromFile(levelPathStr, World, PrefabManipulator);
+                        Level = LiveLevel.LoadFromFile(levelPathStr, World, PrefabManipulator);
                     }
                 }
                 ImGui.EndPopup();
@@ -176,7 +176,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 
             switch (activeLayer.LayerType)
             {
-                case LevelLayerTypes.VisualTileSet:
+                case LevelLayerTypes.TileSet:
                 case LevelLayerTypes.SolidTileSet:
                     if (imagesToPaint.Count == 1 || ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                     {
@@ -215,7 +215,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                                 Entity newEntity;
                                 if (activeLayer.LayerType == LevelLayerTypes.SolidTileSet)
                                 {
-                                    newEntity = TileManipulator.SpawnSolidTile(tileWorldPos, imageSprite);
+                                    newEntity = TileManipulator.SpawnRegularSolidTile(tileWorldPos, imageSprite);
                                 }
                                 else
                                 {
@@ -373,7 +373,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
     static TileLayerMenu TileLayerMenuStatic = new();
 
     public string HoveredOverLayerName = null;
-    public LiveEditorLevel.Layer HoveredOverLayer =>
+    public LiveLevel.EditorLayer HoveredOverLayer =>
         HoveredOverLayerName == null ? null : Level.Layers[HoveredOverLayerName];
 
     void ShowLevelLayerOptions(Entity debugEntity)
@@ -453,7 +453,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                 for (int i = 0; i < (int)LevelLayerTypes.SELECTABLE_IN_EDITOR_MAX; ++i)
                 {
                     var layerType = (LevelLayerTypes)i;
-                    var layerTypeStr = LiveEditorLevel.Layer.LayerTypeToString(layerType);
+                    var layerTypeStr = LiveLevel.EditorLayer.LayerTypeToString(layerType);
                     if (ImGui.Selectable(layerTypeStr))
                     {
                         var newLayerDepth = (float)DepthLayer.DefaultDepth;
@@ -462,7 +462,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                             newLayerDepth = (float)DepthLayer.SolidObject;
                         }
 
-                        var newLayer = new LiveEditorLevel.Layer(layerType, Level, layerTypeStr, newLayerDepth);
+                        var newLayer = new LiveLevel.Layer(layerType, Level, layerTypeStr, newLayerDepth);
                     }
                 }
                 ImGui.EndPopup();
@@ -538,7 +538,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                 switch (layer.LayerType)
                 {
                     case LevelLayerTypes.SolidTileSet:
-                    case LevelLayerTypes.VisualTileSet:
+                    case LevelLayerTypes.TileSet:
                         TileLayerMenuStatic.Show(layer, World);
                         break;
                     default:

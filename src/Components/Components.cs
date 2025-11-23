@@ -86,7 +86,8 @@ public readonly record struct Score(int Value);
 public readonly record struct DisplayScore(int Value);
 public readonly record struct ColorBlend(Color Color);
 public readonly record struct Alpha(byte Value); // 0-255, overrides the alpha in ColorBlend
-
+public readonly record struct HorizontalFlip();
+public readonly record struct VerticalFlip();
 public readonly record struct ColorSpeed(float RedSpeed, float GreenSpeed, float BlueSpeed);
 
 // Deeper depth = higher value.
@@ -218,7 +219,7 @@ public readonly record struct CursorPosition(Vector2 Value);
 #if DEBUG
     public readonly record struct Editor_DontShowInLists();
     public readonly record struct Editor_DebugEntity();
-
-    // Used to track tiles entities in-editor, to auto-refresh their appearance if the tileset changes etc.
-    public readonly record struct Editor_LayerImageID(int ID);
+    public readonly record struct Editor_EntityBaseColorBlend(Color Color);
+    public readonly record struct Editor_EntityOverrideSpawnFlags();
+    public readonly record struct Editor_EntityOverrideExtraSpawnInfo();
 #endif

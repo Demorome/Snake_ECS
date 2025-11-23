@@ -6,6 +6,7 @@ using MoonWorks.Math;
 using RollAndCash;
 using RollAndCash.Components;
 using RollAndCash.Content;
+using RollAndCash.Data;
 using RollAndCash.Messages;
 using RollAndCash.Relations;
 using RollAndCash.Utility;
@@ -16,16 +17,16 @@ public class TileManipulator : MoonTools.ECS.Manipulator
     {
     }
 
-    public Entity SpawnVisualTile(Position2D position, SpriteAnimation sprite)
+    public Entity SpawnVisualTile(Position2D position, TileID tileID)
     {
         var entity = CreateEntity();
         Set(entity, position);
-        Set(entity, sprite);
+        Set(entity, tileID);
         Set(entity, new DestroyOnTransition());
         return entity;
     }
 
-    public Entity SpawnSolidTile(Position2D position, SpriteAnimation sprite)
+    public Entity SpawnRegularSolidTile(Position2D position, TileID tileID)
     {
         var entity = CreateEntity();
         Set(entity, position);
@@ -33,7 +34,7 @@ public class TileManipulator : MoonTools.ECS.Manipulator
             Dimensions.TILE_SIZE, Dimensions.TILE_SIZE));
         Set(entity, new Layer(CollisionLayer.Level, CollisionLayer.StaticLevelCollider_CollidesWith));
         Set(entity, new Depth(DepthLayer.SolidObject));
-        Set(entity, sprite);
+        Set(entity, tileID);
         Set(entity, new DestroyOnTransition());
         return entity;
     }

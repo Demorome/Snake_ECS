@@ -10,6 +10,8 @@ using RollAndCash;
 using System.Collections.Generic;
 using RollAndCash.Data;
 using MoonWorks;
+using System.Runtime.CompilerServices;
+
 
 
 
@@ -32,11 +34,58 @@ public enum Prefabs
 
     //== These shouldn't be spawned manually, since they rely on vital info from another source anyways.
     // They are here solely to tag special entities for save/loading.
-    SolidTile,
+    RegularSolidTile,
     VisualTile,
     Image
 }
 public readonly record struct PrefabID(Prefabs ID);
+
+// Some prefabs need args to be spawned.
+// See also: FiledEntity.SpawnInfo for serialized version.
+public struct PrefabSpawnInfo
+{
+    public TileID? TileID;
+    //public SpriteAnimation? SpriteAnim; 
+
+    public static PrefabSpawnInfo ForTile(TileID tileID)
+    {
+        return new PrefabSpawnInfo{TileID = tileID};
+    }
+}
+
+// For unique changes to entities, like changing its color blend.
+// See also: FiledEntity.ExtraSpawnInfo for serialized version.
+public struct PrefabExtraSpawnInfo
+{
+    public Color? ColorBlendOverride;
+    public Angle? AngleOverride;
+
+    public static PrefabExtraSpawnInfo? FromFiled(FiledEntity.ExtraSpawnInfo? maybeFiledExtraSpawnInfo)
+    {
+        if (!maybeFiledExtraSpawnInfo.HasValue)
+        {
+            return null;
+        }
+        var filedExtraSpawnInfo = maybeFiledExtraSpawnInfo.Value;
+        var result = new PrefabExtraSpawnInfo();
+
+        if (filedExtraSpawnInfo.ColorBlendOverride.HasValue)
+        {
+            result.ColorBlendOverride = Unsafe.BitCast<uint, Color>(
+                filedExtraSpawnInfo.ColorBlendOverride.Value
+            );
+        }
+
+        if (filedExtraSpawnInfo.AngleOverride.HasValue)
+        {
+            result.AngleOverride = new Angle(
+                float.DegreesToRadians(filedExtraSpawnInfo.AngleOverride.Value)
+            );
+        }
+
+        return result;
+    }
+}
 
 public class PrefabManipulator : MoonTools.ECS.Manipulator
 {
@@ -57,7 +106,9 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
         Prefabs prefabType,
         Position2D pos,
         bool rememberCreationForUndo = true,
-        Dictionary<EntityExtraDataTypes, object> ExtraSpawnInfo = null
+        PrefabSpawnInfo? maybeSpawnInfo = null,
+        FiledEntity.Flags spawnFlags = FiledEntity.Flags.None,
+        PrefabExtraSpawnInfo? maybeExtraSpawnInfo = null
         )
     {
         Entity result;
@@ -78,33 +129,29 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
             case Prefabs.Player:
                 result = PlayerManipulator.SpawnPlayer(pos, 0);
                 break;
-            case Prefabs.SolidTile:
-                if (ExtraSpawnInfo == null || !ExtraSpawnInfo.ContainsKey(EntityExtraDataTypes.SpriteAnim))
+            case Prefabs.RegularSolidTile:
+                if (!maybeSpawnInfo.HasValue || !maybeSpawnInfo.Value.TileID.HasValue)
                 {
                     goto default;
                 }
-                result = TileManipulator.SpawnSolidTile(pos,
-                    (SpriteAnimation)ExtraSpawnInfo[EntityExtraDataTypes.SpriteAnim]
-                );
+                result = TileManipulator.SpawnRegularSolidTile(pos, maybeSpawnInfo.Value.TileID.Value);
                 break;
             case Prefabs.VisualTile:
-                if (ExtraSpawnInfo == null || !ExtraSpawnInfo.ContainsKey(EntityExtraDataTypes.SpriteAnim))
+                if (!maybeSpawnInfo.HasValue || !maybeSpawnInfo.Value.TileID.HasValue)
                 {
                     goto default;
                 }
-                result = TileManipulator.SpawnVisualTile(pos,
-                    (SpriteAnimation)ExtraSpawnInfo[EntityExtraDataTypes.SpriteAnim]
-                );
+                result = TileManipulator.SpawnVisualTile(pos, maybeSpawnInfo.Value.TileID.Value);
                 break;
-            case Prefabs.Image:
-                if (ExtraSpawnInfo == null || !ExtraSpawnInfo.ContainsKey(EntityExtraDataTypes.SpriteAnim))
+            /*case Prefabs.Image:
+                if (maybeExtraSpawnInfo == null || !maybeExtraSpawnInfo.ContainsKey(FiledEntity.ExtraSpawnInfo.SpriteAnim))
                 {
                     goto default;
                 }
                 result = CreateEntity();
                 Set(result, pos);
-                Set(result, (SpriteAnimation)ExtraSpawnInfo[EntityExtraDataTypes.SpriteAnim]);
-                break;
+                Set(result, (SpriteAnimation)maybeExtraSpawnInfo[FiledEntity.ExtraSpawnInfo.SpriteAnim]);
+                break;*/
 
             default:
                 Logger.LogError($"Failed to spawn prefab {prefabType}!");
@@ -116,15 +163,6 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
         {
             Tag(result, prefabType.ToString());
         }
-
-        if (!Has<Depth>(result)
-            && prefabType != Prefabs.VisualTile
-            && prefabType != Prefabs.Image
-            && prefabType != Prefabs.InvisibleSolidRectangle
-            )
-        {
-            Logger.LogWarn($"Spawned prefab {prefabType} should have received a Depth!");
-        }
         
         if (!Has<PrefabID>(result))
         {
@@ -133,23 +171,19 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
         }
 #endif
 
-        if (ExtraSpawnInfo != null)
+        if (maybeExtraSpawnInfo.HasValue)
         {
-            /*if (ExtraSpawnInfo.ContainsKey(EntityExtraDataTypes.SpriteAnimOverride))
+            /*if (ExtraSpawnInfo.ContainsKey(FiledEntity.ExtraDataTypes.SpriteAnimOverride))
             {
-                Set(result, (SpriteAnimation)ExtraSpawnInfo[EntityExtraDataTypes.SpriteAnimOverride]);
+                Set(result, (SpriteAnimation)ExtraSpawnInfo[FiledEntity.ExtraDataTypes.SpriteAnimOverride]);
             }*/
-            if (ExtraSpawnInfo.ContainsKey(EntityExtraDataTypes.DepthOverride))
+            if (maybeExtraSpawnInfo.Value.ColorBlendOverride.HasValue)
             {
-                Set(result, new Depth((float)ExtraSpawnInfo[EntityExtraDataTypes.DepthOverride]));
+                Set(result, new ColorBlend(maybeExtraSpawnInfo.Value.ColorBlendOverride.Value));
             }
-            if (ExtraSpawnInfo.ContainsKey(EntityExtraDataTypes.ColorBlendOverride))
+            if (maybeExtraSpawnInfo.Value.AngleOverride.HasValue)
             {
-                Set(result, new ColorBlend((Color)ExtraSpawnInfo[EntityExtraDataTypes.ColorBlendOverride]));
-            }
-            if (ExtraSpawnInfo.ContainsKey(EntityExtraDataTypes.AngleOverride))
-            {
-                Set(result, new Angle((float)ExtraSpawnInfo[EntityExtraDataTypes.AngleOverride]));
+                Set(result, maybeExtraSpawnInfo.Value.AngleOverride.Value);
             }
         }
 

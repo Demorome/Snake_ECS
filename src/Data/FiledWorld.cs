@@ -14,8 +14,8 @@ namespace RollAndCash.Data;
 [JsonSerializable(typeof(FiledLevel))]
 [JsonSerializable(typeof(FiledLevel.Layer))]
 [JsonSerializable(typeof(FiledLevel.Room))]
-[JsonSerializable(typeof(FiledLevel.Entity))]
-[JsonSerializable(typeof(FiledLevel.Entity.ExtraDataTypes))]
+[JsonSerializable(typeof(FiledEntity))]
+[JsonSerializable(typeof(FiledEntity.ExtraSpawnInfo))]
 [JsonSerializable(typeof(float))]
 [JsonSerializable(typeof(uint))]
 [JsonSerializable(typeof(string))]
@@ -25,7 +25,6 @@ internal partial class FiledWorldContext : JsonSerializerContext
 {
 }
 
-#if DEBUG
 // Contains info about the entire game.
 public struct FiledWorld
 {
@@ -44,6 +43,8 @@ public struct FiledWorld
 
             [JsonPropertyName("Sprites")]
             public string[] SpriteNames;
+
+            // TODO: Allow for variants?
         }
 
         public struct FlatColorsTileSet
@@ -55,14 +56,14 @@ public struct FiledWorld
         }
 
         // No definition for regular TileSets here, since those are defined during source content processing.
+        // Even TileSet variants are defined there, though the Editor may augment some JSON file to help.
+        // This is because the TileSet must know each of its variants, so storing that info on its pre-existing JSON file is simplest.
     }
 }
-#endif
 
 public enum LevelLayerTypes
 {
-    VisualTileSet = 0,
-    SolidTileSet,
+    TileSet = 0,
     ImageSet,
     SELECTABLE_IN_EDITOR_MAX,
     Prefabs,
@@ -77,72 +78,127 @@ public struct FiledLevel
     public int Height;
     public Room[] Rooms;
 
-#if DEBUG
     // Contains the tile/image set information used by this level.
-    public EditorDefinitions Definitions;
-    public struct EditorDefinitions
-    {
-        public UsedVisualSet[] UsedVisualSets;
+    // Mostly useless, but could be used for optimization purposes when rendering, perhaps?
+    public UsedVisualSet[] UsedVisualSets;
 
-        // Just a reference to another tile/image set, with optional color variants for certain tiles/images.
-        public struct UsedVisualSet
-        {
-            public string NameID;
-            public ((int Image_X, int Image_Y), Color)[] ColoredVariants;
-        }
+#if DEBUG
+    public EditorDefs EditorDefinitions;
+    public struct EditorDefs
+    {
     }
 #endif
 
     public struct Room
     {
         public string Name;
+
+        [JsonPropertyName("Pos")]
         public Position2D Position; // top-left corner
-        public int Width;
-        public int Height;
+
+        public int W;
+        public int H;
         public Layer[] Layers;
     }
 
     public struct Layer
     {
         public LevelLayerTypes TypeID;
+        public Color Color;
         public float Depth;
-        public Entity[] Entities;
+
+        public UsedVisualSet? MaybeVisualSet; // unused if layer type is Prefabs
+
+        [JsonPropertyName("TypeForEntities")]
+        public Prefabs? MaybePrefabTypeForEntities; // only used if layer type is Prefabs
+
+        public FiledEntity[] Entities;
 
 #if DEBUG
-        public string Name;
-        public Color ColorBlend;
+        public string EditorName;
+#endif
 
-        // TODO: Tileset/imageset name?
+        public Layer()
+        {
+        }
+
+#if DEBUG
+        public Layer(LiveLevel.EditorLayer liveLayer)
+        {
+            TypeID = liveLayer.LayerType;
+            Color = liveLayer.Color;
+            Depth = liveLayer.Depth;
+
+            if (TypeID == LevelLayerTypes.TileSet)
+            {
+                var visualSet = new UsedVisualSet();
+                visualSet.NameID = liveLayer.MaybeTileSet.Name;
+                visualSet.VariantID = liveLayer.MaybeVisualSetVariantID.Value;
+                MaybeVisualSet = visualSet;
+            }
+            else if (TypeID == LevelLayerTypes.ImageSet)
+            {
+                var visualSet = new UsedVisualSet();
+                // FIXME: TODO!
+                MaybeVisualSet = visualSet;
+            }
+            else if (TypeID == LevelLayerTypes.Prefabs)
+            {
+                MaybePrefabTypeForEntities = liveLayer.MaybePrefabType.Value;
+            }
+
+            EditorName = liveLayer.Name;
+        }
 #endif
     }
 
-    public struct Entity
+    // Just a reference to a tile/image set.
+    public struct UsedVisualSet
     {
-        [JsonPropertyName("Type")]
-        public Prefabs PrefabID;
-
-        [JsonPropertyName("Pos")]
-        public Position2D StartPosition;
-
-        [Flags]
-        public enum Flags
-        {
-            FlipX = 1,
-            FlipY = 2
-        }
-
-        [JsonPropertyName("Flags")]
-        public Flags BitFlags;
-
-        // NOTE: NEVER change the ordering here!!
-        public enum ExtraDataTypes
-        {
-            ColorBlendOverride = 0,
-            SpriteAnim,
-            AngleOverride
-        }
-
-        [JsonPropertyName("Extra")]
-        public Dictionary<ExtraDataTypes, object> ExtraDataList;
+        public string NameID;
+        public byte VariantID;
     }
+}
+
+public struct FiledEntity
+{
+    // Usually null, unless we wanted to name an entity in particular in the editor.
+    [JsonPropertyName("Name")]
+    public string UniqueTag;
+
+    // Some prefabs need args to be spawned.
+    // TODO: Damn you C# for not having Discriminated Unions yet!!!
+    public struct SpawnInfo
+    {
+        public PositionInVisualSet? PosInVisualSet;
+
+        [JsonPropertyName("SpriteAnim")]
+        public string SpriteAnimName;
+    }
+    public SpawnInfo? MaybeSpawnInfo;
+
+    // Relative to the Room's position.
+    [JsonPropertyName("Pos")]
+    public Position2D PositionRelativeToRoom;
+
+    [Flags]
+    public enum Flags
+    {
+        None    = 0,
+        FlipX   = 1 << 0,
+        FlipY   = 1 << 1,
+    }
+
+    [JsonPropertyName("Flags")]
+    public Flags? MaybeSpawnFlags;
+
+    // To save unique editor changes to an entity, like changing its color blend.
+    public struct ExtraSpawnInfo
+    {
+        public uint? ColorBlendOverride;
+        public float? AngleOverride;
+    }
+
+    [JsonPropertyName("Extra")]
+    public ExtraSpawnInfo? MaybeExtraSpawnInfo;
 }

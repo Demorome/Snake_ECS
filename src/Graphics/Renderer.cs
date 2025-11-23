@@ -182,12 +182,16 @@ public class Renderer : MoonTools.ECS.Renderer
 		}
 
 #if DEBUG
+		// Editor: Make sprite partially transparent if it's not a member of the hovered-over layer.
 		if (LevelEditorManipulator.IsInLevelEditor)
 		{
 			var hoveredOverLayer = EditorSystem.LevelEditor.HoveredOverLayer;
 			if (hoveredOverLayer != null)
 			{
 				var depth = Has<Depth>(e) ? Get<Depth>(e).Value : (float)DepthLayer.DefaultDepth;
+
+				// TODO: If not a part of the currently active room, also make it transparent.
+
 				if (depth != EditorSystem.LevelEditor.Level.Layers[EditorSystem.LevelEditor.HoveredOverLayerName].Depth)
 				{
 					color = Color.Lerp(color, Color.Transparent, 0.75f);
@@ -256,7 +260,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			{
 				scale = Get<SpriteScale>(entity).Scale;
 			}
-			if ((OutRelationCount<FlippedHorizontally>(entity) % 2) == 1)
+			if ((OutRelationCount<FlippedHorizontallyByTarget>(entity) % 2) == 1)
 			{
 				scale.X *= -1;
 			}

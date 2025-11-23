@@ -32,11 +32,11 @@ public class FlipAnimationSystem : MoonTools.ECS.System
                 flipData.TimePerFlip * 2)
                 )
             {
-                Relate(entity, flipTimerEntity, new FlippedHorizontally());
+                Relate(entity, flipTimerEntity, new FlippedHorizontallyByTarget());
             }
             else
             {
-                Unrelate<FlippedHorizontally>(entity, flipTimerEntity);
+                Unrelate<FlippedHorizontallyByTarget>(entity, flipTimerEntity);
             }
         }
 
