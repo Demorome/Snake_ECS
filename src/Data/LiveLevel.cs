@@ -476,6 +476,11 @@ public class LiveLevel
                     Prefabs prefabType;
                     PrefabSpawnInfo? maybeSpawnInfo = null;
 
+#if DEBUG
+                    bool overridesSpawnFlags = true;
+                    bool overridesExtraSpawnInfo = true;
+#endif
+
                     if (filedLayer.TypeID == LevelLayerTypes.TileSet)
                     {
                         var tileID = new TileID(
@@ -483,17 +488,23 @@ public class LiveLevel
                             maybeTileSetID.Value, 
                             new TileSetVariantID(filedLayer.MaybeVisualSet.Value.VariantID)
                         );
-                        var (prefabID, maybeFlags, maybeExtraData) = TileSet.GetTileMetadata(tileID);
+                        var (prefabID, maybeTileFlags, maybeTileExtraData) = TileSet.GetTileMetadata(tileID);
                         prefabType = prefabID.ID;
 
                         maybeSpawnInfo = PrefabSpawnInfo.ForTile(tileID);
                         if (!filedEntity.MaybeSpawnFlags.HasValue)
                         {
-                            filedEntity.MaybeSpawnFlags = maybeFlags;
+#if DEBUG
+                            overridesSpawnFlags = false;
+#endif
+                            filedEntity.MaybeSpawnFlags = maybeTileFlags;
                         }
                         if (filedEntity.MaybeExtraSpawnInfo == null)
                         {
-                            filedEntity.MaybeExtraSpawnInfo = maybeExtraData;
+#if DEBUG
+                            overridesExtraSpawnInfo = false;
+#endif
+                            filedEntity.MaybeExtraSpawnInfo = maybeTileExtraData;
                         }
                     }
                     /*else if (filedLayer.TypeID == LevelLayerTypes.ImageSet)
@@ -524,16 +535,36 @@ public class LiveLevel
 
                     if (maybeLiveEntity.HasValue)
                     {
-                        world.Set(maybeLiveEntity.Value, liveRoom.ID);
+                        var liveEntity = maybeLiveEntity.Value;
+                        world.Set(liveEntity, liveRoom.ID);
 
 #if DEBUG                      
-                        world.Set(maybeLiveEntity.Value, liveLayer.LayerID);
-                        liveLayer.CachedEntities.Add(maybeLiveEntity.Value);
+                        world.Set(liveEntity, liveLayer.LayerID);
+                        liveLayer.CachedEntities.Add(liveEntity);
+
+                        if (overridesSpawnFlags)
+                        {
+                            world.Set(liveEntity, new Editor_EntityOverrideSpawnFlags());
+                        }
+                        if (overridesExtraSpawnInfo)
+                        {
+                            world.Set(liveEntity, new Editor_EntityOverrideExtraSpawnInfo());
+
+                            if (filedEntity.MaybeExtraSpawnInfo.Value.ColorBlendOverride.HasValue)
+                            {
+                                world.Set(liveEntity, 
+                                    new Editor_EntityBaseColorBlend(
+                                        world.Get<ColorBlend>(liveEntity).Color
+                                    )
+                                );
+                            }
+                        }
+
 #endif
 
                         if (filedEntity.UniqueTag != null && filedEntity.UniqueTag.Length != 0)
                         {
-                            world.Tag(maybeLiveEntity.Value, filedEntity.UniqueTag);
+                            world.Tag(liveEntity, filedEntity.UniqueTag);
                         }
                     }
                 }
