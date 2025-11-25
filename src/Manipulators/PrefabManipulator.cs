@@ -40,16 +40,28 @@ public enum Prefabs
 }
 public readonly record struct PrefabID(Prefabs ID);
 
+public static class PrefabsFuncs
+{
+    public static bool IsTile(Prefabs t)
+    {
+        return t == Prefabs.RegularSolidTile || t == Prefabs.VisualTile;
+    }
+    public static bool IsPurelyVisual(Prefabs t)
+    {
+        return t == Prefabs.Image || t == Prefabs.VisualTile;
+    }
+}
+
 // Some prefabs need args to be spawned.
 // See also: FiledEntity.SpawnInfo for serialized version.
 public struct PrefabSpawnInfo
 {
-    public TileID? TileID;
+    public VisualFromSetID_ForSpawning? VisualFromSetID;
     //public SpriteAnimation? SpriteAnim; 
 
-    public static PrefabSpawnInfo ForTile(TileID tileID)
+    public static PrefabSpawnInfo ForVisualFromSet(VisualFromSetID_ForSpawning visualFromSetID)
     {
-        return new PrefabSpawnInfo{TileID = tileID};
+        return new PrefabSpawnInfo{VisualFromSetID = visualFromSetID};
     }
 }
 
@@ -130,18 +142,18 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
                 result = PlayerManipulator.SpawnPlayer(pos, 0);
                 break;
             case Prefabs.RegularSolidTile:
-                if (!maybeSpawnInfo.HasValue || !maybeSpawnInfo.Value.TileID.HasValue)
+                if (!maybeSpawnInfo.HasValue || !maybeSpawnInfo.Value.VisualFromSetID.HasValue)
                 {
                     goto default;
                 }
-                result = TileManipulator.SpawnRegularSolidTile(pos, maybeSpawnInfo.Value.TileID.Value);
+                result = TileManipulator.SpawnRegularSolidTile(pos, (TileID)maybeSpawnInfo.Value.VisualFromSetID.Value);
                 break;
             case Prefabs.VisualTile:
-                if (!maybeSpawnInfo.HasValue || !maybeSpawnInfo.Value.TileID.HasValue)
+                if (!maybeSpawnInfo.HasValue || !maybeSpawnInfo.Value.VisualFromSetID.HasValue)
                 {
                     goto default;
                 }
-                result = TileManipulator.SpawnVisualTile(pos, maybeSpawnInfo.Value.TileID.Value);
+                result = TileManipulator.SpawnVisualTile(pos, (TileID)maybeSpawnInfo.Value.VisualFromSetID.Value);
                 break;
             /*case Prefabs.Image:
                 if (maybeExtraSpawnInfo == null || !maybeExtraSpawnInfo.ContainsKey(FiledEntity.ExtraSpawnInfo.SpriteAnim))

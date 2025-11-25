@@ -9,8 +9,8 @@ namespace RollAndCash.Components;
 // We also don't need the FrameRect info, since our TileSets aren't being crammed.
 public struct TileSprite
 {
-	public TileSetID TileSetID { get; }
-	public TileSetVariantID TileSetVariantID;
+	public VisualSetID TileSetID { get; }
+	public VisualSetVariantID TileSetVariantID;
 	public Vector2 PixelPos { get; } // the pixel position on the texture
 	public Vector2 Origin => PixelPos;
     public Vector2 TilePos => new Vector2(PixelPos.X, PixelPos.Y) / TileSize;

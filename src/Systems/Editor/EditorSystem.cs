@@ -61,7 +61,8 @@ public class EditorSystem : MoonTools.ECS.System
         {
             DebugEntity = World.CreateEntity(DebugEntityTag);
             Set(DebugEntity.Value, new Editor_DontShowInLists());
-            Set(DebugEntity.Value, new Editor_DebugEntity());
+            Set(DebugEntity.Value, new Editor_DontAddToLevel()); // just in case, but shouldn't be needed
+            Set(DebugEntity.Value, new Editor_GlobalDebugEntity());
         }
 
         UpdateCachedLevelLayerEntities();
@@ -78,32 +79,47 @@ public class EditorSystem : MoonTools.ECS.System
 
     void UpdateCachedLevelLayerEntities()
     {
-        foreach (var (_, levelLayer) in LevelEditor.Level.Layers)
+        if (LevelEditor.ActiveLevel == null)
         {
-            levelLayer.CachedEntities.Clear();
+            return;
+        }
+
+        foreach (var room in LevelEditor.ActiveLevel.Rooms)
+        {
+            foreach (var (_, layer) in room.LayersByName)
+            {
+               layer.CachedEntities.Clear();
+            }
         }
 
         foreach (var entity in PositionFilter.Entities)
         {
             var depth = Has<Depth>(entity) ? Get<Depth>(entity).Value : (float)DepthLayer.DefaultDepth;
 
+            if (!Has<LevelRoomID>(entity))
+            {
+                continue;
+            }
+            var room = LevelEditor.ActiveLevel.GetRoomFromID(Get<LevelRoomID>(entity));
+
             LiveLevel.EditorLayer maybeLayer = null;
             if (Has<Editor_LevelLayerID>(entity))
             {
                 // FIXME: might be null, if the layer has been deleted this session, then undone.
-                maybeLayer = LevelEditor.Level.GetLayerFromID(Get<Editor_LevelLayerID>(entity));
+                maybeLayer = room.GetLayerFromID(Get<Editor_LevelLayerID>(entity));
 
                 if (depth != maybeLayer.Depth)
                 {
-                    // Force a change of layer.
+                    // Force a change of layer due to an unexpected change in depth.
                     Remove<Editor_LevelLayerID>(entity);
                     maybeLayer = null;
                 }
             }
 
-            if (maybeLayer == null)
+            // Automatically create a new layer to group entities that aren't in one.
+            if (maybeLayer == null && !Has<Editor_DontAddToLevel>(entity))
             {
-                var layerType = Data.Filed.LevelLayerTypes.Unknown;
+                var layerType = LevelLayerTypes.Unknown;
                 string layerName;
 
                 bool isInteger = depth == float.Floor(depth);
@@ -117,15 +133,15 @@ public class EditorSystem : MoonTools.ECS.System
                     layerName = LiveLevel.EditorLayer.LayerTypeToString(layerType);
                 }
 
-                // Try to find an existing layer to group this with, based on depth.
-                if (LevelEditor.Level.Layers.ContainsKey(layerName))
+                // Try to find an existing layer to group this with.
+                if (room.LayersByName.ContainsKey(layerName))
                 {
-                    maybeLayer = LevelEditor.Level.Layers[layerName];
+                    maybeLayer = room.LayersByName[layerName];
                 }
                 else
                 {
                     // If not, create one.
-                    maybeLayer = new LiveLevel.Layer(layerType, LevelEditor.Level, layerName, depth);
+                    maybeLayer = new LiveLevel.EditorLayer(layerType, room, layerName, depth); // adds itself to lists
                 }
             }
 
@@ -141,6 +157,40 @@ public class EditorSystem : MoonTools.ECS.System
 
     static SpatialHash<Entity> VisualEntitiesSpatialHash =
         new SpatialHash<Entity>(0, 0, Dimensions.GAME_W, Dimensions.GAME_H, 32);
+
+    public bool CanEntityBeSelected(Entity e)
+    {
+        // Ignore entities that aren't in the Level Editor's currently active Room + Layer
+        if (LevelEditor.ActiveLevel != null 
+            && LevelEditor.ActiveRoom != null
+            && LevelEditor.SelectedLayerInList != null
+            )
+        {
+            if (Has<LevelRoomID>(e)
+                && Has<Editor_LevelLayerID>(e))
+            {
+                var entityRoomID = Get<LevelRoomID>(e);
+                if (entityRoomID != LevelEditor.ActiveRoom.ID)
+                {
+                    return false;
+                }
+                var entityLayerID = Get<Editor_LevelLayerID>(e);
+                if (entityLayerID != LevelEditor.SelectedLayerInList.LayerID)
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                Logger.LogError($"WTF! Entity {EntityToString(e)} doesn't have a level layer or RoomID! Components: {EntityComponentsToString(e)}");
+            }
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
 
     void HandleEntitySelectionMode()
     {
@@ -167,27 +217,9 @@ public class EditorSystem : MoonTools.ECS.System
                 var rect = GetEntityVisualRect(entity);
                 if (rect.HasValue)
                 {
-                    // Ignore entities that aren't in the Level Editor's currently active Editor Layer
-                    if (LevelEditor.SelectedLayerName != null)
+                    if (!CanEntityBeSelected(entity))
                     {
-                        if (Has<Editor_LevelLayerID>(entity))
-                        {
-                            var selectedLayer = LevelEditor.Level.Layers[LevelEditor.SelectedLayerName];
-                            var entityLayerID = Get<Editor_LevelLayerID>(entity);
-                            if (entityLayerID != selectedLayer.LayerID)
-                            {
-                                continue;
-                            }
-                        }
-                        else
-                        {
-                            Console.WriteLine($"WTF! Visual entity {entity.ID} doesn't have a level layer! Components:");
-                            foreach (var type in World.Debug_GetAllComponentTypes(entity))
-                            {
-                                Console.WriteLine("*\t" + type.Name);
-                            }
-                        }
-
+                        continue;
                     }
 
                     var worldRect = rect.Value.GetWorldRect(Get<Position2D>(entity));
@@ -386,15 +418,23 @@ public class EditorSystem : MoonTools.ECS.System
         }
         return $"Entity {{ ID = {e.ID}, Tag = {tag} }}";
     }
-
     public string EntityToString(Entity e)
     {
-        var tag = World.GetTag(e);
-        if (tag.Length == 0)
+        return EntityToString(World, e);
+    }
+
+    public static string EntityComponentsToString(World world, Entity e)
+    {
+        string result = new("");
+        foreach (var type in world.Debug_GetAllComponentTypes(e))
         {
-            return e.ToString();
+            result += "\n*\t" + type.Name;
         }
-        return $"Entity {{ ID = {e.ID}, Tag = {tag} }}";
+        return result;
+    }
+    public string EntityComponentsToString(Entity e)
+    {
+        return EntityComponentsToString(World, e);
     }
 
     public static Dictionary<string, object> DetachedWindows = new();

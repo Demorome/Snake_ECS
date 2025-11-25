@@ -65,9 +65,24 @@ public enum LevelLayerTypes
 {
     TileSet = 0,
     ImageSet,
-    SELECTABLE_IN_EDITOR_MAX,
+    VISUAL_SET_MAX,
+    SELECTABLE_IN_EDITOR_MAX = VISUAL_SET_MAX,
     Prefabs,
     Unknown
+}
+
+static class LevelLayerTypesFuncs
+{
+    public static bool IsVisualSet(LevelLayerTypes type)
+    {
+        return type < LevelLayerTypes.VISUAL_SET_MAX;
+    }
+#if DEBUG
+    public static bool IsSelectableInEditor(LevelLayerTypes type)
+    {
+        return type < LevelLayerTypes.SELECTABLE_IN_EDITOR_MAX;
+    }
+#endif
 }
 
 public struct FiledLevel

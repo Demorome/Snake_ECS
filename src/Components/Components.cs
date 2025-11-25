@@ -217,8 +217,11 @@ public readonly record struct CursorPosition(Vector2 Value);
 
 
 #if DEBUG
+    public readonly record struct Editor_DummyVisualFromVisualSet_ForPaintingPreview();
+    public readonly record struct Editor_DummyVisualFromVisualSet_ForVisualSet();
     public readonly record struct Editor_DontShowInLists();
-    public readonly record struct Editor_DebugEntity();
+    public readonly record struct Editor_DontAddToLevel();
+    public readonly record struct Editor_GlobalDebugEntity();
     public readonly record struct Editor_EntityBaseColorBlend(Color Color);
     public readonly record struct Editor_EntityOverrideSpawnFlags();
     public readonly record struct Editor_EntityOverrideExtraSpawnInfo();

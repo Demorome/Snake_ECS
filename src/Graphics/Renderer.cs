@@ -135,6 +135,7 @@ public class Renderer : MoonTools.ECS.Renderer
 
 		TriangleBatch = new TriangleBatch(GraphicsDevice, titleStorage, swapchainFormat, TextureFormat.D16Unorm);
 
+		// TODO: If I have multiple tileset textures, is there a limit to how many batchers I can have at once?
 		TileSpriteBatches = new();
 		foreach (var (_, tileSet) in TileSets.NameToTileSet)
         {
@@ -144,7 +145,7 @@ public class Renderer : MoonTools.ECS.Renderer
 				)
 			);
             
-			foreach (var variantTileSet in tileSet.VariantTileSets)
+			foreach (TileSetVariant variantTileSet in tileSet.VariantSets)
             {
                 if (variantTileSet.Texture != tileSet.DefaultTexture)
                 {
@@ -183,20 +184,26 @@ public class Renderer : MoonTools.ECS.Renderer
 
 #if DEBUG
 		// Editor: Make sprite partially transparent if it's not a member of the hovered-over layer.
-		if (LevelEditorManipulator.IsInLevelEditor)
+		if (LevelEditorManipulator.IsInLevelEditor && EditorSystem.LevelEditor.ActiveLevel != null
+			&& EditorSystem.LevelEditor.HoveredOverLayer != null)
 		{
-			var hoveredOverLayer = EditorSystem.LevelEditor.HoveredOverLayer;
-			if (hoveredOverLayer != null)
+			if (Has<LevelRoomID>(e)
+				&& Has<Editor_LevelLayerID>(e))
 			{
-				var depth = Has<Depth>(e) ? Get<Depth>(e).Value : (float)DepthLayer.DefaultDepth;
-
-				// TODO: If not a part of the currently active room, also make it transparent.
-
-				if (depth != EditorSystem.LevelEditor.Level.Layers[EditorSystem.LevelEditor.HoveredOverLayerName].Depth)
+				var entityRoomID = Get<LevelRoomID>(e);
+				var entityLayerID = Get<Editor_LevelLayerID>(e);
+				if (entityRoomID == EditorSystem.LevelEditor.ActiveRoom.ID
+					&& entityLayerID == EditorSystem.LevelEditor.SelectedLayerInList.LayerID)
 				{
-					color = Color.Lerp(color, Color.Transparent, 0.75f);
+					return color;
 				}
 			}
+			else
+            {
+				Logger.LogError($"WTF! Entity {EditorSystem.EntityToString(e)} doesn't have a level layer or RoomID! Components: {EditorSystem.EntityComponentsToString(e)}");
+            }
+
+			color = Color.Lerp(color, Color.Transparent, 0.75f);
 		}
 #endif
 
@@ -565,15 +572,10 @@ public class Renderer : MoonTools.ECS.Renderer
 					{
 						continue;
 					}
-					if (EditorSystem.LevelEditor.SelectedLayerName != null)
-					{
-						var layerID = Get<Editor_LevelLayerID>(entity);
-						if (layerID != EditorSystem.LevelEditor.Level.Layers[EditorSystem.LevelEditor.SelectedLayerName].LayerID)
-                        {
-                            continue;
-                        }
+					if (!EditorSystem.CanEntityBeSelected(entity))
+                    {
+                        continue;
                     }
-
 					var spriteAnim = Get<SpriteAnimation>(entity);
 					var rectangle = EditorSystem.GetEntityVisualRect(entity).Value;
 					DrawDebugRectangle(entity, rectangle, selectionColor, outlineDepth, DebugLineThickness);
@@ -585,13 +587,9 @@ public class Renderer : MoonTools.ECS.Renderer
 					{
 						continue;
 					}
-					if (EditorSystem.LevelEditor.SelectedLayerName != null)
-					{
-						var layerID = Get<Editor_LevelLayerID>(entity);
-						if (layerID != EditorSystem.LevelEditor.Level.Layers[EditorSystem.LevelEditor.SelectedLayerName].LayerID)
-                        {
-                            continue;
-                        }
+					if (!EditorSystem.CanEntityBeSelected(entity))
+                    {
+                        continue;
                     }
 
 					var rect = Get<Rectangle>(entity);
@@ -599,29 +597,6 @@ public class Renderer : MoonTools.ECS.Renderer
 				}
 			}
 		}
-
-		if (!EditorSystem.LevelEditor.HasSelectedPrefab)
-		{
-            var selectedSpritesToPaint = EditorSystem.LevelEditor.GetLayerImagesToPaint();
-			foreach (var (selectedSprite, selectedColor, drawPos, _) in selectedSpritesToPaint)
-			{
-				// Draw a transparent version of the sprite that would be painted, as a preview.
-				var depth = -EditorSystem.LevelEditor.Level.Layers[EditorSystem.LevelEditor.OpenedLayerName].Depth;
-				var sprite = selectedSprite.CurrentSprite;
-				var origin = selectedSprite.Origin;
-				var offset = -origin - new Vector2(sprite.FrameRect.X, sprite.FrameRect.Y);
-
-				EditorSpriteBatch.Add(
-					new Vector3(drawPos.X + offset.X, drawPos.Y + offset.Y, depth),
-					0.0f,
-					new Vector2(sprite.SliceRect.W, sprite.SliceRect.H),
-					Color.Lerp(selectedColor, Color.Transparent, 0.25f),
-					sprite.UV.LeftTop,
-					sprite.UV.Dimensions
-				);
-
-			}
-        }
 
 		EditorSpriteBatch.Upload(commandBuffer);
 #endif

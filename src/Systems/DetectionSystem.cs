@@ -70,6 +70,7 @@ public class DetectionSystem : MoonTools.ECS.System
                 Relate(entity, pointEntity, new DetectionVisualPoint());
 #if DEBUG
                 Set(pointEntity, new Editor_DontShowInLists());
+                Set(pointEntity, new Editor_DontAddToLevel()); // just in case
 #endif
                 Set(pointEntity, stopPos); // change position
                 Set(pointEntity, new Timer(-1)); // destroy next frame

@@ -48,8 +48,8 @@ public static class DrawComponents
 
             foreach (var entity in world.Debug_GetEntities(componentType))
             {
-                // Don't want to spam debugger with boring/irrelevant entities.
-                if (world.Has<Editor_DontShowInLists>(entity))
+                // Don't want to spam debugger with irrelevant entities.
+                if (world.Has<Editor_DontShowInLists>(entity) && componentType != typeof(Editor_DontShowInLists))
                 {
                     continue;
                 }

@@ -35,6 +35,11 @@ public class LiveLevel
     public string Name = "";
     public readonly List<Room> Rooms = new();
 
+    public Room GetRoomFromID(LevelRoomID roomID)
+    {
+        return Rooms[roomID.ID];
+    }
+
     public class Room
     {
         public LevelRoomID ID;
@@ -45,8 +50,8 @@ public class LiveLevel
         public int Height = Dimensions.GAME_H;
 
 #if DEBUG
-        public readonly Dictionary<string, EditorLayer> Layers;
-        public readonly List<EditorLayer> LayerIDs;
+        public readonly Dictionary<string, EditorLayer> LayersByName;
+        public readonly List<EditorLayer> Layers;
 #endif
 
         public Room(LiveLevel levelParent)
@@ -58,8 +63,8 @@ public class LiveLevel
                 levelParent.Rooms.Add(this);
             }
 #if DEBUG
+            LayersByName = new();
             Layers = new();
-            LayerIDs = new();
 #endif
         }
 
@@ -78,20 +83,20 @@ public class LiveLevel
             Height = filedRoom.H;
 
 #if DEBUG
+            LayersByName = new(filedRoom.Layers.Length);
             Layers = new(filedRoom.Layers.Length);
-            LayerIDs = new(filedRoom.Layers.Length);
 #endif
         }
 
 #if DEBUG
         public EditorLayer GetLayerFromID(Editor_LevelLayerID layerID)
         {
-            return LayerIDs[layerID.ID];
+            return Layers[layerID.ID];
         }
 
         public void ValidateLayerName(ref string name)
         {
-            if (!Layers.ContainsKey(name))
+            if (!LayersByName.ContainsKey(name))
             {
                 return;
             }
@@ -100,9 +105,9 @@ public class LiveLevel
             int i = 1;
             var testName = name + i.ToString();
 
-            lock (Layers)
+            lock (LayersByName)
             {
-                while (Layers.ContainsKey(testName))
+                while (LayersByName.ContainsKey(testName))
                 {
                     ++i;
                     testName = name + i.ToString();
@@ -118,7 +123,7 @@ public class LiveLevel
             // Ex: DebugEntiy DontDraw relation, if the layer was made invisible.
 
             // Deleting a layer deletes all entities in it.
-            foreach (var entity in Layers[layerToRemove].CachedEntities)
+            foreach (var entity in LayersByName[layerToRemove].CachedEntities)
             {
                 world.Destroy(entity);
             }
@@ -127,7 +132,7 @@ public class LiveLevel
             // May as well preserve the LevelLayer here too...?
             //IDLookup[LevelLayers[layerToRemove].LayerID.ID] = null;
 
-            Layers.Remove(layerToRemove);
+            LayersByName.Remove(layerToRemove);
         }
 #endif
     }
@@ -180,14 +185,14 @@ public class LiveLevel
             Room.ValidateLayerName(ref name);
             Name = name;
 
+            lock (room.LayersByName)
+            {
+                room.LayersByName.Add(Name, this);
+            }
             lock (room.Layers)
             {
-                room.Layers.Add(Name, this);
-            }
-            lock (room.LayerIDs)
-            {
-                LayerID = new Editor_LevelLayerID(room.LayerIDs.Count);
-                room.LayerIDs.Add(this);
+                LayerID = new Editor_LevelLayerID(room.Layers.Count);
+                room.Layers.Add(this);
             }
         }
 
@@ -200,14 +205,14 @@ public class LiveLevel
             Name = filedLayer.EditorName;
             Color = filedLayer.Color;
 
+            lock (room.LayersByName)
+            {
+                room.LayersByName.Add(Name, this);
+            }
             lock (room.Layers)
             {
-                room.Layers.Add(Name, this);
-            }
-            lock (room.LayerIDs)
-            {
-                LayerID = new Editor_LevelLayerID(room.LayerIDs.Count);
-                room.LayerIDs.Add(this);
+                LayerID = new Editor_LevelLayerID(room.Layers.Count);
+                room.Layers.Add(this);
             }
         }
 
@@ -325,8 +330,8 @@ public class LiveLevel
         {
             var filedRoom = new FiledLevel.Room();
 
-            List<FiledLevel.Layer> filedLayers = new(liveRoom.Layers.Count);
-            foreach (var (_, liveLayer) in liveRoom.Layers)
+            List<FiledLevel.Layer> filedLayers = new(liveRoom.LayersByName.Count);
+            foreach (var (_, liveLayer) in liveRoom.LayersByName)
             {
                 var filedLayer = new FiledLevel.Layer(liveLayer);
 
@@ -441,7 +446,7 @@ public class LiveLevel
 #if DEBUG
                 var liveLayer = new EditorLayer(filedLayer, liveRoom); // adds itself to lists in ctor
 #endif
-                TileSetID? maybeTileSetID = null;
+                VisualSetID? maybeTileSetID = null;
 
                 var logSetNotFoundError = (string setName) => 
                     Logger.LogError($"Unable to load layer {filedLayer.EditorName}: Couldn't find visual set {setName}");
@@ -459,7 +464,7 @@ public class LiveLevel
                     var tileSet = TileSets.NameToTileSet[filedLayer.MaybeVisualSet.Value.NameID];
 
                     // Reminder that a variantID of 0 is valid; it means the default tileset.
-                    if (tileSet.VariantTileSets.Count > filedLayer.MaybeVisualSet.Value.VariantID)
+                    if (tileSet.VariantSets.Count > filedLayer.MaybeVisualSet.Value.VariantID)
                     {
                         logVariantNotFoundError(filedLayer.MaybeVisualSet.Value.VariantID);
                     }
@@ -477,40 +482,43 @@ public class LiveLevel
                     PrefabSpawnInfo? maybeSpawnInfo = null;
 
 #if DEBUG
-                    bool overridesSpawnFlags = true;
-                    bool overridesExtraSpawnInfo = true;
+                    bool overridesBaseSpawnFlags = false;
+                    bool overridesBaseExtraSpawnInfo = false;
 #endif
+                    PrefabExtraSpawnInfo? maybeExtraSpawnInfo = PrefabExtraSpawnInfo.FromFiled(filedEntity.MaybeExtraSpawnInfo);;
 
-                    if (filedLayer.TypeID == LevelLayerTypes.TileSet)
+                    if (LevelLayerTypesFuncs.IsVisualSet(filedLayer.TypeID))
                     {
-                        var tileID = new TileID(
+                        var visualFromSetID = new VisualFromSetID_ForSpawning(
                             filedEntity.MaybeSpawnInfo.Value.PosInVisualSet.Value, 
                             maybeTileSetID.Value, 
-                            new TileSetVariantID(filedLayer.MaybeVisualSet.Value.VariantID)
+                            new VisualSetVariantID(filedLayer.MaybeVisualSet.Value.VariantID)
                         );
-                        var (prefabID, maybeTileFlags, maybeTileExtraData) = TileSet.GetTileMetadata(tileID);
+                        (var prefabID, var maybeSpawnFlags, var maybeExtraSpawnInfo_FromVisualSet) = VisualSet.GetMetadata(visualFromSetID);
                         prefabType = prefabID.ID;
 
-                        maybeSpawnInfo = PrefabSpawnInfo.ForTile(tileID);
+                        maybeSpawnInfo = PrefabSpawnInfo.ForVisualFromSet(visualFromSetID);
                         if (!filedEntity.MaybeSpawnFlags.HasValue)
                         {
-#if DEBUG
-                            overridesSpawnFlags = false;
-#endif
-                            filedEntity.MaybeSpawnFlags = maybeTileFlags;
+                            filedEntity.MaybeSpawnFlags = maybeSpawnFlags;
                         }
+#if DEBUG
+                        else
+                        {
+                            overridesBaseSpawnFlags = true;
+                        }
+#endif
                         if (filedEntity.MaybeExtraSpawnInfo == null)
                         {
-#if DEBUG
-                            overridesExtraSpawnInfo = false;
-#endif
-                            filedEntity.MaybeExtraSpawnInfo = maybeTileExtraData;
+                            maybeExtraSpawnInfo = maybeExtraSpawnInfo_FromVisualSet;
                         }
+#if DEBUG
+                        else
+                        {
+                           overridesBaseExtraSpawnInfo = true;
+                        }
+#endif
                     }
-                    /*else if (filedLayer.TypeID == LevelLayerTypes.ImageSet)
-                    {
-                        // FIXME: Implement!
-                    }*/
                     else if (filedLayer.TypeID == LevelLayerTypes.Prefabs)
                     {
                         prefabType = filedLayer.MaybePrefabTypeForEntities.Value;
@@ -530,23 +538,29 @@ public class LiveLevel
                         false,
                         maybeSpawnInfo,
                         filedEntity.MaybeSpawnFlags.HasValue ? filedEntity.MaybeSpawnFlags.Value : FiledEntity.Flags.None,
-                        PrefabExtraSpawnInfo.FromFiled(filedEntity.MaybeExtraSpawnInfo) 
+                        maybeExtraSpawnInfo
                     );
 
                     if (maybeLiveEntity.HasValue)
                     {
                         var liveEntity = maybeLiveEntity.Value;
                         world.Set(liveEntity, liveRoom.ID);
+                        world.Set(liveEntity, new Depth(liveLayer.Depth));
+
+                        if (filedEntity.UniqueTag != null && filedEntity.UniqueTag.Length != 0)
+                        {
+                            world.Tag(liveEntity, filedEntity.UniqueTag);
+                        }
 
 #if DEBUG                      
                         world.Set(liveEntity, liveLayer.LayerID);
                         liveLayer.CachedEntities.Add(liveEntity);
 
-                        if (overridesSpawnFlags)
+                        if (overridesBaseSpawnFlags)
                         {
                             world.Set(liveEntity, new Editor_EntityOverrideSpawnFlags());
                         }
-                        if (overridesExtraSpawnInfo)
+                        if (overridesBaseExtraSpawnInfo)
                         {
                             world.Set(liveEntity, new Editor_EntityOverrideExtraSpawnInfo());
 
@@ -561,11 +575,6 @@ public class LiveLevel
                         }
 
 #endif
-
-                        if (filedEntity.UniqueTag != null && filedEntity.UniqueTag.Length != 0)
-                        {
-                            world.Tag(liveEntity, filedEntity.UniqueTag);
-                        }
                     }
                 }
             }
