@@ -11,7 +11,7 @@ public static class ColorCodeGen
         string result = string.Empty;
         foreach (var colorType in Enum.GetValues<KnownColor>())
         {
-            if ((colorType >= KnownColor.Transparent && colorType <= KnownColor.YellowGreen)
+            if ((colorType >= KnownColor.AliceBlue && colorType <= KnownColor.YellowGreen)
                 || colorType == KnownColor.RebeccaPurple)
             {
                 var color = Color.FromKnownColor(colorType);
@@ -24,11 +24,11 @@ public static class ColorCodeGen
                 // Comment
                 result += "/// <summary>\n";
                 result += $"/// {colorType} color (R:{color.R}, G:{color.G}, B:{color.B}, A:{color.A}).\n";
-                result += $"/// RGBA Hex: #{colorAsHex}.\n";
+                result += $"/// <para>RGBA Hex: #{colorAsHex}.</para>\n";
                 result += "/// </summary>\n";
 
                 // Declaration
-                result += $"public static Color {colorType} => new (0x{colorAsHex}u);\n";
+                result += $"public static Color {colorType} => new((byte){color.R}, (byte){color.G}, (byte){color.B});\n";
                 result += "\n";
             }
         }
