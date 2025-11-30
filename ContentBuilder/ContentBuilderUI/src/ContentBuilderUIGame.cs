@@ -47,6 +47,8 @@ namespace ContentBuilderUI
 				ProjectPathValid = Operations.ValidateGameProjectDirectory(projectPath);
 			}
 
+			File.WriteAllText(Path.Join(projectPath, "Colors.txt"), ColorCodeGen.GenerateDeclarations());
+
 			ImGuiBackend = new ImGuiBackend(this);
 
 			/* ImGui 1.92: https://github.com/ocornut/imgui/blob/master/docs/FONTS.md#new-dynamic-fonts-system-in-192-june-2025
