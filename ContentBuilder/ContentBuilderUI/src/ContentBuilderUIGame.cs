@@ -198,6 +198,11 @@ namespace ContentBuilderUI
 			ImGuiBackend.EndFrame();
 		}
 
+		protected override void Step()
+        {
+            
+        }
+
 		public void DrawContentGroup(ContentGroup contentGroup)
 		{
 			if (ImGui.TreeNodeEx(contentGroup.Name))
