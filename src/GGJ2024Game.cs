@@ -75,6 +75,11 @@ namespace RollAndCash
 #endif
 		}
 
+		protected override void Step()
+        {
+            
+        }
+
 		protected override void Draw(double alpha)
 		{
 			var commandBuffer = GraphicsDevice.AcquireCommandBuffer();
@@ -116,5 +121,5 @@ namespace RollAndCash
 			gameState.Start();
 			CurrentState = gameState;
 		}
-	}
+    }
 }
