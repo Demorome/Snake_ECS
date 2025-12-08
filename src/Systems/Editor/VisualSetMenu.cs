@@ -15,25 +15,28 @@ using RollAndCash.Systems;
 
 namespace RollAndCash.Editor;
 
-// Visual sets, like TileSets and ImageSets, are displayed here.
-// You can also select parts of the sets to paint them in-level later.
+// Visual sets, like TileSets and ImageSets, are displayed with this class.
+// It also handles selecting parts of the sets to paint them in-level later.
 public class VisualSetMenu
 {
-    // Visual constants
+    //== Global state
+
+    // Only a single VisualSet can make paint selections at any given time.
+    // If another becomes active, then it overrides the previous selections.
+    public static VisualSetMenu ActiveVisualSetMenu { get; private set; } = null;
+
+    //== Constants
+    public readonly VisualSet VisualSet;
+
+    //== Visual constants
     static readonly Color SelectedOutlineColor = Color.Chocolate;
     static readonly Color HoveredOutlineColor = Color.White;
     static readonly Color ModifyingOutlineColor = Color.Red;
     //private const float MenuBottomPortionWidth = 1;
 
-    // State
-    public readonly VisualSet VisualSet;
-    public VisualSetVariantID CurrentVariant;
-
-    // Only a single VisualSet can make paint selections at any given time.
-    // If another becomes active, then it overrides the previous selections.
-    public static VisualSet ActiveVisualSet { get; private set; } = null;
-
-    public static SelectedVisualsToPaint SelectedToPaint = new();
+    //== State
+    public VisualSetVariantID CurrentVariantID;
+    public static PaintingSelection SelectedToPaint = new();
     private static PositionInVisualSet? HoveredVisualInSet = null;
     private static PositionInVisualSet? VisualInSetToModify = null;
 
@@ -96,7 +99,7 @@ public class VisualSetMenu
     {
         if (multiSelectIO.Requests.Size != 0)
         {
-            ActiveVisualSet = VisualSet;
+            ActiveVisualSetMenu = this;
 
             SelectedToPaint.ClearSelections();
             HoveredVisualInSet = null ;
@@ -141,14 +144,14 @@ public class VisualSetMenu
                 var row = (ushort)(i / VisualSet.NumColumns);
                 var posInVisualSet = new PositionInVisualSet(col, row);
 
-                var visualSizeScaled = VisualSet.GetVisualSize(posInVisualSet, CurrentVariant) * scalingFactor;
+                var visualSizeScaled = VisualSet.GetVisualSize(posInVisualSet, CurrentVariantID) * scalingFactor;
                 var (sprite, colorBlend) = tileLayer.Images[i];
                 var tintColor = tileLayer.MixLayerColorWithImageColor(colorBlend);
 
                 // FIXME: Allow sprite animations to play (simulate frame countdown?)
                 var currentFrame = sprite.CurrentSprite;
 
-                bool wasSelected = SelectedToPaint != null && SelectedToPaint.Selected.Contains((posInVisualSet, true));
+                bool wasSelected = SelectedToPaint.Selected.Contains((posInVisualSet, true));
                 bool wasHovered = posInVisualSet == HoveredVisualInSet;
                 bool isReplacing = posInVisualSet == VisualInSetToModify;
 
@@ -304,17 +307,14 @@ public class VisualSetMenu
         }
         if (ImGui.ColorEdit4("Change Selected ColorBlend", ref visualColor))
         {
-            if (SelectedToPaint != null)
+            foreach (var (layerImageID, isNotFiller) in SelectedToPaint.Selected)
             {
-                foreach (var (layerImageID, isNotFiller) in SelectedToPaint.Selected)
+                if (isNotFiller)
                 {
-                    if (isNotFiller)
-                    {
-                        tileLayer.ChangeImageColorBlend(
-                            new Editor_LayerImageID(layerImageID),
-                            new Color(visualColor), World
-                        );
-                    }
+                    tileLayer.ChangeImageColorBlend(
+                        new Editor_LayerImageID(layerImageID),
+                        new Color(visualColor), World
+                    );
                 }
             }
         }
@@ -334,162 +334,6 @@ public class VisualSetMenu
     public void ShowImGuiButtonForVisual(PositionInVisualSet posInVisualSet, VisualSetVariantID variantID)
     {
         
-    }
-}
-
-
-public class SelectedVisualsToPaint
-{
-    // NOTE: This is a flat 2D array. See NumColumns for the column count.
-    // Some may be filler for a non-square selection scheme.
-    public List<(PositionInVisualSet, bool IsNotFiller)> Selected { get; private set; } = new();
-    public int NumColumns { get; private set; } = -1;
-
-    public PositionInVisualSet? FirstValidPositionInVisualSet
-    {
-        get
-        {
-            foreach (var (posInSet, isNotFiller) in Selected)
-            {
-                if (isNotFiller)
-                {
-                    return posInSet;
-                }
-            }
-            return null;
-        }
-    }
-
-    public void ClearSelections()
-    {
-        Selected.Clear();
-        NumColumns = -1;
-    }
-
-    public void HandleMultiSelectRequests(ImGuiMultiSelectIOPtr multiSelectIO, VisualSet visualSet)
-    {
-        for (int requestNum = 0; requestNum < multiSelectIO.Requests.Size; ++requestNum)
-        {
-            var request = multiSelectIO.Requests[requestNum];
-
-            if (request.Type == ImGuiSelectionRequestType.SetAll)
-            {
-                if (request.Selected != 0) // Select all
-                {
-                    Selected.Clear();
-
-                    for (ushort row = 0; row < visualSet.NumRows; ++row)
-                    {
-                        for (ushort col = 0; col < visualSet.NumColumns; ++col)
-                        {
-                            var posInVisualSet = new PositionInVisualSet(col, row);
-                            Selected.Add((posInVisualSet, true));
-                        }
-                    }
-                }
-                else // Unselect all
-                {
-                    ClearSelections();
-                }
-            }
-            else if (request.Type == ImGuiSelectionRequestType.SetRange)
-            {
-                for (var id = (ushort)request.RangeFirstItem; id <= (ushort)request.RangeLastItem; ++id)
-                {
-                    var col = (ushort)(id % visualSet.NumColumns);
-                    var row = (ushort)(id / visualSet.NumColumns);
-                    var posInVisualSet = new PositionInVisualSet(col, row);
-
-                    if (request.Selected == 0) // selection removed
-                    {
-                        UpdateMultiImagePaintSelection(null, posInVisualSet);
-                    }
-                    else // selection added
-                    {
-                        if (Selected.Count == 0)
-                        {
-                            NumColumns = 1;
-                            Selected.Add((posInVisualSet, true));
-                        }
-                        else
-                        {
-                            UpdateMultiImagePaintSelection(posInVisualSet, null);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                throw new NotImplementedException("Unexpected selection request type!");
-            }
-        }
-    }
-
-    private void UpdateMultiImagePaintSelection(
-        PositionInVisualSet? toAddPos = null, 
-        PositionInVisualSet? toRemovePos = null)
-    {
-        // LayerImageIDs may be invalid here, for odd selection schemes.
-        // Ex: picking 2 sprites that are diagonal from each other.
-        // This would produce a 2x2 selection scheme, with 2 tiles being 'invalid' (empty).
-        List<PositionInVisualSet> validPositions = new();
-        foreach (var (visualPosInSet, isNotFiller) in Selected)
-        {
-            if (isNotFiller)
-            {
-                validPositions.Add(visualPosInSet);
-            }
-        }
-        Selected.Clear();
-        NumColumns = -1;
-
-        if (toAddPos.HasValue)
-        {
-            validPositions.Add(toAddPos.Value);
-        }
-        if (toRemovePos.HasValue)
-        {
-            validPositions.Remove(toRemovePos.Value);
-        }
-
-        if (validPositions.Count == 0)
-        {
-            return;
-        }
-
-        var top = ushort.MaxValue;
-        var bottom = ushort.MinValue;
-        var left = ushort.MaxValue;
-        var right = ushort.MinValue;
-
-        foreach (var visualPosInSet in validPositions)
-        {
-            var col = visualPosInSet.X;
-            var row = visualPosInSet.Y;
-
-            top = ushort.Min(top, row);
-            bottom = ushort.Max(bottom, row);
-            left = ushort.Min(left, col);
-            right = ushort.Max(right, col);
-        }
-
-        NumColumns = right - left + 1;
-
-        for (ushort row = top; row <= bottom; ++row)
-        {
-            for (ushort col = left; col <= right; ++col)
-            {
-                var currentPos = new PositionInVisualSet(col, row);
-                if (validPositions.Contains(currentPos))
-                {
-                    Selected.Add((currentPos, true));
-                }
-                else
-                {
-                    Selected.Add((currentPos, false));
-                }
-            }
-        }
     }
 }
 

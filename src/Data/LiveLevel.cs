@@ -102,7 +102,7 @@ public class LiveLevel
             }
 
             name += " ";
-            int i = 1;
+            int i = 2;
             var testName = name + i.ToString();
 
             lock (LayersByName)
@@ -116,23 +116,24 @@ public class LiveLevel
             name = testName;
         }
 
-        public void DeleteLayerCleanup(string layerToRemove, World world)
+        public void DeleteLayerCleanup(ref LiveLevel.EditorLayer layerToRemove, World world)
         {
             // FIXME: Undo support!
             // FIXME: If undone, need to re-apply relationship data too.
             // Ex: DebugEntiy DontDraw relation, if the layer was made invisible.
 
             // Deleting a layer deletes all entities in it.
-            foreach (var entity in LayersByName[layerToRemove].CachedEntities)
+            foreach (var entity in layerToRemove.CachedEntities)
             {
                 world.Destroy(entity);
             }
 
             // Preserve the ID in the lookup, in case we want to undo this change.
-            // May as well preserve the LevelLayer here too...?
-            //IDLookup[LevelLayers[layerToRemove].LayerID.ID] = null;
+            // May as well preserve the Layer here too...?
+            //Layers[LayerID.ID] = null;
 
-            LayersByName.Remove(layerToRemove);
+            LayersByName.Remove(layerToRemove.Name);
+            layerToRemove = null;
         }
 #endif
     }
@@ -146,17 +147,24 @@ public class LiveLevel
     public class EditorLayer
     {
         public string Name { get; private set; }
+        public bool IsNameLocked => LayerType == LevelLayerTypes.Prefabs;
+        public bool TrySetName(string newName)
+        {
+            if (!IsNameLocked)
+            {
+                Name = newName;
+            }
+            return IsNameLocked;
+        }
         public readonly Editor_LevelLayerID LayerID;
         public readonly Room Room;
         public LiveLevel Level => Room.Level;
-        public bool IsNameLocked => LayerType == LevelLayerTypes.Prefabs;
         public LevelLayerTypes LayerType { get; private set; }
         public bool IsTiled => LayerType == LevelLayerTypes.TileSet;
 
         // A layer either uses a visual set or a prefab type to spawn stuff.
-        public TileSet MaybeTileSet;
-        public byte? MaybeVisualSetVariantID;
-        //public ImageSet MaybeImageSet;
+        public VisualSet MaybeVisualSet;
+        public VisualSetVariantID? MaybeVisualSetVariantID;
         public Prefabs? MaybePrefabType;
 
         // Applies to all images/tiles.
@@ -201,7 +209,7 @@ public class LiveLevel
             LayerType = filedLayer.TypeID;
             Room = room;
             Depth = filedLayer.Depth;
-            // NOTE: Assumes the layer's name uniqueness' was preserved...
+            // NOTE: Assumes the layer's name's uniqueness was preserved.
             Name = filedLayer.EditorName;
             Color = filedLayer.Color;
 
@@ -217,9 +225,9 @@ public class LiveLevel
         }
 
         // Should never be called if this isn't a TileSet-type layer.
-        public void ReplaceTileSet(TileSet newTileSet, World world)
+        /*public void ReplaceTileSet(TileSet newTileSet, World world)
         {
-            MaybeTileSet = newTileSet;
+            MaybeVisualSet = newTileSet;
 
             // Update visuals for every entity in this layer that was using the old one.
             foreach (var entity in CachedEntities)
@@ -233,7 +241,7 @@ public class LiveLevel
 
                 world.Set(entity, tileID with {TileSetID = newTileSet.ID});
             }
-        }
+        }*/
 
         public void ToggleVisibility(World world, Entity debugEntity)
         {
@@ -444,7 +452,12 @@ public class LiveLevel
             foreach (var filedLayer in filedRoom.Layers)
             {
 #if DEBUG
-                var liveLayer = new EditorLayer(filedLayer, liveRoom); // adds itself to lists in ctor
+                if (liveRoom.LayersByName.ContainsKey(filedLayer.EditorName))
+                {
+                    Logger.LogError($"Unable to load layer {filedLayer.EditorName}: Name is no longer unique w/ other layers in this room!");
+                    continue;
+                }
+                var liveEditorLayer = new EditorLayer(filedLayer, liveRoom); // adds itself to lists in ctor
 #endif
                 VisualSetID? maybeTileSetID = null;
 
@@ -545,7 +558,7 @@ public class LiveLevel
                     {
                         var liveEntity = maybeLiveEntity.Value;
                         world.Set(liveEntity, liveRoom.ID);
-                        world.Set(liveEntity, new Depth(liveLayer.Depth));
+                        world.Set(liveEntity, new Depth(liveEditorLayer.Depth));
 
                         if (filedEntity.UniqueTag != null && filedEntity.UniqueTag.Length != 0)
                         {
@@ -553,8 +566,8 @@ public class LiveLevel
                         }
 
 #if DEBUG                      
-                        world.Set(liveEntity, liveLayer.LayerID);
-                        liveLayer.CachedEntities.Add(liveEntity);
+                        world.Set(liveEntity, liveEditorLayer.LayerID);
+                        liveEditorLayer.CachedEntities.Add(liveEntity);
 
                         if (overridesBaseSpawnFlags)
                         {

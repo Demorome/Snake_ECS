@@ -47,7 +47,6 @@ public static class UndoRedo
     }
 
     public static void BeginGroupedChange(
-        ChangeType changeType,
         bool isForUndoOrRedo = false // for Undo by default
         )
     {
@@ -55,7 +54,7 @@ public static class UndoRedo
 
         if (ActiveGroupedChangesCount == 0)
         {
-            ToChange.Push((new List<object>(), new List<dynamic>(), changeType));
+            ToChange.Push((new List<object>(), new List<dynamic>(), ChangeType.Placeholder));
         }
         // Else, group together nested grouped changes as one group.
 
@@ -76,14 +75,10 @@ public static class UndoRedo
         // For nested group changes, wait until end of nesting to make a determination.
         if (ActiveGroupedChangesCount == 0)
         {
-            var (subject, _, changeType) = ToChange.Peek();
+            var (subject, _, _) = ToChange.Peek();
             if (((List<object>)subject).Count == 0)
             {
                 ToChange.Pop();
-            }
-            else if (changeType == ChangeType.Placeholder)
-            {
-                throw new Exception("Should have determined a change type!");
             }
         }
     }
@@ -223,7 +218,7 @@ public static class UndoRedo
             var changeValues = (List<dynamic>)changeValue;
 
             // Group the Redo changes together as well.
-            BeginGroupedChange(ChangeType.Placeholder, !isUndoOrRedo);
+            BeginGroupedChange(!isUndoOrRedo);
             var i = 0;
             foreach (var subject in changeSubjects)
             {

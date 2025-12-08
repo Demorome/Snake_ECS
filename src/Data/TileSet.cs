@@ -14,7 +14,7 @@ public readonly record struct TileID(PositionInVisualSet PosInSet, VisualSetID T
 {
     public static explicit operator TileID(VisualFromSetID_ForSpawning v)
     {
-        return new TileID(v.PosInSet, v.TileSetID, v.VariantID);
+        return new TileID(v.PosInSet, v.VisualSetID, v.VariantID);
     }
 }
 

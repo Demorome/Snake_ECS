@@ -147,8 +147,8 @@ public struct FiledLevel
             if (TypeID == LevelLayerTypes.TileSet)
             {
                 var visualSet = new UsedVisualSet();
-                visualSet.NameID = liveLayer.MaybeTileSet.Name;
-                visualSet.VariantID = liveLayer.MaybeVisualSetVariantID.Value;
+                visualSet.NameID = liveLayer.MaybeVisualSet.Name;
+                visualSet.VariantID = liveLayer.MaybeVisualSetVariantID.Value.ID;
                 MaybeVisualSet = visualSet;
             }
             else if (TypeID == LevelLayerTypes.ImageSet)

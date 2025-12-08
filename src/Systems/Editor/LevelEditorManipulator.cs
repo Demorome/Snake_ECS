@@ -138,16 +138,22 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             return;
         }
 
+        DrawLevelEditorMainWindow();
+
+        if (ActiveLevel == null || ActiveRoom == null)
+        {
+            return;
+        }
+
         HasSelectedPrefab = PrefabManipulator.ShowPrefabSpawner(debugEntity);
         if (HasSelectedPrefab)
         {
             EditorSystem.IsInEntitySelectionMode = false;
         }
 
-        DrawLevelEditorMainWindow();
-        ShowLevelLayerOptions(debugEntity);
+        ShowActiveLayersForRoom_Menu(debugEntity);
 
-        // Layer painting controls.
+        //== Layer painting controls.
         var mouseHoveringOverAnyWindow = ImGui.GetIO().WantCaptureMouse;
         if (mouseHoveringOverAnyWindow)
         {
@@ -159,109 +165,25 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         {
             return;
         }
-        if (MenuOpenedLayer == null)
+        if (MenuOpenedLayer == null || MenuOpenedLayer.MaybeVisualSet == null)
         {
             return;
         }
-        var imagesToPaint = GetSelectedVisualsToPaint();
+        if (!MenuOpenedLayer.MaybeVisualSetVariantID.HasValue)
+        {
+            Logger.LogError("VisualSetVariantID should not be null here!");
+            return;
+        }
 
-        if (imagesToPaint != null && imagesToPaint.Count >= 1)
+        var visualsToPaint = GetSelectedVisualsToPaint();
+        if (visualsToPaint.Count >= 1)
         {
             EditorSystem.IsInEntitySelectionMode = false;
         }
 
-        if (!HasSelectedPrefab && imagesToPaint != null && ImGui.IsMouseDown(ImGuiMouseButton.Left))
+        if (!HasSelectedPrefab && visualsToPaint.Count >= 1 && ImGui.IsMouseDown(ImGuiMouseButton.Left))
         {
-            List<Entity> paintedEntities = new();
-
-            switch (MenuOpenedLayer.LayerType)
-            {
-                case LevelLayerTypes.TileSet:
-                    if (imagesToPaint.Count == 1 || ImGui.IsMouseClicked(ImGuiMouseButton.Left))
-                    {
-                        if (imagesToPaint.Count == 1 && !IsDragCreating)
-                        {
-                            IsDragCreating = true;
-                            UndoRedo.BeginGroupedChange(UndoRedo.ChangeType.Entity_Creation);
-                        }
-
-                        foreach (var (positionInVisualSet, posInWorld) in imagesToPaint)
-                        {
-                            var tileWorldPos = TileManipulator.TilePosToWorldPos_Centered(HoveredOverTilePosition.Value);
-
-                            // Replace a tile if one is already painted in at this level layer.
-                            bool spawn = true;
-                            foreach (var entity in MenuOpenedLayer.CachedEntities)
-                            {
-                                if (Get<Position2D>(entity) == tileWorldPos)
-                                {
-                                    if (Get<TileID>(entity).PosInSet != positionInVisualSet)
-                                    {
-                                        // FIXME: Undo/Redo support! How to group this change w/ the creation of the tile below?
-                                        Destroy(entity);
-                                    }
-                                    else
-                                    {
-                                        spawn = false;
-                                    }
-                                    // Assume there can't be any other entities on this layer at this tile pos.
-                                    break;
-                                }
-                            }
-
-                            if (spawn)
-                            {
-                                // FIXME: Spawn using TileSet metadata!!!!
-                                Entity newEntity;
-                                if (MenuOpenedLayer.LayerType == LevelLayerTypes.SolidTileSet)
-                                {
-                                    newEntity = TileManipulator.SpawnRegularSolidTile(tileWorldPos, imageSprite);
-                                }
-                                else
-                                {
-                                    newEntity = CreateEntity("Visual Tile");
-                                    Set(newEntity, new PrefabID(Prefabs.VisualTile));
-                                    Set(newEntity, tileWorldPos);
-                                    Set(newEntity, imageSprite);
-                                }
-
-                                Set(newEntity, new ColorBlend(imageColor));
-                                Set(newEntity, imagePos);
-                                Set(newEntity, layerImageID);
-
-                                paintedEntities.Add(newEntity);
-                            }
-                        }
-                    }
-                    break;
-                case LevelLayerTypes.Image:
-                    if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
-                    {
-                        var (spriteAnim, color, position, layerImageID) = imagesToPaint[0];
-
-                        Entity newEntity = CreateEntity("Image");
-                        Set(newEntity, new PrefabID(Prefabs.Image));
-                        Set(newEntity, spriteAnim);
-                        Set(newEntity, new ColorBlend(color));
-                        Set(newEntity, position);
-                        Set(newEntity, layerImageID);
-                    }
-                    break;
-            }
-
-            if (paintedEntities.Count != 0)
-            {
-                // Group together multiple entities created in a single paintbrush stroke for Undo.
-                UndoRedo.BeginGroupedChange(UndoRedo.ChangeType.Entity_Creation);
-                foreach (var entity in paintedEntities)
-                {
-                    Set(entity, new Depth(MenuOpenedLayer.Depth));
-                    Set(entity, MenuOpenedLayer.LayerID);
-
-                    UndoRedo.RememberEntityCreation(entity, World);
-                }
-                UndoRedo.EndGroupedChange();
-            }
+            PaintVisuals(visualsToPaint);
         }
         else if (ImGui.IsMouseDown(ImGuiMouseButton.Right) && !EditorSystem.IsInEntitySelectionMode)
         {
@@ -271,13 +193,12 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                 if (MenuOpenedLayer.IsTiled && !IsDragDeleting)
                 {
                     IsDragDeleting = true;
-                    UndoRedo.BeginGroupedChange(UndoRedo.ChangeType.Entity_Deletion);
+                    UndoRedo.BeginGroupedChange();
                 }
 
                 var mouseHitboxRect = new Rectangle(0, 0, 1, 1);
                 var mouseWorldPosRect = mouseHitboxRect.GetWorldRect(mouseWorldPos);
 
-                // Hopefully won't need an acceleration structure for this...
                 foreach (var entity in MenuOpenedLayer.CachedEntities)
                 {
                     var rect = EditorSystem.GetEntityVisualRect(entity);
@@ -297,29 +218,41 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
     public LiveLevel.EditorLayer SelectedLayerInList = null;
     public LiveLevel.EditorLayer HoveredOverLayer = null;
 
-    public List<(PositionInVisualSet, Position2D)> GetSelectedVisualsToPaint()
+    public List<(VisualFromSetID_ForSpawning, Position2D)> GetSelectedVisualsToPaint()
     {
         if (!IsInLevelEditor
             || ActiveLevel == null
             || MenuOpenedLayer == null
-            || TileLayerMenu.SelectedToPaint == null 
+            || MenuOpenedLayer.MaybeVisualSet == null
+            || VisualSetMenu.SelectedToPaint.Selected.Count == 0
             || ImGui.GetIO().WantCaptureMouse
             )
         {
             return new();
         }
-        var result = new List<(PositionInVisualSet, Position2D)>();
 
+        if (!MenuOpenedLayer.MaybeVisualSetVariantID.HasValue)
+        {
+            Logger.LogError("VisualSetVariantID should not be null here!");
+            return new();
+        }
+
+        // A VisualSet-type layer has only 1 constant VisualSet variant it can draw from. 
+        var activeVisualMenu = VisualSetMenu.ActiveVisualSetMenu;
+        if (activeVisualMenu.VisualSet.ID != MenuOpenedLayer.MaybeVisualSet.ID
+            || activeVisualMenu.CurrentVariantID != MenuOpenedLayer.MaybeVisualSetVariantID.Value)
+        {
+            return new();
+        }
+
+        var result = new List<(VisualFromSetID_ForSpawning, Position2D)>();
+        var activeVisualSetMenu = VisualSetMenu.ActiveVisualSetMenu;
         var mouseWorldPos = Input.WorldMousePosition;
         var maybeHoveredOverTile = TileManipulator.GetTilePos(mouseWorldPos);
+
         if (MenuOpenedLayer.IsTiled)
         {
             if (!maybeHoveredOverTile.HasValue)
-            {
-                return new();
-            }
-            var tileSet = TODO;
-            if (tileSet == null)
             {
                 return new();
             }
@@ -327,7 +260,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             var startingTile = maybeHoveredOverTile.Value;
             var nextTile = startingTile;
             int column = 0;
-            foreach (var (posInVisualSet, isNotFiller) in TileLayerMenu.SelectedToPaint.Selected)
+            foreach (var (posInVisualSet, isNotFiller) in VisualSetMenu.SelectedToPaint.Selected)
             {
                 Position2D worldPos = mouseWorldPos;
 
@@ -337,7 +270,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                 {
                     nextTile.X += 1;
                     column += 1;
-                    column %= TileLayerMenu.SelectedToPaint.NumColumns;
+                    column %= VisualSetMenu.SelectedToPaint.NumColumns;
                     if (column == 0)
                     {
                         nextTile.X = startingTile.X;
@@ -361,19 +294,24 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                     }
                 }
 
-                var (sprite, imageColor) = MenuOpenedLayer.Images[posInVisualSet];
-                imageColor = MenuOpenedLayer.MixLayerColorWithImageColor(imageColor);
-                result.Add((sprite, imageColor, worldPos, new Editor_LayerImageID(posInVisualSet)));
+                var visualFromSetID = new VisualFromSetID_ForSpawning(
+                    posInVisualSet, 
+                    activeVisualMenu.VisualSet.ID,
+                    activeVisualMenu.CurrentVariantID
+                );
+
+                result.Add((visualFromSetID, worldPos));
             }
         }
         else
         {
-            // FIXME: TODO: Implement for ImageSets!
+            Logger.LogError("Unimplemented!");
+            // FIXME: TODO: Implement for other VisualSets, like ImageSets!
         }
 
         if (result.Count > 1 && !MenuOpenedLayer.IsTiled)
         {
-            throw new Exception("Should only be creating 1 image here...");
+            Logger.LogError("Should only be creating 1 image here...");
         }
 
         return result;
@@ -384,15 +322,132 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         return sprite.SpriteAnimationInfoID == SpriteAnimations.EditorTile_EmptyTile.ID
             || sprite.CurrentSprite.UV == SpriteAnimations.EditorTile_EmptyTile.Frames[0].UV;
     }
-    static TileLayerMenu TileLayerMenuStatic = new();
 
-    void ShowLevelLayerOptions(Entity debugEntity)
+    /// <summary>
+    /// Assumes MenuOpenedLayer isn't null.
+    /// </summary>
+    /// <param name="visualsToPaint"></param>
+    /// <returns></returns>
+    private List<Entity> PaintVisuals(
+        List<(VisualFromSetID_ForSpawning, Position2D)> visualsToPaint
+        )
     {
-        HoveredOverLayerName = null;
+        List<Entity> paintedEntities = new();
+        List<Entity> deletedEntities = new();
 
-        if (ImGui.Begin("Level Layers"u8))
+        switch (MenuOpenedLayer.LayerType)
         {
-            foreach (var (name, layer) in ActiveLevel.Layers)
+            case LevelLayerTypes.TileSet:
+                if (visualsToPaint.Count == 1 || ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+                {
+                    if (visualsToPaint.Count == 1 && !IsDragCreating)
+                    {
+                        IsDragCreating = true;
+                        UndoRedo.BeginGroupedChange();
+                    }
+
+                    foreach (var (visualFromSetID, posInWorld) in visualsToPaint)
+                    {
+                        bool spawn = true;
+                        foreach (var entity in MenuOpenedLayer.CachedEntities)
+                        {
+                            if (Get<Position2D>(entity) == posInWorld)
+                            {
+                                // Currently, a layer should have at most 1 VisualSet variant selected,
+                                // so PosInSet is all that needs to be checked.
+                                // I'll keep it more exhaustive in case this changes later.
+                                if (Get<TileID>(entity) != (TileID)visualFromSetID)
+                                {
+                                    // Replace a tile if one is already painted in at this level layer.
+                                    deletedEntities.Add(entity);
+                                }
+                                else
+                                {
+                                    // No point in replacing ourselves.
+                                    spawn = false;
+                                }
+                                // Assume there can't be any other entities on this layer at this tile pos.
+                                break;
+                            }
+                        }
+
+                        if (spawn)
+                        {
+                            var maybeNewEntity = VisualSet.Editor_TryCreateEntityFromVisualSet(
+                                visualFromSetID,
+                                posInWorld,
+                                World,
+                                PrefabManipulator,
+                                ActiveRoom,
+                                MenuOpenedLayer,
+                                false,
+                                false
+                            );
+                            
+                            if (maybeNewEntity.HasValue)
+                            {
+                                paintedEntities.Add(maybeNewEntity.Value);
+                            }
+                        }
+                    }
+                }
+                break;
+            /*case LevelLayerTypes.ImageSet:
+            
+                if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
+                {
+                    var (spriteAnim, color, position, layerImageID) = visualsToPaint[0];
+
+                    Entity newEntity = CreateEntity("Image");
+                    Set(newEntity, new PrefabID(Prefabs.Image));
+                    Set(newEntity, spriteAnim);
+                    Set(newEntity, new ColorBlend(color));
+                    Set(newEntity, position);
+                    Set(newEntity, layerImageID);
+                }
+                break;
+                */
+        }
+
+        if (paintedEntities.Count != 0)
+        {
+            if (!IsDragCreating)
+            {
+                // Group together multiple entities created in a single paintbrush stroke for Undo.
+                UndoRedo.BeginGroupedChange();
+            }
+
+            foreach (var entity in paintedEntities)
+            {
+                Set(entity, new Depth(MenuOpenedLayer.Depth));
+                Set(entity, MenuOpenedLayer.LayerID);
+
+                UndoRedo.RememberEntityCreation(entity, World);
+            }
+
+            foreach (var entity in deletedEntities)
+            {
+                UndoRedo.RememberEntityDestruction(entity, World);
+            }
+
+            if (!IsDragCreating)
+            {
+                UndoRedo.EndGroupedChange();
+            }
+        }
+
+        return paintedEntities;
+    }
+
+    LevelLayerTypes NewLayerType;
+
+    void ShowActiveLayersForRoom_Menu(Entity debugEntity)
+    {
+        HoveredOverLayer = null;
+
+        if (ImGui.Begin("Room Layers"u8))
+        {
+            foreach (var layer in ActiveRoom.Layers)
             {
                 var isVisible = layer.IsVisible;
                 if (ImGui.Checkbox("##" + layer.Name + "Visibility", ref isVisible))
@@ -401,35 +456,34 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                 }
                 ImGui.SameLine();
 
-                if (ImGui.Selectable(layer.Name, SelectedLayerInList == name, ImGuiSelectableFlags.AllowDoubleClick))
+                if (ImGui.Selectable(layer.Name, SelectedLayerInList == layer, ImGuiSelectableFlags.AllowDoubleClick))
                 {
                     if (ImGui.IsMouseDoubleClicked(ImGuiMouseButton.Left))
                     {
-                        MenuOpenedLayer = name;
-                        TileLayerMenu.SelectedToPaint = null;
+                        MenuOpenedLayer = layer;
+                        VisualSetMenu.SelectedToPaint = new();
                     }
-                    else if (SelectedLayerInList == name)
+                    else if (SelectedLayerInList == layer)
                     {
                         SelectedLayerInList = null;
                     }
                     else
                     {
-                        SelectedLayerInList = name;
+                        SelectedLayerInList = layer;
                     }
                 }
                 if (ImGui.IsItemHovered())
                 {
-                    HoveredOverLayerName = name;
+                    HoveredOverLayer = layer;
                 }
 
                 ImGui.SameLine();
                 ImGui.TextColored(Color.Green.ToVector4(),
                     $"\tDepth: {layer.Depth}" + (layer.IsDepthLocked ? " (Locked)" : ""));
 
-                if (ImGui.BeginPopup($"RenameLayer{name}"))
+                if (ImGui.BeginPopup($"RenameLayer{layer.Name}"))
                 {
-                    string oldName = layer.Name;
-                    string newName = oldName;
+                    string newName = layer.Name;
                     for (int c = newName.Length - 1; c >= 0; --c)
                     {
                         if (char.IsAsciiDigit(newName[c]) || char.IsWhiteSpace(newName[c]))
@@ -441,13 +495,14 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                             break;
                         }
                     }
-                    // FIXME: Would be nice if we could prevent numbers from being input here...
+                    // TODO: Might be nice if we could prevent numbers from being input here
                     if (ImGui.InputText("##RenameLayerText", ref newName, 100, ImGuiInputTextFlags.EnterReturnsTrue))
                     {
-                        ActiveLevel.ValidateLayerName(ref newName);
-                        layer.Name = newName;
-                        ActiveLevel.Layers.Add(newName, ActiveLevel.Layers[oldName]);
-                        ActiveLevel.Layers.Remove(oldName);
+                        if (!layer.IsNameLocked)
+                        {
+                            ActiveRoom.ValidateLayerName(ref newName);
+                            layer.TrySetName(newName);
+                        }
                     }
                     ImGui.EndPopup();
                 }
@@ -466,14 +521,39 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                     var layerTypeStr = LiveLevel.EditorLayer.LayerTypeToString(layerType);
                     if (ImGui.Selectable(layerTypeStr))
                     {
-                        var newLayerDepth = (float)DepthLayer.DefaultDepth;
-                        if (layerType == LevelLayerTypes.SolidTileSet)
+                        if (LevelLayerTypesFuncs.IsVisualSet(layerType))
                         {
-                            newLayerDepth = (float)DepthLayer.SolidObject;
+                            NewLayerType = layerType;
+                            ImGui.BeginPopup("ChooseLayerVisualSet"u8);
                         }
-
-                        var newLayer = new LiveLevel.Layer(layerType, ActiveLevel, layerTypeStr, newLayerDepth);
+                        else
+                        {
+                            var _ = new LiveLevel.EditorLayer(layerType, ActiveRoom, layerTypeStr);
+                        }
                     }
+                }
+                ImGui.EndPopup();
+            }
+            if (ImGui.BeginPopup("ChooseLayerVisualSet"u8))
+            {
+                ImGui.SeparatorText("Select a Visual Set + VariantID"u8);
+
+                // TODO: Add option to select a VisualSet type, then filter by name.
+
+                if (VisualSetMenu.ActiveVisualSetMenu != null)
+                {
+                    ImGui.BeginDisabled();
+                }
+                if (ImGui.Button("Use currently active Visual Set + VariantID"))
+                {
+                    var layerTypeStr = LiveLevel.EditorLayer.LayerTypeToString(NewLayerType);
+                    var newLayer = new LiveLevel.EditorLayer(NewLayerType, ActiveRoom, layerTypeStr);
+                    newLayer.MaybeVisualSet = VisualSetMenu.ActiveVisualSetMenu.VisualSet;
+                    newLayer.MaybeVisualSetVariantID = VisualSetMenu.ActiveVisualSetMenu.CurrentVariantID;
+                }
+                if (VisualSetMenu.ActiveVisualSetMenu != null)
+                {
+                    ImGui.EndDisabled();
                 }
                 ImGui.EndPopup();
             }
@@ -490,38 +570,35 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                 if (MenuOpenedLayer == SelectedLayerInList)
                 {
                     MenuOpenedLayer = null;
-                    TileLayerMenu.SelectedToPaint = null;
                 }
-
-                if (HoveredOverLayerName == SelectedLayerInList)
+                if (HoveredOverLayer == SelectedLayerInList)
                 {
-                    HoveredOverLayerName = null;
+                    HoveredOverLayer = null;
                 }
 
                 // Deleting a layer deletes all entities in it.
-                ActiveLevel.DeleteLayerCleanup(SelectedLayerInList, World);
-                SelectedLayerInList = null;
+                ActiveRoom.DeleteLayerCleanup(ref SelectedLayerInList, World);
             }
 
             ImGui.SameLine();
             if (ImGui.Button("Rename"u8))
             {
-                ImGui.OpenPopup($"RenameLayer{SelectedLayerInList}");
+                ImGui.OpenPopup($"RenameLayer{SelectedLayerInList.Name}");
             }
 
             ImGui.SameLine();
-            if (SelectedLayerInList != null && ActiveLevel.Layers[SelectedLayerInList].IsDepthLocked)
+            if (SelectedLayerInList != null && SelectedLayerInList.IsDepthLocked)
             {
                 ImGui.BeginDisabled();
                 disabled = true;
             }
             if (ImGui.Button("Change Depth"u8))
             {
-                ImGui.OpenPopup($"ChangeLayerDepth{SelectedLayerInList}");
+                ImGui.OpenPopup($"ChangeLayerDepth{SelectedLayerInList.Name}");
             }
-            if (ImGui.BeginPopup($"ChangeLayerDepth{SelectedLayerInList}"))
+            if (ImGui.BeginPopup($"ChangeLayerDepth{SelectedLayerInList.Name}"))
             {
-                var selectedLayer = ActiveLevel.Layers[SelectedLayerInList];
+                var selectedLayer = SelectedLayerInList;
                 var newDepth = selectedLayer.Depth;
                 if (ImGui.InputFloat("Depth"u8, ref newDepth))
                 {
@@ -537,23 +614,30 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         ImGui.End();
 
 
-        // Draw separate window to show the active layer options.
+        // Draw separate window to show the active layer info.
         if (MenuOpenedLayer != null)
         {
-            var layer = ActiveLevel.Layers[MenuOpenedLayer];
+            var layer = MenuOpenedLayer;
 
             bool stayOpen = true;
             if (ImGui.Begin(layer.Name, ref stayOpen))
             {
-                switch (layer.LayerType)
+                ImGui.Text($"Layer type: {layer.LayerType}");
+
+                if (layer.LayerType == LevelLayerTypes.Prefabs)
                 {
-                    case LevelLayerTypes.SolidTileSet:
-                    case LevelLayerTypes.TileSet:
-                        TileLayerMenuStatic.Show(layer, World);
-                        break;
-                    default:
-                        // TODO: 
-                        break;
+                    ImGui.Text($"Prefab type: {layer.MaybePrefabType.Value}");
+                }
+                else 
+                {
+                    ImGui.Text($"Visual set: {layer.MaybeVisualSet.Name}. VariantID: {layer.MaybeVisualSetVariantID.Value}");
+                }
+                ImGui.Text("Hint: create a new layer if you want to change the above, or manually edit the saved file.");
+
+                var color = layer.Color.ToVector4();
+                if (ImGui.ColorEdit4("ColorBlend", ref color))
+                {
+                    layer.ChangeLayerColorBlend(new Color(color), World);
                 }
             }
             ImGui.End();

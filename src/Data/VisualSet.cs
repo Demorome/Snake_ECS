@@ -18,7 +18,7 @@ public readonly record struct VisualSetID(ushort ID);
 // An ID of 0 means using the default Visual Set.
 public readonly record struct VisualSetVariantID(byte ID);
 
-public readonly record struct VisualFromSetID_ForSpawning(PositionInVisualSet PosInSet, VisualSetID TileSetID, VisualSetVariantID VariantID);
+public readonly record struct VisualFromSetID_ForSpawning(PositionInVisualSet PosInSet, VisualSetID VisualSetID, VisualSetVariantID VariantID);
 
 public abstract class VisualSet
 {
@@ -104,7 +104,7 @@ public abstract class VisualSet
     public static (PrefabID, FiledEntity.Flags, PrefabExtraSpawnInfo?) 
         GetMetadata(VisualFromSetID_ForSpawning v)
     {
-        return GetMetadata(v.PosInSet, v.TileSetID, v.VariantID);
+        return GetMetadata(v.PosInSet, v.VisualSetID, v.VariantID);
     }
 
     public static (PrefabID, FiledEntity.Flags, PrefabExtraSpawnInfo?) 
@@ -150,8 +150,8 @@ public abstract class VisualSet
     }
 
 #if DEBUG
-    // NOT to be used when loading entities form files, since those might have unique changes.
-    public Entity? Editor_TryCreateEntityFromVisualSet(
+    // NOT to be used when loading entities from files, since those might have unique changes.
+    public static Entity? Editor_TryCreateEntityFromVisualSet(
         VisualFromSetID_ForSpawning visualFromSetID,
         Position2D spawnPosition,
         World world,
@@ -207,21 +207,20 @@ public abstract class VisualSet
             }
             world.Set(newEntity, new Editor_DontShowInLists());
             world.Set(newEntity, new Editor_DontAddToLevel());
-
-            if (maybeLayer != null)
-            {
-                Logger.LogWarn("Layer should be null here; it's pointless");
-            }
         }
         else
         {
             world.Set(newEntity, currentRoom.ID);
             if (maybeLayer != null)
             {
-                world.Set(newEntity, new Depth(maybeLayer.Depth));
                 world.Set(newEntity, maybeLayer.LayerID);
                 maybeLayer.CachedEntities.Add(newEntity);
             }
+        }
+
+        if (maybeLayer != null)
+        {
+            world.Set(newEntity, new Depth(maybeLayer.Depth));
         }
 
         return newEntity;
