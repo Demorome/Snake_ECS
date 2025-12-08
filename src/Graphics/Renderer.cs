@@ -263,15 +263,17 @@ public class Renderer : MoonTools.ECS.Renderer
 			}
 
 			Vector2 scale = Vector2.One;
-			if (Has<SpriteScale>(entity))
+			if (Has<SpriteVisualScale>(entity))
 			{
-				scale = Get<SpriteScale>(entity).Scale;
+				scale = Get<SpriteVisualScale>(entity).Scale;
 			}
-			if ((OutRelationCount<FlippedHorizontallyByTarget>(entity) % 2) == 1)
+			if (((OutRelationCount<FlippedHorizontallyByTarget>(entity)
+				+ (Has<HorizontalFlip>(entity) ? 1 : 0)) % 2) == 1)
 			{
 				scale.X *= -1;
 			}
-			if ((OutRelationCount<FlippedVertically>(entity) % 2) == 1)
+			if (((OutRelationCount<FlippedVerticallyByTarget>(entity) 
+				+ (Has<VerticalFlip>(entity) ? 1 : 0)) % 2) == 1)
 			{
 				scale.Y *= -1;
 			}
@@ -322,9 +324,9 @@ public class Renderer : MoonTools.ECS.Renderer
 			var color = GetColorBlend(entity);
 
 			Vector2 scale = Vector2.One;
-			if (Has<SpriteScale>(entity))
+			if (Has<SpriteVisualScale>(entity))
 			{
-				scale = Get<SpriteScale>(entity).Scale;
+				scale = Get<SpriteVisualScale>(entity).Scale;
 			}
 			/* I doubt this will actually be used here.
 			if ((OutRelationCount<FlippedHorizontally>(entity) % 2) == 1)
