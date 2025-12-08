@@ -5,40 +5,42 @@ using MoonWorks.Math;
 
 namespace RollAndCash.Components;
 
-public struct SpriteAnimation
+public readonly record struct SpriteAnimation : IAnimation
 {
-	public SpriteAnimationInfoID SpriteAnimationInfoID { get; }
-	public int FrameRate { get; }
-	public bool Loop { get; }
-	public Vector2 Origin { get; }
-	public float RawFrameIndex { get; }
+	//== IAnimation stuff.
+	public readonly int FrameRate { get; }
+	public readonly bool Loop { get; }
+	public readonly Vector2 Origin { get; }
+	public readonly float RawFrameIndex { get; }
+	public readonly int FramesLength 
+	{ 
+		get
+        {
+            return SpriteAnimationInfo.Frames.Length;
+        } 
+	}
 
-	// FIXME: should we cache this?
+	//== Our own members.
+	public SpriteAnimationInfoID SpriteAnimationInfoID { get; }
+
+	//== Properties & methods.
+	public SpriteAnimationInfo SpriteAnimationInfo 
+		=> SpriteAnimationInfo.FromID(SpriteAnimationInfoID)
+	;
 	public int FrameIndex
 	{
 		get
-		{
-			var integerIndex = (int)(MathF.Sign(RawFrameIndex) * MathF.Ceiling(MathF.Abs((RawFrameIndex))));
-			var framesLength = SpriteAnimationInfo.Frames.Length;
-			if (Loop)
-			{
-				return ((integerIndex % framesLength) + framesLength) % framesLength;
-			}
-			else
-			{
-				return int.Clamp(integerIndex, 0, SpriteAnimationInfo.Frames.Length - 1);
-			}
-		}
+        {
+            return IAnimation.GetFrameIndex(this);
+        }
 	}
-
-	public SpriteAnimationInfo SpriteAnimationInfo => SpriteAnimationInfo.FromID(SpriteAnimationInfoID);
 	public Sprite CurrentSprite => SpriteAnimationInfo.Frames[FrameIndex];
-	public bool Finished => !Loop && FrameRate != 0 && RawFrameIndex >= SpriteAnimationInfo.Frames.Length - 1;
-	public float TotalTime => SpriteAnimationInfo.Frames.Length / FrameRate;
+	public bool Finished => IAnimation.IsFinished(this);
+	public float TotalTime => IAnimation.GetTotalTime(this);
 
 	public int TimeOf(int frame)
 	{
-		return frame / FrameRate;
+		return IAnimation.GetTimeOf(this, frame);
 	}
 
 	// FIXME: this isn't really necessary
@@ -92,6 +94,7 @@ public struct SpriteAnimation
 			Origin);
 	}
 
+	//== Constructors.
 	public SpriteAnimation(
 		SpriteAnimationInfo spriteAnimationInfo
 	)
