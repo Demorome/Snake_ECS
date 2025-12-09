@@ -118,6 +118,7 @@ public class LoadState : GameState
         StaticAudioPacks.pack_0.SliceBuffers();
         StaticAudio.LoadAll();
         SpriteAnimations.LoadAll();
+        TileSets.LoadAll();
     }
 
     private Matrix4x4 GetHiResProjectionMatrix()
