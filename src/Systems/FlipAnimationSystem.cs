@@ -52,11 +52,11 @@ public class FlipAnimationSystem : MoonTools.ECS.System
                 flipData.TimePerFlip * 2)
                 )
             {
-                Relate(entity, flipTimerEntity, new FlippedVertically());
+                Relate(entity, flipTimerEntity, new FlippedVerticallyByTarget());
             }
             else
             {
-                Unrelate<FlippedVertically>(entity, flipTimerEntity);
+                Unrelate<FlippedVerticallyByTarget>(entity, flipTimerEntity);
             }
         }
 

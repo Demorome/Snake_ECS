@@ -11,9 +11,9 @@ public struct TileSprite
 {
 	public VisualSetID TileSetID { get; }
 	public VisualSetVariantID TileSetVariantID;
-	public Vector2 PixelPos { get; } // the pixel position on the texture
-	public Vector2 Origin => PixelPos;
-    public Vector2 TilePos => new Vector2(PixelPos.X, PixelPos.Y) / TileSize;
+	public Vector2 FramePos { get; } // the pixel position on the texture
+	public Vector2 Origin => FramePos;
+    public Vector2 TilePos => new Vector2(FramePos.X, FramePos.Y) / TileSize;
 	public UV UV { get; }
 
 	public static TileSprite FromID(TileID TileID) => TileSet.GetTileSprite(TileID);
@@ -28,9 +28,9 @@ public struct TileSprite
 	{
 		TileSetID = tileSet.ID;
 		TileSetVariantID = new(0);
-		PixelPos = pixelPos;
+		FramePos = pixelPos;
 		UV = new UV(
-			new Vector2((float)PixelPos.X / tileSet.PixelWidth, (float)PixelPos.Y / tileSet.PixelHeight),
+			new Vector2((float)FramePos.X / tileSet.PixelWidth, (float)FramePos.Y / tileSet.PixelHeight),
 			new Vector2((float)TileSize / tileSet.PixelWidth, (float)TileSize / tileSet.PixelHeight)
 		);
 	}

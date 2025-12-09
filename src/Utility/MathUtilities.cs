@@ -15,9 +15,21 @@ public static class MathUtilities
         return Vector2.Normalize(v);
     }
 
-    public static Vector2 Rotate(Vector2 vector, float rotation)
+    /// <summary>
+    /// Avoid using this repeatedly; cache the rotation matrix and use that overload instead.
+    /// </summary>
+    public static Vector2 Rotate(Vector2 vector, float rotationInRadians)
     {
-        return Vector2.TransformNormal(vector, Matrix4x4.CreateRotationZ(rotation));
+        return Vector2.TransformNormal(vector, Matrix4x4.CreateRotationZ(rotationInRadians));
+    }
+    public static Vector2 Rotate(Vector2 vector, Matrix4x4 rotationMatrixZ)
+    {
+        return Vector2.TransformNormal(vector, rotationMatrixZ);
+    }
+
+    public static Matrix4x4 GetRotationMatrix(float rotationInRadians)
+    {
+        return Matrix4x4.CreateRotationZ(rotationInRadians);
     }
 
     // In radians

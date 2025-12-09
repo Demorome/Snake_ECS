@@ -50,7 +50,7 @@ public abstract class VisualSet
         ImageSet
     }
     public Editor_Types Editor_Type = Editor_Types.Invalid;
-    public static Dictionary<Editor_Types, VisualSet> Editor_VisualSetsByType = new();
+    public static Dictionary<Editor_Types, List<VisualSet>> Editor_VisualSetsByType = new();
 #endif
 
     //== Constructors
@@ -78,7 +78,14 @@ public abstract class VisualSet
         }
         lock (Editor_VisualSetsByType)
         {
-            Editor_VisualSetsByType.Add(Editor_Type, this);
+            if (Editor_VisualSetsByType.ContainsKey(Editor_Type))
+            {
+                Editor_VisualSetsByType[Editor_Type].Add(this);
+            }
+            else
+            {
+                Editor_VisualSetsByType.Add(Editor_Type, new List<VisualSet>() { this });
+            }
         }
 #endif
     }
@@ -97,6 +104,7 @@ public abstract class VisualSet
     }
     public bool CanSetVisualColor(VisualSetVariantID variantID)
     {
+        // Enforce that the default VisualSet variant can't be changed.
         return variantID.ID != 0;
     }
     public byte GetVariantCount() => (byte)VariantSets.Count;
@@ -156,7 +164,7 @@ public abstract class VisualSet
         Position2D spawnPosition,
         World world,
         PrefabManipulator prefabManipulator,
-        LiveLevel.Room currentRoom,
+        LiveLevel.Room currentRoom = null,
         LiveLevel.EditorLayer maybeLayer = null,
         bool isDummyVisual = false,
         bool isDummyForPaintingPreview = false
@@ -174,6 +182,14 @@ public abstract class VisualSet
             if (!PrefabsFuncs.IsPurelyVisual(prefabType))
             {
                 Logger.LogError($"Unrecognized prefab type for dummy visual: {prefabType}");
+                return null;
+            }
+        }
+        else
+        {
+            if (currentRoom == null || maybeLayer == null)
+            {
+                Logger.LogError("Room/layer shouldn't be null for a non-dummy visual!");
                 return null;
             }
         }
@@ -211,11 +227,8 @@ public abstract class VisualSet
         else
         {
             world.Set(newEntity, currentRoom.ID);
-            if (maybeLayer != null)
-            {
-                world.Set(newEntity, maybeLayer.LayerID);
-                maybeLayer.CachedEntities.Add(newEntity);
-            }
+            world.Set(newEntity, maybeLayer.LayerID);
+            maybeLayer.CachedEntities.Add(newEntity);
         }
 
         if (maybeLayer != null)
@@ -232,7 +245,11 @@ public abstract class VisualSet
     public bool Editor_CanDeleteOrCreate => Editor_CanAddOrRemoveVisuals();
     public abstract bool Editor_TrySetColumnCount(ushort newWidth); // returns false if we can't resize
     
-    public bool Editor_TrySetVisualColor(PositionInVisualSet posInVisualSet, VisualSetVariantID variantID, Color newColor)
+    public bool Editor_TrySetVisualColor(
+        PositionInVisualSet posInVisualSet, 
+        VisualSetVariantID variantID, 
+        Color newColor
+        )
     {
         if (!CanSetVisualColor(variantID))
         {
@@ -241,7 +258,7 @@ public abstract class VisualSet
         var variantTileSet = VariantSets[variantID.ID];
         variantTileSet.Editor_SetTileColorOverride(posInVisualSet, newColor);
 
-        // FIXME: Update existing entities!!!
+        // Entities will have their appearance changed elsewhere, in the menu code.
 
         return true;
     }

@@ -17,6 +17,7 @@ using RollAndCash.Systems;
 using Hexa.NET.ImGui;
 using RollAndCash.Editor;
 using RollAndCash.Data;
+using RollAndCash.Rendering;
 
 namespace RollAndCash;
 
@@ -38,6 +39,8 @@ public class Renderer : MoonTools.ECS.Renderer
 	public static bool DrawDebugColliders = false;
 	TileManipulator TileManipulator;
 #endif
+
+	RenderingManipulator RenderingManipulator;
 
 	Texture RenderTexture;
 	Texture DepthTexture;
@@ -79,6 +82,7 @@ public class Renderer : MoonTools.ECS.Renderer
 		EditorSystem = editorSystem;
 		TileManipulator = new(world);
 #endif
+		RenderingManipulator = new(world);
 
 		RenderTexture = Texture.Create2D(GraphicsDevice, "Render Texture", Dimensions.GAME_W, Dimensions.GAME_H,
 			swapchainFormat,
@@ -159,81 +163,24 @@ public class Renderer : MoonTools.ECS.Renderer
         }
 	}
 
-	private Color GetColorBlend(Entity e)
-	{
-		var color = Color.White;
-		if (HasOutRelation<ColorBlendOverride>(e))
-		{
-			// Assumes there would be at most 1 ColorBlendOverride at a time.
-			var overridingEntity = OutRelationSingleton<ColorBlendOverride>(e);
-			color = GetRelationData<ColorBlendOverride>(e, overridingEntity).Color;
-		}
-		else if (Has<ColorBlend>(e))
-		{
-			color = Get<ColorBlend>(e).Color;
-		}
-
-		if (Has<ColorFlicker>(e))
-		{
-			var colorFlicker = Get<ColorFlicker>(e);
-			if (colorFlicker.ElapsedFrames % 2 == 0)
-			{
-				color = colorFlicker.Color;
-			}
-		}
-
-#if DEBUG
-		// Editor: Make sprite partially transparent if it's not a member of the hovered-over layer.
-		if (LevelEditorManipulator.IsInLevelEditor && EditorSystem.LevelEditor.ActiveLevel != null
-			&& EditorSystem.LevelEditor.HoveredOverLayer != null)
-		{
-			if (Has<LevelRoomID>(e)
-				&& Has<Editor_LevelLayerID>(e))
-			{
-				var entityRoomID = Get<LevelRoomID>(e);
-				var entityLayerID = Get<Editor_LevelLayerID>(e);
-				if (entityRoomID == EditorSystem.LevelEditor.ActiveRoom.ID
-					&& entityLayerID == EditorSystem.LevelEditor.SelectedLayerInList.LayerID)
-				{
-					return color;
-				}
-			}
-			else
-            {
-				Logger.LogError($"WTF! Entity {EditorSystem.EntityToString(e)} doesn't have a level layer or RoomID! Components: {EditorSystem.EntityComponentsToString(e)}");
-            }
-
-			color = Color.Lerp(color, Color.Transparent, 0.75f);
-		}
-#endif
-
-		return color;
-	}
-
 	public void Render(CommandBuffer commandBuffer, Texture swapchainTexture, Window window, double alpha)
 	{
 		ArtSpriteBatch.Start();
 
 		foreach (var entity in DrawRectFilter.Entities)
 		{
-			var position = Get<Position2D>(entity);
 			var rectangle = Get<Rectangle>(entity);
-			var orientation = Has<Angle>(entity) ? Get<Angle>(entity).Value : 0.0f;
-			var color = GetColorBlend(entity);
-			var depth = -(float)DepthLayer.DefaultDepth;
-			if (Has<Depth>(entity))
-			{
-				depth = -Get<Depth>(entity).Value;
-			}
 
-			var sprite = SpriteAnimations.Pixel.Frames[0];
 			ArtSpriteBatch.Add(
-				new Vector3(position.X + rectangle.X, position.Y + rectangle.Y, depth),
-				orientation,
-				new Vector2(rectangle.Width, rectangle.Height),
-				color,
-				sprite.UV.LeftTop,
-				sprite.UV.Dimensions
+				RenderingManipulator.GetSpriteInstanceData(
+					entity,
+					rectangle,
+					// TODO: Optimize away the creation of a SpriteAnimation, if needed
+					new SpriteAnimation(SpriteAnimations.Pixel)
+#if DEBUG
+					, EditorSystem
+#endif
+				)
 			);
 		}
 
@@ -243,68 +190,17 @@ public class Renderer : MoonTools.ECS.Renderer
 			if (HasOutRelation<DontDraw>(entity))
 				continue;
 
-			var position = Get<Position2D>(entity);
-			var animation = Get<SpriteAnimation>(entity);
-			var sprite = animation.CurrentSprite;
-			var origin = animation.Origin;
-			var depth = -(float)DepthLayer.DefaultDepth;
-			var orientation = Has<Angle>(entity) ? Get<Angle>(entity).Value : 0.0f;
-			if (Has<RotatesWithDirection>(entity))
-			{
-				// FIXME: Does Direction2D here need to be SafeNormalized?
-				orientation = MathUtilities.AngleFromUnitVector(Get<Direction2D>(entity).Value);
-            }
-			var color = GetColorBlend(entity);
-
-			foreach (var rotationEnforcingEntity in OutRelations<Rotated>(entity))
-			{
-				var rotationData = GetRelationData<Rotated>(entity, rotationEnforcingEntity);
-				orientation += rotationData.Angle;
-			}
-
-			Vector2 scale = Vector2.One;
-			if (Has<SpriteVisualScale>(entity))
-			{
-				scale = Get<SpriteVisualScale>(entity).Scale;
-			}
-			if (((OutRelationCount<FlippedHorizontallyByTarget>(entity)
-				+ (Has<HorizontalFlip>(entity) ? 1 : 0)) % 2) == 1)
-			{
-				scale.X *= -1;
-			}
-			if (((OutRelationCount<FlippedVerticallyByTarget>(entity) 
-				+ (Has<VerticalFlip>(entity) ? 1 : 0)) % 2) == 1)
-			{
-				scale.Y *= -1;
-			}
-			origin *= scale;
-
-			if (orientation != 0.0f)
-			{
-				//var rotationMatrix = Matrix3x2.CreateRotation(orientation);
-				//origin = Vector2.Transform(origin, rotationMatrix);
-				origin = MathUtilities.Rotate(origin, orientation);
-			}
-
-			var offset = -origin - new Vector2(sprite.FrameRect.X, sprite.FrameRect.Y) * scale;
-
-			if (Has<Alpha>(entity))
-			{
-				color.A = Get<Alpha>(entity).Value;
-			}
-
-			if (Has<Depth>(entity))
-			{
-				depth = -Get<Depth>(entity).Value;
-			}
+			var spriteAnim = Get<SpriteAnimation>(entity);
 
 			ArtSpriteBatch.Add(
-				new Vector3(position.X + offset.X, position.Y + offset.Y, depth),
-				orientation,
-				new Vector2(sprite.SliceRect.W, sprite.SliceRect.H) * scale,
-				color,
-				sprite.UV.LeftTop,
-				sprite.UV.Dimensions
+				RenderingManipulator.GetSpriteInstanceData(
+					entity,
+					spriteAnim.CurrentSprite,
+					spriteAnim.Origin
+#if DEBUG
+					, EditorSystem
+#endif
+				)
 			);
 		}
 		#endregion SPRITE RENDERING
@@ -315,46 +211,8 @@ public class Renderer : MoonTools.ECS.Renderer
             if (HasOutRelation<DontDraw>(entity))
 				continue;
 
-			var position = Get<Position2D>(entity);
 			var tileID = Get<TileID>(entity);
-			var tileSprite = TileSprite.FromID(tileID);
-			var origin = tileSprite.Origin;
-			var depth = -(float)DepthLayer.DefaultDepth;
-			var orientation = Has<Angle>(entity) ? Get<Angle>(entity).Value : 0.0f;
-			var color = GetColorBlend(entity);
-
-			Vector2 scale = Vector2.One;
-			if (Has<SpriteVisualScale>(entity))
-			{
-				scale = Get<SpriteVisualScale>(entity).Scale;
-			}
-			/* I doubt this will actually be used here.
-			if ((OutRelationCount<FlippedHorizontally>(entity) % 2) == 1)
-			{
-				scale.X *= -1;
-			}
-			if ((OutRelationCount<FlippedVertically>(entity) % 2) == 1)
-			{
-				scale.Y *= -1;
-			}*/
-			origin *= scale;
-
-			if (orientation != 0.0f)
-			{
-				origin = MathUtilities.Rotate(origin, orientation);
-			}
-
-			var offset = -origin - new Vector2(tileSprite.PixelPos.X, tileSprite.PixelPos.Y) * scale;
-
-			if (Has<Alpha>(entity))
-			{
-				color.A = Get<Alpha>(entity).Value;
-			}
-
-			if (Has<Depth>(entity))
-			{
-				depth = -Get<Depth>(entity).Value;
-			}
+        	var tileSprite = TileSprite.FromID(tileID);
 
 			bool found = false;
 			foreach (var (texture, batch) in TileSpriteBatches)
@@ -363,14 +221,14 @@ public class Renderer : MoonTools.ECS.Renderer
                 if (tileSprite.Texture.Handle == texture.Handle)
                 {
                     batch.Add(
-						new Vector3(position.X + offset.X, position.Y + offset.Y, depth),
-						orientation,
-						new Vector2(tileSprite.TileSize, tileSprite.TileSize) * scale,
-						color,
-						tileSprite.UV.LeftTop,
-						tileSprite.UV.Dimensions
+						RenderingManipulator.GetSpriteInstanceData(
+							entity,
+							tileSprite
+#if DEBUG
+							, EditorSystem
+#endif
+						)
 					);
-
 					found = true;
 					break;
                 }

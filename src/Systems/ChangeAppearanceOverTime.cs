@@ -28,7 +28,7 @@ public class ChangeAppearanceOverTime : MoonTools.ECS.System
                 Easing.Interp(change.StartSize.X, change.EndSize.X, timer.Time, timer.Max, change.EasingMethod),
                 Easing.Interp(change.StartSize.Y, change.EndSize.Y, timer.Time, timer.Max, change.EasingMethod)
             );
-            Set(entity, new SpriteScale(newScale));
+            Set(entity, new VisualScale(newScale));
         }
 
         foreach (var (entity, timerEntity) in Relations<ChangeAlphaOverTime>())

@@ -10,7 +10,11 @@ using RollAndCash.Content;
 
 namespace RollAndCash.Data;
 
-public readonly record struct TileID(PositionInVisualSet PosInSet, VisualSetID TileSetID, VisualSetVariantID VariantID = default)
+public readonly record struct TileID(
+    PositionInVisualSet PosInSet, 
+    VisualSetID TileSetID, 
+    VisualSetVariantID VariantID = default
+    )
 {
     public static explicit operator TileID(VisualFromSetID_ForSpawning v)
     {
@@ -137,7 +141,10 @@ public class TileSet : VisualSet
     {
         return false;
     }
-    public override bool Editor_IsVisualFullyTransparent(PositionInVisualSet posInVisualSet, VisualSetVariantID variantID)
+    public override bool Editor_IsVisualFullyTransparent(
+        PositionInVisualSet posInVisualSet, 
+        VisualSetVariantID variantID
+        )
     {
         // TODO!!!! Detect if a tile is fully empty/transparent -> don't allow drawing it
         return false;
@@ -155,7 +162,8 @@ public class TileSet : VisualSet
 public class TileSetVariant : VisualSetVariant
 {
     // Might be the same as the default TileSet, if we just want to create some tile color variants in-editor.
-    // Or if we just want to have other different metadata per tile, such as as version of a tile that isn't solid for secret walls.
+    // Or if we just want to have other different metadata per tile, 
+    // such as as version of a tile that isn't solid for secret walls.
     public Texture Texture { get; private set; } = null;
 
     public TileSetVariant(Texture texture, TileSet parent) : base(parent)

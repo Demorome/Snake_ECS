@@ -250,9 +250,9 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
             var dummyPrefab = TrySpawnPrefab(PrefabToSpawn_ForPreview, Input.WorldMousePosition, true).Value;
 
             Set(debugEntity, Get<Position2D>(dummyPrefab));
-            if (Has<SpriteScale>(dummyPrefab))
+            if (Has<VisualScale>(dummyPrefab))
             {
-                Set(debugEntity, Get<SpriteScale>(dummyPrefab));
+                Set(debugEntity, Get<VisualScale>(dummyPrefab));
             }
             if (Has<SpriteAnimation>(dummyPrefab))
             {
@@ -297,7 +297,7 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
         {
             // Remove visual info.
             Remove<Position2D>(debugEntity);
-            Remove<SpriteScale>(debugEntity);
+            Remove<VisualScale>(debugEntity);
             Remove<SpriteAnimation>(debugEntity);
             Remove<ColorBlend>(debugEntity);
             Remove<Angle>(debugEntity);

@@ -6,6 +6,7 @@ using MoonWorks.Graphics;
 using RollAndCash.Content;
 using RollAndCash.Utility;
 using System.Numerics;
+using RollAndCash.Rendering;
 
 namespace RollAndCash.GameStates;
 

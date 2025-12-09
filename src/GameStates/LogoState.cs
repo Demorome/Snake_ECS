@@ -5,6 +5,7 @@ using MoonWorks.Audio;
 using MoonWorks.Graphics;
 using MoonWorks.Math;
 using RollAndCash.Content;
+using RollAndCash.Rendering;
 
 namespace RollAndCash.GameStates;
 

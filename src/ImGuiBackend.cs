@@ -840,9 +840,9 @@ public class ImGuiBackend : IDisposable
     }
 }
 
-public static class ImGuiExtensions
+public static partial class ImGuiExtensions
 {
-    private static unsafe ImTextureRef GetTextureRef(nint texID)
+    public static unsafe ImTextureRef GetTextureRef(nint texID)
     {
         return new ImTextureRef(null, texID);
     }

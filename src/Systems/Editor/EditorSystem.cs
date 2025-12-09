@@ -21,6 +21,7 @@ using RollAndCash.Data;
 using RollAndCash.Editor;
 using RollAndCash.GameStates;
 using RollAndCash.Relations;
+using RollAndCash.Rendering;
 using RollAndCash.Systems;
 using RollAndCash.Utility;
 using SDL3;
@@ -44,6 +45,8 @@ public class EditorSystem : MoonTools.ECS.System
     static string DebugEntityTag = "EDITOR";
 
     public LevelEditorManipulator LevelEditor;
+    private RenderingManipulator RenderingManipulator;
+    private PrefabManipulator PrefabManipulator;
 
     public EditorSystem(World world) : base(world)
     {
@@ -53,6 +56,8 @@ public class EditorSystem : MoonTools.ECS.System
             .Build();
 
         LevelEditor = new(World, this);
+        RenderingManipulator = new(World);
+        PrefabManipulator = new(World);
     }
 
     public override void Update(TimeSpan delta)
@@ -67,7 +72,8 @@ public class EditorSystem : MoonTools.ECS.System
 
         UpdateCachedLevelLayerEntities();
 
-        EditorHelpActions.DrawWindowMenuBar(World);
+        DrawWindowMenuBar(World);
+        DrawVisualSetMenus();
         EditorHelpActions.DrawHelpWindow(World);
         EditorHelpActions.HandleEditorKeybinds(World);
         DrawDetachedWindows(World);
@@ -75,6 +81,88 @@ public class EditorSystem : MoonTools.ECS.System
 
         LevelEditor.HandleLevelEditor(DebugEntity.Value);
         HandleEntitySelectionMode();
+    }
+
+    static List<VisualSetMenu> OpenedVisualSetMenus = new();
+    public void DrawVisualSetMenus()
+    {
+        foreach (var visualSetMenu in OpenedVisualSetMenus)
+        {
+            visualSetMenu.Show(World, PrefabManipulator, RenderingManipulator);
+        }
+    }
+
+    static VisualSet.Editor_Types VisualSetTypeToPreviewForList = VisualSet.Editor_Types.Invalid;
+    public static void DrawWindowMenuBar(World world)
+    {
+        if (ImGui.BeginMainMenuBar())
+        {
+            if (ImGui.BeginMenu("Edit"u8))
+            {
+                foreach (var (keybind, editorAction) in EditorHelpActions.EditorEditKeybinds)
+                {
+                    var isDisabled = editorAction.IsDisabled();
+                    if (ImGui.MenuItem(editorAction.Name, 
+                        EditorHelpActions.KeyComboToString(keybind), false, !isDisabled)
+                        )
+                    {
+                        editorAction.Invoke(world);
+                    }
+                }
+                ImGui.EndMenu();
+            }
+
+            if (ImGui.BeginMenu("View"u8))
+            {
+                if (ImGui.Selectable("TileSets"u8))
+                {
+                    VisualSetTypeToPreviewForList = VisualSet.Editor_Types.TileSet;
+                    ImGui.OpenPopup("SelectVisualSet"u8);
+                }
+                else if (ImGui.Selectable("ImageSets"u8))
+                {
+                    VisualSetTypeToPreviewForList = VisualSet.Editor_Types.ImageSet;
+                    ImGui.OpenPopup("SelectVisualSet"u8);
+                }
+                ImGui.EndMenu();
+            }
+
+            if (ImGui.BeginPopup("SelectVisualSet"u8))
+            {
+                if (VisualSetTypeToPreviewForList != VisualSet.Editor_Types.Invalid)
+                {
+                    var visualSets = VisualSet.Editor_VisualSetsByType[VisualSetTypeToPreviewForList];
+                    foreach (var visualSet in visualSets)
+                    {
+                        if (ImGui.Selectable(visualSet.Name))
+                        {
+                            bool found = false;
+                            foreach (var visualSetMenus in OpenedVisualSetMenus)
+                            {
+                                if (visualSetMenus.VisualSet == visualSet)
+                                {
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (!found)
+                            {
+                                OpenedVisualSetMenus.Add(new VisualSetMenu(visualSet));
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    Logger.LogError("ERROR: Invalid visual set type??");
+                    ImGui.Text("ERROR: Invalid visual set type??"u8);
+                }
+
+                ImGui.EndPopup();
+            }
+
+            ImGui.EndMainMenuBar();
+        }
     }
 
     void UpdateCachedLevelLayerEntities()
@@ -361,9 +449,9 @@ public class EditorSystem : MoonTools.ECS.System
             var origin = spriteAnim.Origin;
 
             Vector2 scale = Vector2.One;
-            if (Has<SpriteScale>(entity))
+            if (Has<VisualScale>(entity))
             {
-                scale = Get<SpriteScale>(entity).Scale;
+                scale = Get<VisualScale>(entity).Scale;
             }
 
             origin *= scale;

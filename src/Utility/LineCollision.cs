@@ -20,7 +20,7 @@ public static class LineCollision
 
         // FIXME: Do I need to normalize here?
         var direction = world.Get<Direction2D>(e).Value;
-        var lineLength = world.Get<SpriteScale>(e).Scale.X;
+        var lineLength = world.Get<VisualScale>(e).Scale.X;
         var pointB = pointA + new Position2D(direction * lineLength);
 
         return new Line(pointA, pointB);

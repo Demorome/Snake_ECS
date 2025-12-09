@@ -91,7 +91,7 @@ public static class DrawComponents
     static Dictionary<Type, DrawComponentAction> ComponentTypeToInspectorAction = new()
     {
         { typeof(Position2D), DrawPosition2D },
-        { typeof(SpriteScale), DrawSpriteScale },
+        { typeof(VisualScale), DrawSpriteScale },
         { typeof(Direction2D), DrawDirection2D },
         { typeof(Speed), DrawSpeed },
         //{ typeof(LevelBoundaries), DrawLevelBoundariesParameters },
@@ -289,7 +289,7 @@ public static class DrawComponents
 
     private static void DrawSpriteScale(World world, Entity entity, ref bool changed)
     {
-        var scale = world.Get<SpriteScale>(entity);
+        var scale = world.Get<VisualScale>(entity);
 
         ImGui.Checkbox("Uniform scale?", ref UniformScaleStretch);
 
@@ -301,7 +301,7 @@ public static class DrawComponents
             if (ImGui.DragFloat("Scale", ref input))
             {
                 var newScale = new Vector2(input, input);
-                world.Set(entity, new SpriteScale(newScale));
+                world.Set(entity, new VisualScale(newScale));
                 changed = true;
             }
         }
@@ -310,7 +310,7 @@ public static class DrawComponents
             var input = scale.Scale;
             if (ImGui.DragFloat2("Scale", ref input))
             {
-                world.Set(entity, new SpriteScale(input));
+                world.Set(entity, new VisualScale(input));
                 changed = true;
             }
         }

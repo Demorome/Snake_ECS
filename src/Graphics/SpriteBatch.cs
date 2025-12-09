@@ -1,9 +1,10 @@
 using MoonWorks.Graphics;
+using Rendering;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Buffer = MoonWorks.Graphics.Buffer;
 
-namespace RollAndCash;
+namespace RollAndCash.Rendering;
 
 public class SpriteBatch
 {
@@ -145,20 +146,15 @@ public class SpriteBatch
 		Vector2 dimensionsUV
 	)
 	{
-		var left = leftTopUV.X;
-		var top = leftTopUV.Y;
-		var right = leftTopUV.X + dimensionsUV.X;
-		var bottom = leftTopUV.Y + dimensionsUV.Y;
+		Add(new SpriteInstanceData(position, rotation, size, color, leftTopUV, dimensionsUV));
+	}
 
+	public void Add(
+		SpriteInstanceData spriteInstanceData
+	)
+	{
 		var instanceDatas = InstanceTransferBuffer.MappedSpan<SpriteInstanceData>();
-		instanceDatas[InstanceIndex].Translation = position;
-		instanceDatas[InstanceIndex].Rotation = rotation;
-		instanceDatas[InstanceIndex].Scale = size;
-		instanceDatas[InstanceIndex].Color = color.ToVector4();
-		instanceDatas[InstanceIndex].UV0 = leftTopUV;
-		instanceDatas[InstanceIndex].UV1 = new Vector2(right, top);
-		instanceDatas[InstanceIndex].UV2 = new Vector2(left, bottom);
-		instanceDatas[InstanceIndex].UV3 = new Vector2(right, bottom);
+		instanceDatas[InstanceIndex] = spriteInstanceData;
 		InstanceIndex += 1;
 	}
 
@@ -193,53 +189,3 @@ public class SpriteBatch
 		renderPass.DrawIndexedPrimitives(InstanceCount * 6, 1, 0, 0, 0);
 	}
 }
-
-[StructLayout(LayoutKind.Explicit, Size = 48)]
-struct PositionTextureColorVertex : IVertexType
-{
-	[FieldOffset(0)]
-	public Vector4 Position;
-
-	[FieldOffset(16)]
-	public Vector2 TexCoord;
-
-	[FieldOffset(32)]
-	public Vector4 Color;
-
-	public static VertexElementFormat[] Formats { get; } =
-	[
-		VertexElementFormat.Float4,
-		VertexElementFormat.Float2,
-		VertexElementFormat.Float4
-	];
-
-	public static uint[] Offsets { get; } =
-	[
-		0,
-		16,
-		32
-	];
-}
-
-[StructLayout(LayoutKind.Explicit, Size = 80)]
-public record struct SpriteInstanceData
-{
-	[FieldOffset(0)]
-	public Vector3 Translation;
-	[FieldOffset(12)]
-	public float Rotation;
-	[FieldOffset(16)]
-	public Vector2 Scale;
-	[FieldOffset(32)]
-	public Vector4 Color;
-	[FieldOffset(48)]
-	public Vector2 UV0;
-	[FieldOffset(56)]
-	public Vector2 UV1;
-	[FieldOffset(64)]
-	public Vector2 UV2;
-	[FieldOffset(72)]
-	public Vector2 UV3;
-}
-
-public readonly record struct ViewProjectionMatrices(Matrix4x4 View, Matrix4x4 Projection);

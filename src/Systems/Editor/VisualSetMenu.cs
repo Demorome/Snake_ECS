@@ -11,6 +11,7 @@ using RollAndCash.Components;
 using RollAndCash.Content;
 using RollAndCash.Data;
 using RollAndCash.Relations;
+using RollAndCash.Rendering;
 using RollAndCash.Systems;
 
 namespace RollAndCash.Editor;
@@ -49,7 +50,7 @@ public class VisualSetMenu
     // TODO: Support drawing (adding) tile metadata!
     // TODO: Support creating new set variants!
     // TODO: Support deleting set variants, w/ warning msg!
-    public void Show()
+    public void Show(World world, PrefabManipulator prefabManipulator, RenderingManipulator renderingManipulator)
     {
         if (!ImGui.Begin(VisualSet.Name + $"##{VisualSet.Editor_Type}"))
         {
@@ -90,7 +91,7 @@ public class VisualSetMenu
         ImGui.Separator();
         var endHeight = ImGui.GetCursorScreenPos().Y;
         var menuBottomPortionWidth = endHeight - startHeight;
-        ShowVisualSelection(menuBottomPortionWidth);
+        ShowVisualSelection(menuBottomPortionWidth, world, prefabManipulator, renderingManipulator);
 
         ImGui.End();
     }
@@ -107,7 +108,12 @@ public class VisualSetMenu
         }
     }
 
-    private void ShowVisualSelection(float menuBottomPortionWidth)
+    private void ShowVisualSelection(
+        float menuBottomPortionWidth, 
+        World world, 
+        PrefabManipulator prefabManipulator,
+        RenderingManipulator renderingManipulator
+        )
     {
         var scalingFactor = ImGui.GetWindowViewport().Size / Dimensions.GAME_DIMENSIONS 
             * VisualSet.Editor_PreviewScaleMult
@@ -144,42 +150,63 @@ public class VisualSetMenu
                 var row = (ushort)(i / VisualSet.NumColumns);
                 var posInVisualSet = new PositionInVisualSet(col, row);
 
-                var visualSizeScaled = VisualSet.GetVisualSize(posInVisualSet, CurrentVariantID) * scalingFactor;
-                var (sprite, colorBlend) = tileLayer.Images[i];
-                var tintColor = tileLayer.MixLayerColorWithImageColor(colorBlend);
-
                 // FIXME: Allow sprite animations to play (simulate frame countdown?)
-                var currentFrame = sprite.CurrentSprite;
+                var visualFromSetID = new VisualFromSetID_ForSpawning(
+                        posInVisualSet,
+                        VisualSet.ID,
+                        CurrentVariantID
+                );
+                var maybeDummyEntity = VisualSet.Editor_TryCreateEntityFromVisualSet(
+                    visualFromSetID,
+                    default,
+                    world,
+                    prefabManipulator,
+                    null,
+                    null,
+                    true,
+                    false
+                );
+                if (!maybeDummyEntity.HasValue)
+                {
+                    // FIXME: Display a warning texture.
+                    Logger.LogError($"Failed to spawn dummy entity for visual from a visual set: {posInVisualSet}");
+                    continue;
+                }
+                world.Set(maybeDummyEntity.Value, 
+                    new VisualScale(scalingFactor 
+                        * (world.Has<VisualScale>(maybeDummyEntity.Value) ? 
+                            world.Get<VisualScale>(maybeDummyEntity.Value).Scale : Vector2.One
+                        )
+                    )
+                );
+                var (spriteRenderData, texture) = 
+                    renderingManipulator.Editor_GetSpriteInstanceDataAndTexture(
+                        maybeDummyEntity.Value
+                    )
+                ;
+                world.Destroy(maybeDummyEntity.Value);
+                maybeDummyEntity = null;
+
+                if (texture == null)
+                {
+                    // Error should already be logged.
+                    continue;
+                }
+
+                //var visualSizeScaled = VisualSet.GetVisualSize(posInVisualSet, CurrentVariantID) * scalingFactor;
+                var visualSizeScaled = spriteRenderData.Scale;
 
                 bool wasSelected = SelectedToPaint.Selected.Contains((posInVisualSet, true));
                 bool wasHovered = posInVisualSet == HoveredVisualInSet;
                 bool isReplacing = posInVisualSet == VisualInSetToModify;
 
-                Vector2 posToOverlap = ImGui.GetCursorScreenPos();
-                var origin = sprite.Origin * scalingFactor;
-                var offset = -origin - new Vector2(currentFrame.FrameRect.X, currentFrame.FrameRect.Y) * scalingFactor;
-                // FIXME
-                ImGui.SetCursorScreenPos(posToOverlap + offset + (visualSizeScaled * 0.5f));
-                ImGui.SetNextItemAllowOverlap();
-
-                // Draw tile sprite
-                ImGuiExtensions.ImageWithBg(
-                    currentFrame.Texture,
-                    currentFrame.SliceSize * scalingFactor,
-                    currentFrame.UV.LeftTop,
-                    currentFrame.UV.RightBottom,
-                    Color.Transparent.ToVector4(),
-                    tintColor.ToVector4(),
-                    ImGuiBackend.SamplerType.PointClamp
-                );
-
-                // Draw tile outline.
+                // Draw sprite grid outline.
+                var gridOutlineColor = Color.Transparent;
                 if (VisualSet.Editor_ShowGrid || wasSelected || wasHovered || isReplacing)
                 {
-                    uint gridColorPacked;
                     if (isReplacing)
                     {
-                        gridColorPacked = ModifyingOutlineColor.PackedValue();
+                        gridOutlineColor = ModifyingOutlineColor;
                     }
                     else if (wasHovered)
                     {
@@ -189,44 +216,44 @@ public class VisualSetMenu
                             // Make it clear if a hovered tile is selected or not.
                             hoveredColor = Color.Lerp(hoveredColor, SelectedOutlineColor, 0.5f);
                         }
-                        gridColorPacked = hoveredColor.PackedValue();
+                        gridOutlineColor = hoveredColor;
                     }
                     else if (wasSelected)
                     {
-                        gridColorPacked = SelectedOutlineColor.PackedValue();
+                        gridOutlineColor = SelectedOutlineColor;
                     }
                     else if (VisualSet.Editor_ShowGrid)
                     {
-                        gridColorPacked = new Color(LevelEditorManipulator.GridLineColor).PackedValue();
+                        gridOutlineColor = new Color(LevelEditorManipulator.GridLineColor);
                     }
                     else
                     {
-                        throw new Exception("Unhandled case!");
+                        Logger.LogError("Unhandled case!");
+                        continue;
                     }
-
-                    ImGui.SetCursorScreenPos(posToOverlap);
-
-                    // Reduce the thickness when zooming out. 
-                    // FIXME: Probably gets set to a minimum of 1 by ImGui anyways, so oops.
-                    float thickness = float.Min(1f, VisualSet.Editor_PreviewScaleMult);
-
-                    // Draw a square outline for the tile sprite.
-                    ImGui.GetWindowDrawList().AddRect(
-                        posToOverlap, 
-                        posToOverlap + visualSizeScaled,
-                        gridColorPacked, 
-                        0.0f, 
-                        ImDrawFlags.None, 
-                        thickness
-                    );
                 }
+
+                Vector2 posToOverlap = ImGui.GetCursorScreenPos();
+                //var origin = sprite.Origin * scalingFactor;
+                //var offset = -origin - new Vector2(currentFrame.FrameRect.X, currentFrame.FrameRect.Y) * scalingFactor;
+                // FIXME: How to handle non-tile sprites w/ unique offsets?
+                //ImGui.SetCursorScreenPos(posToOverlap + offset + (visualSizeScaled * 0.5f));
+                //ImGui.SetNextItemAllowOverlap(); // FIXME: Do we even need this still?
+
+                // Draw sprite
+                ImGuiExtensions.SpriteWithBgAndOutline(
+                    texture,
+                    spriteRenderData,
+                    Color.Transparent.ToVector4(),
+                    gridOutlineColor.ToVector4(),
+                    ImGuiBackend.SamplerType.PointClamp
+                );
 
                 ImGui.SetCursorScreenPos(posToOverlap);
 
                 ImGui.SetNextItemSelectionUserData(i); // needed for MultiSelect
                 ImGui.PushID(i);
                 // FIXME: Make selectable invisible (remove background col and border highlight)!
-                // FIXME: Crashes when using empty u8 string!
                 ImGui.Selectable("", wasSelected, ImGuiSelectableFlags.None, visualSizeScaled);
                 ImGui.PopID();
 
@@ -255,6 +282,7 @@ public class VisualSetMenu
             SelectedToPaint.HandleMultiSelectRequests(multiSelectIO, VisualSet);
         }
 
+        bool visualSetWasChanged = false;
         if (VisualInSetToModify != null)
         {
             // TODO:
@@ -275,7 +303,9 @@ public class VisualSetMenu
             }
             if (ImGui.Button("Delete Selected"))
             {
-                // TODO
+                visualSetWasChanged = true;
+
+                // TODO: Implement!
                 // FIXME: Undo/Redo support!
                 /*for (int nthImageToPaint = SelectedToPaint.Selected.Count - 1; nthImageToPaint >= 0; --nthImageToPaint)
                 {
@@ -295,32 +325,85 @@ public class VisualSetMenu
         }
 
         var visualColor = Color.White.ToVector4();
-        var firstValidLayerImageID = SelectedToPaint.FirstValidPositionInVisualSet;
-        var noValidSelectedImages = firstValidLayerImageID == null;
-        if (noValidSelectedImages)
+
+        // FIXME: Don't allow changing ColorBlend for visuals for fully transparent visuals!
+        var cantChangeVisualColor = SelectedToPaint.Selected.Count == 0
+            || !VisualSet.CanSetVisualColor(CurrentVariantID)
+        ;
+        if (cantChangeVisualColor)
         {
             ImGui.BeginDisabled();
         }
         else
         {
-            visualColor = tileLayer.Images[firstValidLayerImageID.Value].Item2.ToVector4();
-        }
-        if (ImGui.ColorEdit4("Change Selected ColorBlend", ref visualColor))
-        {
-            foreach (var (layerImageID, isNotFiller) in SelectedToPaint.Selected)
+            // If there's only 1 selected visual, or if they all have the same ColorBlend, preview that color.
+            // Else, show default color.
+            if (SelectedToPaint.Selected.Count >= 1)
             {
-                if (isNotFiller)
+                var maybeFirstValidPosition = SelectedToPaint.FirstValidPositionInVisualSet;
+                if (maybeFirstValidPosition.HasValue)
                 {
-                    tileLayer.ChangeImageColorBlend(
-                        new Editor_LayerImageID(layerImageID),
-                        new Color(visualColor), World
-                    );
+                    Color currentColor = VisualSet.GetVisualColor(maybeFirstValidPosition.Value, CurrentVariantID);
+                    bool allSameColor = true;
+
+                    int i = 1; 
+                    while (i < SelectedToPaint.Selected.Count)
+                    {
+                        var (posInVisualSet, isNotFiller) = SelectedToPaint.Selected[i];
+                        if (isNotFiller)
+                        {
+                            if (VisualSet.GetVisualColor(posInVisualSet, CurrentVariantID) != currentColor)
+                            {
+                                allSameColor = false;
+                                break;
+                            }
+                        }
+                        ++i;
+                    }
+
+                    if (allSameColor)
+                    {
+                        visualColor = currentColor.ToVector4();
+                    }
+                }
+                else
+                {
+                    Logger.LogError("There should be a valid position here!");
+                    visualColor = Color.Red.ToVector4();
                 }
             }
         }
-        if (noValidSelectedImages)
+        if (ImGui.ColorEdit4("Change Selected ColorBlend", ref visualColor))
+        {
+            visualSetWasChanged = true;
+
+            // Apply the changes.
+            foreach (var (posInVisualSet, isNotFiller) in SelectedToPaint.Selected)
+            {
+                if (isNotFiller)
+                {
+                    VisualSet.Editor_TrySetVisualColor(posInVisualSet, CurrentVariantID, new Color(visualColor));
+                    // WARNING: Already-loaded entities won't be modified until they're reloaded!
+                    // The reason I won't reload them automatically is in case some have unsaved, unique changes.
+                    // I definitely don't want to auto-save for each change either.
+                    // TODO: Find a better solution than asking for a reload?
+                }
+            }
+        }
+        if (cantChangeVisualColor)
         {
             ImGui.EndDisabled();
+        }
+
+        if (visualSetWasChanged)
+        {
+            ImGui.OpenPopup("VisualSetChangedWarning"u8);
+        }
+        if (ImGui.BeginPopup("VisualSetChangedWarning"u8))
+        {
+            ImGui.TextColored(Color.PaleVioletRed.ToVector4(), "Already-loaded entities will need to be reloaded for the changes to appear!"u8);
+            ImGui.Button("[OK]"u8);
+            ImGui.EndPopup();
         }
     }
 

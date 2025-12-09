@@ -39,7 +39,7 @@ public class ActorManipulator : MoonTools.ECS.Manipulator
 		Set(player, new HasHealth(5));
 		Set(player, new BecomeInvincibleOnDamage(1f));
 		Set(player, new CanBeDetected());
-		Set(player, new SpriteScale(new Vector2(1, 1)));
+		Set(player, new VisualScale(new Vector2(1, 1)));
 
 		// For debugging raycasts
 		//Set(player, new CanDetect(float.DegreesToRadians(45f), 30f));

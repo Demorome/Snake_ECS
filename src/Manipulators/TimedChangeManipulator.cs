@@ -50,7 +50,7 @@ public class TimedChangeManipulator : MoonTools.ECS.Manipulator
         )
     {
         var scale = Rando.Range(minStartScale, maxStartScale);
-        Set(entity, new SpriteScale(scale));
+        Set(entity, new VisualScale(scale));
 
         var endScale = Rando.Range(minEndScale, maxEndScale);
         if (endScale != scale)

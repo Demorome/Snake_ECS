@@ -153,7 +153,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         Set(entity, new Angle(rayAngle));
 
         // Stretch the pixel to form a line
-        Set(entity, new SpriteScale(new Vector2(length, 1f)));
+        Set(entity, new VisualScale(new Vector2(length, 1f)));
 
         return entity;
     }
@@ -166,7 +166,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         {
             // Center position according to scale.
             var scale = new Vector2(5f, 5f);
-            Set(entity, new SpriteScale(scale));
+            Set(entity, new VisualScale(scale));
             // Don't have to account for height/width of sprite, since both are 1.
             Set(entity, new Position2D(pos.X - MathF.Floor(scale.X * 0.5f), pos.Y - MathF.Floor(scale.Y * 0.5f)));
         }
@@ -189,7 +189,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         Set(entity, new Position2D(worldRect.Left, worldRect.Top));
         Set(entity, new SpriteAnimation(SpriteAnimations.Pixel));
         Set(entity, new ColorBlend(Color.LightGreen with { A = 100 }));
-        Set(entity, new SpriteScale(new Vector2(worldRect.Width, worldRect.Height)));
+        Set(entity, new VisualScale(new Vector2(worldRect.Width, worldRect.Height)));
         Set(entity, new Depth(DepthLayer.Debug_CollisionVisual)); // draw behind most things
     }
 

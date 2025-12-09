@@ -26,7 +26,7 @@ public readonly record struct WillFlipVertically(float TimePerFlip);
 public readonly record struct WillRotate(float TimePerRotation, float Angle);
 
 public readonly record struct FlippedHorizontallyByTarget();
-public readonly record struct FlippedVertically();
+public readonly record struct FlippedVerticallyByTarget();
 public readonly record struct Rotated(float Angle);
 
 public readonly record struct SpeedMult(float Value);

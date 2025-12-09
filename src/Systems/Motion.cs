@@ -283,7 +283,7 @@ public class Motion : MoonTools.ECS.System
         {
             // Generate a best-fit AABB for the line.
             // We constantly update it in case the line's direction or length changed.
-            var length = Get<SpriteScale>(entity).Scale.X;
+            var length = Get<VisualScale>(entity).Scale.X;
             var direction = Get<Direction2D>(entity).Value;
             var scaledDir = new Position2D(direction * length);
 

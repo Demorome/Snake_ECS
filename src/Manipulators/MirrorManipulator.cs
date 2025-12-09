@@ -39,7 +39,7 @@ public class MirrorManipulator : MoonTools.ECS.Manipulator
         Set(entity, new Direction2D(direction));
         Set(entity, new RotatesWithDirection());
 
-        Set(entity, new SpriteScale(new Vector2(length, visualWidth)));
+        Set(entity, new VisualScale(new Vector2(length, visualWidth)));
 
         Set(entity, new HasLineHitbox());
         Set(entity, new ReflectsProjectiles());

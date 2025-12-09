@@ -118,7 +118,7 @@ public static class EditorHelpActions
         }
     }
 
-    static string KeyComboToString(ImGuiKey keyChordCombo)
+    static public string KeyComboToString(ImGuiKey keyChordCombo)
     {
         var key = keyChordCombo & ~ImGuiKey.ModMask;
         var modKey = keyChordCombo & ImGuiKey.ModMask;
@@ -172,32 +172,6 @@ public static class EditorHelpActions
         }
 
         ImGui.End();
-    }
-
-    public static void DrawWindowMenuBar(World world)
-    {
-        if (ImGui.BeginMainMenuBar())
-        {
-            if (ImGui.BeginMenu("Edit"))
-            {
-                foreach (var (keybind, editorAction) in EditorEditKeybinds)
-                {
-                    var isDisabled = editorAction.IsDisabled();
-                    if (ImGui.MenuItem(editorAction.Name, KeyComboToString(keybind), false, !isDisabled))
-                    {
-                        editorAction.Invoke(world);
-                    }
-                }
-                
-                /*
-                ImGui.Separator();
-                if (ImGui::MenuItem("Cut", "CTRL+X")) { }
-                if (ImGui::MenuItem("Copy", "CTRL+C")) {}
-                if (ImGui::MenuItem("Paste", "CTRL+V")) {}*/
-                ImGui.EndMenu();
-            }
-            ImGui.EndMainMenuBar();
-        }
     }
 }
 

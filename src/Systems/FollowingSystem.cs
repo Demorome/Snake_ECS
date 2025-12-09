@@ -48,7 +48,7 @@ public class FollowingSystem : MoonTools.ECS.System
             {
                 // TODO: Account for sprite sizes and SpriteScale to reduce the distance
                 var reducedDistance = MathF.Max(0, distance - 20);
-                Set(follower, new SpriteScale(new Vector2(reducedDistance, 1f)));
+                Set(follower, new VisualScale(new Vector2(reducedDistance, 1f)));
             }
         }
     }

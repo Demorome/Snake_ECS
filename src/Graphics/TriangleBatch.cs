@@ -6,10 +6,11 @@ using System.Runtime.InteropServices;
 using System.Threading.Tasks.Dataflow;
 using Buffer = MoonWorks.Graphics.Buffer;
 
-namespace RollAndCash;
+namespace RollAndCash.Rendering;
 
 public class TriangleBatch
 {
+	// FIXME: We're probably never going to render this many triangles...
 	const int MAX_TRI_COUNT = 8192;
 
 	GraphicsDevice GraphicsDevice;

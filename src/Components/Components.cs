@@ -153,7 +153,7 @@ public readonly record struct DestroyWhenOutOfBounds();
 public readonly record struct DestroyForDebugTestReasons();
 public readonly record struct ColorFlicker(int ElapsedFrames, Color Color);
 public readonly record struct MotionDamp(float Damping);
-public readonly record struct SpriteScale(System.Numerics.Vector2 Scale);
+public readonly record struct VisualScale(System.Numerics.Vector2 Scale);
 public readonly record struct LastValue(int value);
 public readonly record struct PlaySoundOnTimerEnd(PlayStaticSoundMessage PlayStaticSoundMessage);
 
