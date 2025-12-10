@@ -279,7 +279,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			var str = Data.TextStorage.GetString(text.TextID);
 			var font = Fonts.FromID(text.FontID);
 			var color = Has<Color>(entity) ? Get<Color>(entity) : Color.White;
-			var depth = -(float)DepthLayer.DefaultDepth;
+			var depth = -(float)DepthLayer.PlaceholderDepth;
 
 			if (Has<ColorBlend>(entity))
 			{
@@ -376,7 +376,7 @@ public class Renderer : MoonTools.ECS.Renderer
 		if (LevelEditorManipulator.IsInLevelEditor && LevelEditorManipulator.ShowGrid)
 		{
 			var color = new Color(LevelEditorManipulator.GridLineColor);
-			var depth = -(float)DepthLayer.Editor_TileOutline;
+			var depth = -(float)DepthLayer.PlaceholderDepth;
 			var verticalLength = Dimensions.TILE_ROW_COUNT * Dimensions.TILE_SIZE;
 			var horizontalLength = Dimensions.TILE_COLUMN_COUNT * Dimensions.TILE_SIZE;
 

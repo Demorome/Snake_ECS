@@ -182,7 +182,7 @@ public class EditorSystem : MoonTools.ECS.System
 
         foreach (var entity in PositionFilter.Entities)
         {
-            var depth = Has<Depth>(entity) ? Get<Depth>(entity).Value : (float)DepthLayer.DefaultDepth;
+            var depth = Has<Depth>(entity) ? Get<Depth>(entity).Value : (float)DepthLayer.PlaceholderDepth;
 
             if (!Has<LevelRoomID>(entity))
             {

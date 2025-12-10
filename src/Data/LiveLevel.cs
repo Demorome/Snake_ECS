@@ -170,7 +170,7 @@ public class LiveLevel
         // Applies to all images/tiles.
         public Color Color { get; private set; } = Color.White;
 
-        public float Depth { get; private set; } = (float)DepthLayer.DefaultDepth;
+        public float Depth { get; private set; } = (float)DepthLayer.PlaceholderDepth;
         public bool IsDepthLocked => LayerType == LevelLayerTypes.Prefabs;
         public bool IsVisible { get; private set; } = true;
         public List<Entity> CachedEntities = new();
@@ -179,7 +179,7 @@ public class LiveLevel
             LevelLayerTypes layerType,
             LiveLevel.Room room,
             string name = null,
-            float depth = (float)DepthLayer.DefaultDepth
+            float depth = (float)DepthLayer.PlaceholderDepth
             )
         {
             LayerType = layerType;

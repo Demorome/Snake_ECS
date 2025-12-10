@@ -93,7 +93,7 @@ public class RenderingManipulator : MoonTools.ECS.Manipulator
         }
 
         //== Depth
-        var depth = -(float)DepthLayer.DefaultDepth;
+        var depth = -(float)DepthLayer.PlaceholderDepth;
         if (Has<Depth>(entity))
         {
             depth = -Get<Depth>(entity).Value;

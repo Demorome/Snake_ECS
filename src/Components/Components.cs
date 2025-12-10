@@ -101,7 +101,7 @@ public readonly record struct ColorSpeed(float RedSpeed, float GreenSpeed, float
 public enum DepthLayer
 {
     //== Foreground
-    DefaultDepth = 0, // draw above all, even UIs, to be obnoxious.
+    PlaceholderDepth = 0, // draw above all, even UIs, to be obnoxious.
     GameUI_Lowest = 2, // could be 1, but I'm leaving space for ImGui UI, should it need a Depth value.
     GameUI_Highest = 8,
 #if DEBUG
