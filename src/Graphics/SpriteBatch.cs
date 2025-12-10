@@ -150,9 +150,7 @@ public class SpriteBatch
 		Add(new SpriteInstanceData(position, rotation, size, color, leftTopUV, dimensionsUV));
 	}
 
-	public void Add(
-		SpriteInstanceData spriteInstanceData
-	)
+	public void Add(SpriteInstanceData spriteInstanceData)
 	{
 		var instanceDatas = InstanceTransferBuffer.MappedSpan<SpriteInstanceData>();
 		instanceDatas[InstanceIndex] = spriteInstanceData;
