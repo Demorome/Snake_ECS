@@ -144,7 +144,7 @@ public class RenderingManipulator : MoonTools.ECS.Manipulator
             entity, 
             pixelAnim.Origin, 
             new Vector2(sprite.FrameRect.X, sprite.FrameRect.Y),
-            new Vector2(sprite.SliceRect.W, sprite.SliceRect.H),
+            new Vector2(sprite.SliceRect.W, sprite.SliceRect.H) * rectangle.Size,
             sprite.UV
 #if DEBUG
             , EditorSystem

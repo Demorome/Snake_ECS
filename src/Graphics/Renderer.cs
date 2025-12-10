@@ -167,6 +167,7 @@ public class Renderer : MoonTools.ECS.Renderer
 	{
 		ArtSpriteBatch.Start();
 
+		#region RECT RENDERING
 		foreach (var entity in DrawRectFilter.Entities)
 		{
 			var rectangle = Get<Rectangle>(entity);
@@ -183,6 +184,7 @@ public class Renderer : MoonTools.ECS.Renderer
 				)
 			);
 		}
+		#endregion RECT RENDERING
 
 		#region SPRITE RENDERING
 		foreach (var entity in SpriteAnimationFilter.Entities)

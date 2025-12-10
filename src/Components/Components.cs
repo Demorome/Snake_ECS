@@ -13,6 +13,7 @@ public readonly record struct Rectangle(int X, int Y, int Width, int Height)
     public int Right => X + Width;
     public int Top => Y;
     public int Bottom => Y + Height;
+    public Vector2 Size => new Vector2(Width, Height);
 
     public bool Intersects(Rectangle other)
     {
