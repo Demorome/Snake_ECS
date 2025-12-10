@@ -321,6 +321,7 @@ public class Renderer : MoonTools.ECS.Renderer
 		}
 		#endregion TEXT RENDERING
 
+		#region TRIANGLE RENDERING
 		TriangleBatch.Start();
 		foreach (var entity in DetectionConeFilter.Entities)
 		{
@@ -333,8 +334,8 @@ public class Renderer : MoonTools.ECS.Renderer
 			var color = (HasInRelation<Detected>(entity) || Has<ChargingUpAttack>(entity)) ? Color.Red : Color.Green;
 			color.A = 100;
 
-			// FIXME: ensure this draws below most entities, but above the ground
-			var depth = -10;
+			// FIXME: ensure this draws below most entities, but above the background and play-space tiles.
+			var depth = -(float)DepthLayer.DetectionCone;
 
 			var selfPosVec = new Vector3(selfPosition.X, selfPosition.Y, depth);
 			var colorVec = color.ToVector4();
@@ -365,15 +366,17 @@ public class Renderer : MoonTools.ECS.Renderer
 				prevOther = other;
 			}
 		}
+		#endregion TRIANGLE RENDERING
 
 		#region EDITOR RENDERING
 #if DEBUG
 		EditorSpriteBatch.Start();
 
+		#region Show Grid
 		if (LevelEditorManipulator.IsInLevelEditor && LevelEditorManipulator.ShowGrid)
 		{
 			var color = new Color(LevelEditorManipulator.GridLineColor);
-			var depth = -(float)DepthLayer.Editor_TileOutline; // draw above backgrounds, but nothing else.
+			var depth = -(float)DepthLayer.Editor_TileOutline;
 			var verticalLength = Dimensions.TILE_ROW_COUNT * Dimensions.TILE_SIZE;
 			var horizontalLength = Dimensions.TILE_COLUMN_COUNT * Dimensions.TILE_SIZE;
 
@@ -418,7 +421,9 @@ public class Renderer : MoonTools.ECS.Renderer
 				DrawDebugRectangle(worldPos, tileRect, color, depth, DebugLineThickness);
 			}
 		}
-
+		#endregion Show Grid
+ 
+		#region Show Colliders
 		if (DrawDebugColliders)
 		{
 			foreach (var entity in ColliderFilter.Entities)
@@ -434,6 +439,7 @@ public class Renderer : MoonTools.ECS.Renderer
 				DrawDebugRectangle(entity, rect, color, depth, DebugLineThickness);
 			}
 		}
+		#endregion Show Colliders
 
 		#region Selection Mode
 		{
@@ -444,7 +450,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			{
 				var entity = selectedEntity.Value;
 				var rectangle = EditorSystem.GetEntityVisualRect(entity).Value;
-				DrawDebugRectangle(entity, rectangle, Color.LimeGreen, outlineDepth, DebugLineThickness * 4);
+				DrawDebugRectangle(entity, rectangle, Color.LimeGreen, outlineDepth, DebugLineThickness * 2);
 			}
 
 			// FIXME: Scale color intensity by depth?
@@ -510,16 +516,24 @@ public class Renderer : MoonTools.ECS.Renderer
 		{
 			ArtSpriteBatch.Render(renderPass, SpriteAtlasTexture, PointSampler, viewProjectionMatrices);
 		}
-		if (TriangleBatch.InstanceCount > 0)
-		{
-			TriangleBatch.Render(renderPass, viewProjectionMatrices);
-		}
+
+		// Render stuff with transparency AFTER opaque stuff.
+		// We're assuming that the ArtSpriteBatch doesn't have transparent stuff.
+		// FIXME: For a more accurate effect, render back-to-front, 
+		// FIXME: or implement order-independent transparency (complicated).
+
 #if DEBUG
 		if (EditorSpriteBatch.InstanceCount > 0)
 		{
 			EditorSpriteBatch.Render(renderPass, SpriteAtlasTexture, PointSampler, viewProjectionMatrices);
 		}
 #endif
+		// FIXME: This seems to crush transparency from EditorSpriteBatch if we render this first.
+		// FIXME: Something to do with bad winding order, maybe?
+		if (TriangleBatch.InstanceCount > 0)
+		{
+			TriangleBatch.Render(renderPass, viewProjectionMatrices);
+		}
 
 		foreach (var (texture, batch) in TileSpriteBatches)
         {        
@@ -559,7 +573,7 @@ public class Renderer : MoonTools.ECS.Renderer
 	
 	
 #if DEBUG
-	const float DebugLineThickness = 0.3f;
+	const float DebugLineThickness = 1f;
 
 	public void DrawDebugRectangle(Entity entity, Rectangle rect, Color color, float depth, float lineThickness)
 	{
