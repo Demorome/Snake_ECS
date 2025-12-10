@@ -171,7 +171,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
             Set(entity, new Position2D(pos.X - MathF.Floor(scale.X * 0.5f), pos.Y - MathF.Floor(scale.Y * 0.5f)));
         }
         Set(entity, new ColorBlend(Color.LimeGreen));
-        Set(entity, new Depth(DepthLayer.Debug_CollisionVisual)); // draw above most things
+        Set(entity, new Depth(-(float)DepthLayer.Debug_CollisionVisual));
         return entity;
     }
 
@@ -190,7 +190,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         Set(entity, new SpriteAnimation(SpriteAnimations.Pixel));
         Set(entity, new ColorBlend(Color.LightGreen with { A = 100 }));
         Set(entity, new VisualScale(new Vector2(worldRect.Width, worldRect.Height)));
-        Set(entity, new Depth(DepthLayer.Debug_CollisionVisual)); // draw behind most things
+        Set(entity, new Depth(-(float)DepthLayer.Debug_CollisionVisual));
     }
 
     public Position2D? Raycast_vs_Collider(
