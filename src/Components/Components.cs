@@ -91,18 +91,29 @@ public readonly record struct HorizontalFlip();
 public readonly record struct VerticalFlip();
 public readonly record struct ColorSpeed(float RedSpeed, float GreenSpeed, float BlueSpeed);
 
-// Deeper depth = higher value.
+/// <summary>
+/// Deeper depth = higher positive value = gets drawn below others.
+/// We'll inverse it automatically if needed for rendering.
+/// </summary>
 public enum DepthLayer
 {
-    DefaultDepth = 1,
+    GameUI = -2000,
+    Foreground = -1000,
+
+    DefaultDepth = GameUI - 1, // draw above even UI, to be obnoxious.
+    GenericGameObject = 1,
     Player = 5,
-    Enemy = Player + 1,
-    SolidObject = Enemy + 1, // draw below actors
+    Enemy = Player + 1, // draw below player
+    LowestActor = Enemy,
+    SolidObject = LowestActor + 1, // draw below actors
+    DetectionCone = SolidObject + 1, // draw above background tiles, but below solid objects.
+
+    Background = 1000,
 
 #if DEBUG
-    Editor_TileOutline = -50,
-    Editor_SelectionOutline = -2, // Render above everything (except menus).
-    Debug_CollisionVisual = -100
+    Editor_TileOutline = Background - 1, // draw above backgrounds, but nothing else.
+    Editor_SelectionOutline = GameUI + 1, // Render above everything (except menus).
+    Debug_CollisionVisual = Editor_SelectionOutline
 #endif
 }
 public readonly record struct Depth(float Value)
