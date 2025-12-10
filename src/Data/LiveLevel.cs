@@ -165,7 +165,7 @@ public class LiveLevel
         // A layer either uses a visual set or a prefab type to spawn stuff.
         public VisualSet MaybeVisualSet;
         public VisualSetVariantID? MaybeVisualSetVariantID;
-        public Prefabs? MaybePrefabType;
+        public PrefabTypes? MaybePrefabType;
 
         // Applies to all images/tiles.
         public Color Color { get; private set; } = Color.White;
@@ -491,7 +491,7 @@ public class LiveLevel
                 for (int nthEntity = 0; nthEntity < filedLayer.Entities.Length; ++nthEntity)
                 {
                     var filedEntity = filedLayer.Entities[nthEntity];
-                    Prefabs prefabType;
+                    PrefabTypes prefabType;
                     PrefabSpawnInfo? maybeSpawnInfo = null;
 
 #if DEBUG

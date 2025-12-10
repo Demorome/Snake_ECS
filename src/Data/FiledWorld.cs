@@ -125,7 +125,7 @@ public struct FiledLevel
         public UsedVisualSet? MaybeVisualSet; // unused if layer type is Prefabs
 
         [JsonPropertyName("TypeForEntities")]
-        public Prefabs? MaybePrefabTypeForEntities; // only used if layer type is Prefabs
+        public PrefabTypes? MaybePrefabTypeForEntities; // only used if layer type is Prefabs
 
         public FiledEntity[] Entities;
 

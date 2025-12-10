@@ -12,92 +12,9 @@ using RollAndCash.Data;
 using MoonWorks;
 using System.Runtime.CompilerServices;
 
-
-
-
-
-
 #if DEBUG
 using RollAndCash.Editor;
 #endif
-
-public enum Prefabs
-{
-    None = 0,
-    StaticLevelMirror,
-    FrogEnemy,
-    SolidRectangle,
-    InvisibleSolidRectangle,
-    Player,
-
-    SPAWNED_NORMALLY_COUNT,
-
-    //== These shouldn't be spawned manually, since they rely on vital info from another source anyways.
-    // They are here solely to tag special entities for save/loading.
-    RegularSolidTile,
-    VisualTile,
-    Image
-}
-public readonly record struct PrefabID(Prefabs ID);
-
-public static class PrefabsFuncs
-{
-    public static bool IsTile(Prefabs t)
-    {
-        return t == Prefabs.RegularSolidTile || t == Prefabs.VisualTile;
-    }
-    public static bool IsPurelyVisual(Prefabs t)
-    {
-        return t == Prefabs.Image || t == Prefabs.VisualTile;
-    }
-}
-
-// Some prefabs need args to be spawned.
-// See also: FiledEntity.SpawnInfo for serialized version.
-public struct PrefabSpawnInfo
-{
-    public VisualFromSetID_ForSpawning? VisualFromSetID;
-    //public SpriteAnimation? SpriteAnim; 
-
-    public static PrefabSpawnInfo ForVisualFromSet(VisualFromSetID_ForSpawning visualFromSetID)
-    {
-        return new PrefabSpawnInfo{VisualFromSetID = visualFromSetID};
-    }
-}
-
-// For unique changes to entities, like changing its color blend.
-// See also: FiledEntity.ExtraSpawnInfo for serialized version.
-public struct PrefabExtraSpawnInfo
-{
-    public Color? ColorBlendOverride;
-    public Angle? AngleOverride;
-
-    public static PrefabExtraSpawnInfo? FromFiled(FiledEntity.ExtraSpawnInfo? maybeFiledExtraSpawnInfo)
-    {
-        if (!maybeFiledExtraSpawnInfo.HasValue)
-        {
-            return null;
-        }
-        var filedExtraSpawnInfo = maybeFiledExtraSpawnInfo.Value;
-        var result = new PrefabExtraSpawnInfo();
-
-        if (filedExtraSpawnInfo.ColorBlendOverride.HasValue)
-        {
-            result.ColorBlendOverride = Unsafe.BitCast<uint, Color>(
-                filedExtraSpawnInfo.ColorBlendOverride.Value
-            );
-        }
-
-        if (filedExtraSpawnInfo.AngleOverride.HasValue)
-        {
-            result.AngleOverride = new Angle(
-                float.DegreesToRadians(filedExtraSpawnInfo.AngleOverride.Value)
-            );
-        }
-
-        return result;
-    }
-}
 
 public class PrefabManipulator : MoonTools.ECS.Manipulator
 {
@@ -115,7 +32,7 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
     }
 
     public Entity? TrySpawnPrefab(
-        Prefabs prefabType,
+        PrefabTypes prefabType,
         Position2D pos,
         bool rememberCreationForUndo = true,
         PrefabSpawnInfo? maybeSpawnInfo = null,
@@ -126,29 +43,29 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
         Entity result;
         switch (prefabType)
         {
-            case Prefabs.StaticLevelMirror:
+            case PrefabTypes.StaticLevelMirror:
                 result = MirrorManipulator.CreateStaticLevelMirror(pos);
                 break;
-            case Prefabs.FrogEnemy:
+            case PrefabTypes.FrogEnemy:
                 result = PlayerManipulator.SpawnFrog(pos);
                 break;
-            case Prefabs.InvisibleSolidRectangle:
+            case PrefabTypes.InvisibleSolidRectangle:
                 result = LevelObjectManipulator.SpawnInvisibleSolidRectangle(pos);
                 break;
-            case Prefabs.SolidRectangle:
+            case PrefabTypes.SolidRectangle:
                 result = LevelObjectManipulator.SpawnSolidRectangle(pos, Color.White);
                 break;
-            case Prefabs.Player:
+            case PrefabTypes.Player:
                 result = PlayerManipulator.SpawnPlayer(pos, 0);
                 break;
-            case Prefabs.RegularSolidTile:
+            case PrefabTypes.RegularSolidTile:
                 if (!maybeSpawnInfo.HasValue || !maybeSpawnInfo.Value.VisualFromSetID.HasValue)
                 {
                     goto default;
                 }
                 result = TileManipulator.SpawnRegularSolidTile(pos, (TileID)maybeSpawnInfo.Value.VisualFromSetID.Value);
                 break;
-            case Prefabs.VisualTile:
+            case PrefabTypes.VisualTile:
                 if (!maybeSpawnInfo.HasValue || !maybeSpawnInfo.Value.VisualFromSetID.HasValue)
                 {
                     goto default;
@@ -209,7 +126,7 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
 
 #if DEBUG
 
-    public bool IsDefaultSprite(SpriteAnimation spriteToCheck, Prefabs prefabType)
+    public bool IsDefaultSprite(SpriteAnimation spriteToCheck, PrefabTypes prefabType)
     {
         bool result;
         var dummyPrefab = TrySpawnPrefab(prefabType, Input.WorldMousePosition).Value;
@@ -224,7 +141,7 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
         Destroy(dummyPrefab);
         return result;
     }
-    public bool IsDefaultColorBlend(Color colorBlend, Prefabs prefabType)
+    public bool IsDefaultColorBlend(Color colorBlend, PrefabTypes prefabType)
     {
         bool result;
         var dummyPrefab = TrySpawnPrefab(prefabType, Input.WorldMousePosition).Value;
@@ -240,7 +157,7 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
         return result;
     }
 
-    private Prefabs PrefabToSpawn_ForPreview = Prefabs.None;
+    private PrefabTypes PrefabToSpawn_ForPreview = PrefabTypes.None;
 
     private void SetUpSelectedPrefabPreviewVisuals(Entity debugEntity)
     {
@@ -312,13 +229,13 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
     {
         if (ImGui.Begin("Prefab Objects"u8))
         {
-            foreach (Prefabs prefab in Enum.GetValues(typeof(Prefabs)))
+            foreach (PrefabTypes prefab in Enum.GetValues(typeof(PrefabTypes)))
             {
-                if (prefab == Prefabs.None)
+                if (prefab == PrefabTypes.None)
                 {
                     continue;
                 }
-                if (prefab >= Prefabs.SPAWNED_NORMALLY_COUNT)
+                if (prefab >= PrefabTypes.SPAWNED_NORMALLY_COUNT)
                 {
                     continue;
                 }
@@ -327,13 +244,13 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
                 ImGui.PushStyleColor(ImGuiCol.Header, Color.Green.ToVector4());
                 if (ImGui.Selectable(prefab.ToString(), isSelected))
                 {
-                    PrefabToSpawn_ForPreview = isSelected ? Prefabs.None : prefab;
+                    PrefabToSpawn_ForPreview = isSelected ? PrefabTypes.None : prefab;
                 }
                 ImGui.PopStyleColor();
             }
 
             // TODO: Once button to spawn a prefab entity is pressed, make it appear transparent below cursor.
-            if (PrefabToSpawn_ForPreview != Prefabs.None)
+            if (PrefabToSpawn_ForPreview != PrefabTypes.None)
             {
                 if (!ImGui.GetIO().WantCaptureMouse
                     && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
@@ -344,7 +261,7 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
         }
         ImGui.End();
 
-        if (PrefabToSpawn_ForPreview != Prefabs.None)
+        if (PrefabToSpawn_ForPreview != PrefabTypes.None)
         {
             SetUpSelectedPrefabPreviewVisuals(debugEntity);
             return true;

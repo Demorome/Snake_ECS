@@ -131,7 +131,7 @@ public abstract class VisualSet
         }
         else
         {
-            result = (new PrefabID(Prefabs.VisualTile), FiledEntity.Flags.None, null);
+            result = (new PrefabID(PrefabTypes.VisualTile), FiledEntity.Flags.None, null);
         }
 
         if (VariantID.ID != 0)
@@ -176,7 +176,7 @@ public abstract class VisualSet
         {
             if (PrefabsFuncs.IsTile(prefabType))
             {
-                prefabType = Prefabs.VisualTile;
+                prefabType = PrefabTypes.VisualTile;
             }
 
             if (!PrefabsFuncs.IsPurelyVisual(prefabType))
