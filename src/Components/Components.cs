@@ -94,27 +94,36 @@ public readonly record struct ColorSpeed(float RedSpeed, float GreenSpeed, float
 /// <summary>
 /// Deeper depth = higher positive value = gets drawn below others.
 /// We'll inverse it automatically if needed for rendering.
+/// <para>NOTE: Currently, FarPlane is set to 1000 for rendering. 
+/// Near plane is 0.01.
+/// TODO: Should probably directly work with those values as limits here.</para>
 /// </summary>
 public enum DepthLayer
 {
-    GameUI = -2000,
-    Foreground = -1000,
+    //== Foreground
+    DefaultDepth = 0, // draw above all, even UIs, to be obnoxious.
+    GameUI_Lowest = 2, // could be 1, but I'm leaving space for ImGui UI, should it need a Depth value.
+    GameUI_Highest = 8,
+#if DEBUG
+    Editor_SelectionOutline = GameUI_Highest + 1, // Render above everything (except menus).
+    Debug_CollisionVisual = Editor_SelectionOutline,
+#endif
+    // WARNING: These values should be LOCKED IN, 
+    // for editor-created foreground layers to not have to be updated.
+    Foreground_Lowest = 10,
+    Foreground_Highest = 30, // leave some wiggle room for custom foreground layers
 
-    DefaultDepth = GameUI - 1, // draw above even UI, to be obnoxious.
-    GenericGameObject = 1,
-    Player = 5,
+    //== Game objects (middle-ground)
+    // Don't really need to leave gaps, 
+    // since these will never directly get a Depth assigned in-editor.
+    Player = Foreground_Highest + 1, // draw below foreground, but above most objects.
     Enemy = Player + 1, // draw below player
     LowestActor = Enemy,
     SolidObject = LowestActor + 1, // draw below actors
     DetectionCone = SolidObject + 1, // draw above background tiles, but below solid objects.
 
-    Background = 1000,
-
-#if DEBUG
-    Editor_TileOutline = Background - 1, // draw above backgrounds, but nothing else.
-    Editor_SelectionOutline = GameUI + 1, // Render above everything (except menus).
-    Debug_CollisionVisual = Editor_SelectionOutline
-#endif
+    //== Background
+    Background = 1000
 }
 public readonly record struct Depth(float Value)
 {
