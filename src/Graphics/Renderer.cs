@@ -132,9 +132,21 @@ public class Renderer : MoonTools.ECS.Renderer
 
 		PointSampler = Sampler.Create(GraphicsDevice, SamplerCreateInfo.PointClamp);
 
-		ArtSpriteBatch = new SpriteBatch(GraphicsDevice, titleStorage, swapchainFormat, TextureFormat.D16Unorm);
+		ArtSpriteBatch = new SpriteBatch(
+			"SpriteBatch Pipeline", 
+			GraphicsDevice, 
+			titleStorage, 
+			swapchainFormat, 
+			TextureFormat.D16Unorm
+		);
 #if DEBUG
-		EditorSpriteBatch = new SpriteBatch(GraphicsDevice, titleStorage, swapchainFormat, TextureFormat.D16Unorm);
+		EditorSpriteBatch = new SpriteBatch(
+			"Editor SpriteBatch Pipeline",
+			GraphicsDevice, 
+			titleStorage, 
+			swapchainFormat, 
+			TextureFormat.D16Unorm
+		);
 #endif
 
 		TriangleBatch = new TriangleBatch(GraphicsDevice, titleStorage, swapchainFormat, TextureFormat.D16Unorm);
@@ -145,7 +157,13 @@ public class Renderer : MoonTools.ECS.Renderer
         {
 			TileSpriteBatches.Add(
 				new (tileSet.DefaultTexture, 
-					new SpriteBatch(GraphicsDevice, titleStorage, swapchainFormat, TextureFormat.D16Unorm)
+					new SpriteBatch(
+						$"TileSet SpriteBatch Pipeline for texture {tileSet.DefaultTexture}",
+						GraphicsDevice, 
+						titleStorage, 
+						swapchainFormat, 
+						TextureFormat.D16Unorm
+					)
 				)
 			);
             
@@ -155,7 +173,13 @@ public class Renderer : MoonTools.ECS.Renderer
                 {
                     TileSpriteBatches.Add(
 						new (variantTileSet.Texture, 
-							new SpriteBatch(GraphicsDevice, titleStorage, swapchainFormat, TextureFormat.D16Unorm)
+							new SpriteBatch(
+								$"TileSet variant SpriteBatch Pipeline for texture {variantTileSet.Texture.Name}",
+								GraphicsDevice, 
+								titleStorage, 
+								swapchainFormat, 
+								TextureFormat.D16Unorm
+							)
 						)
 					);
                 }
@@ -411,7 +435,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			}
 		}
 
-		// Draw selection mode-related stuff
+		#region Selection Mode
 		{
 			var outlineDepth = -(float)DepthLayer.Editor_SelectionOutline;
 
@@ -459,6 +483,7 @@ public class Renderer : MoonTools.ECS.Renderer
 				}
 			}
 		}
+		#endregion Selection Mode
 
 		EditorSpriteBatch.Upload(commandBuffer);
 #endif

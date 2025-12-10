@@ -37,7 +37,7 @@ public class TitleState : GameState
         TransitionStateB = transitionStateB;
 
         LinearSampler = Sampler.Create(GraphicsDevice, SamplerCreateInfo.LinearClamp);
-        HiResSpriteBatch = new SpriteBatch(GraphicsDevice, Game.RootTitleStorage, game.MainWindow.SwapchainFormat);
+        HiResSpriteBatch = new SpriteBatch("TitleState SpriteBatch Pipeline", GraphicsDevice, Game.RootTitleStorage, game.MainWindow.SwapchainFormat);
 
         RenderTexture = Texture.Create2D(GraphicsDevice, Dimensions.GAME_W, Dimensions.GAME_H, game.MainWindow.SwapchainFormat, TextureUsageFlags.ColorTarget | TextureUsageFlags.Sampler);
     }

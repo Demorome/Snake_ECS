@@ -23,6 +23,7 @@ public class SpriteBatch
 	Buffer QuadIndexBuffer;
 
 	public SpriteBatch(
+		string name,
 		GraphicsDevice graphicsDevice,
 		MoonWorks.Storage.TitleStorage titleStorage,
 		TextureFormat renderTextureFormat,
@@ -57,7 +58,7 @@ public class SpriteBatch
 			VertexInputState = VertexInputState.CreateSingleBinding<PositionTextureColorVertex>(),
 			VertexShader = vertShader,
 			FragmentShader = fragShader,
-			Name = "SpriteBatch Pipeline"
+			Name = name
 		};
 
 		if (depthTextureFormat.HasValue)
@@ -166,7 +167,15 @@ public class SpriteBatch
 		if (InstanceCount > 0)
 		{
 			var copyPass = commandBuffer.BeginCopyPass();
-			copyPass.UploadToBuffer(new TransferBufferLocation(InstanceTransferBuffer), new BufferRegion(InstanceBuffer, 0, (uint)(Marshal.SizeOf<SpriteInstanceData>() * InstanceCount)), true);
+			copyPass.UploadToBuffer(
+				new TransferBufferLocation(InstanceTransferBuffer), 
+				new BufferRegion(
+					InstanceBuffer, 
+					0, 
+					(uint)(Marshal.SizeOf<SpriteInstanceData>() * InstanceCount)
+				), 
+				true
+			);
 			commandBuffer.EndCopyPass(copyPass);
 
 			var computePass = commandBuffer.BeginComputePass(
@@ -179,7 +188,12 @@ public class SpriteBatch
 		}
 	}
 
-	public void Render(RenderPass renderPass, Texture texture, Sampler sampler, ViewProjectionMatrices viewProjectionMatrices)
+	public void Render(
+		RenderPass renderPass, 
+		Texture texture, 
+		Sampler sampler, 
+		ViewProjectionMatrices viewProjectionMatrices
+		)
 	{
 		renderPass.BindGraphicsPipeline(GraphicsPipeline);
 		renderPass.BindFragmentSamplers(new TextureSamplerBinding(texture, sampler));
