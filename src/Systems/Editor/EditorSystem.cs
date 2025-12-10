@@ -272,12 +272,10 @@ public class EditorSystem : MoonTools.ECS.System
             {
                 Logger.LogError($"WTF! Entity {EntityToString(e)} doesn't have a level layer or RoomID! Components: {EntityComponentsToString(e)}");
             }
-            return true;
         }
-        else
-        {
-            return false;
-        }
+        // Allow selection mode to work, even when no levels are loaded, if we want to manually spawn entities
+        // via code.
+        return true;
     }
 
     void HandleEntitySelectionMode()
