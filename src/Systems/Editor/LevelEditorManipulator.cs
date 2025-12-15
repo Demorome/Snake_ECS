@@ -13,6 +13,7 @@ using RollAndCash.Content;
 using RollAndCash.Data;
 using RollAndCash.Relations;
 using RollAndCash.Systems;
+using RollAndCash.Utility;
 
 namespace RollAndCash.Editor;
 
@@ -634,13 +635,16 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                 }
                 ImGui.Text("Hint: create a new layer if you want to change the above, or manually edit the saved file.");
 
-                // FIXME: Use an Optional value instead of Nullable, 
-                // FIXME: so that we can store the original value.
                 if (ImGui.Button("Toggle Color Blend"))
                 {
                     if (layer.MaybeColor.HasValue)
                     {
-                        layer.ChangeLayerColorBlend(null, World);
+                        layer.ChangeLayerColorBlend(
+                            new Toggleable<Color>(
+                                layer.MaybeColor.Value_Unsafe, false
+                            ), 
+                            World
+                        );
                     }
                     else
                     {

@@ -168,11 +168,11 @@ public class LiveLevel
 
         /// <summary>
         /// Applies a tint to all images/tiles in this layer.
-        /// Could've set it to White by default instead of null,
+        /// Could've set it to White by default instead of having an off toggle,
         /// but this way we could support custom blend modes 
         /// more easily later on.
         /// </summary>
-        public Color? MaybeColor { get; private set; } = null;
+        public Toggleable<Color> MaybeColor { get; private set; } = default;
         public float ColorBlendFactor { get; private set; } = 0.5f;
 
         public float Depth { get; private set; } = (float)DepthLayer.PlaceholderDepth;
@@ -329,9 +329,9 @@ public class LiveLevel
                 }
             }
         }
-        public void ChangeLayerColorBlend(Color? newColorMaybeNull, World world)
+        public void ChangeLayerColorBlend(Toggleable<Color> newColorMaybeOff, World world)
         {
-            this.MaybeColor = newColorMaybeNull;
+            this.MaybeColor = newColorMaybeOff;
             UpdateColorsForEntitiesInLayer(world);
         }
         public void ChangeLayerColorBlendFactor(float newFactor, World world)
