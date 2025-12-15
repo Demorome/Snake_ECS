@@ -344,12 +344,16 @@ public class VisualSetVariant
     {
         if (TileMetadataOverrides.ContainsKey(tilePosInSet))
         {
-            var (_, _, maybeExtraSpawnInfo) = TileMetadataOverrides[tilePosInSet];
-            if (maybeExtraSpawnInfo.HasValue)
+            var (_, _, maybeSpawnInfoOverrides) = TileMetadataOverrides[tilePosInSet];
+            if (maybeSpawnInfoOverrides.HasValue)
             {
-                if (maybeExtraSpawnInfo.Value.ColorBlend.HasValue)
+                // NOTE: It's pointless that we store the full ColorBlend
+                // struct here, since there can only be a base, unmodified color
+                // here. However, it means we don't need to handle an entirely 
+                // different struct.
+                if (maybeSpawnInfoOverrides.Value.ColorBlend.HasValue)
                 {
-                    return maybeExtraSpawnInfo.Value.ColorBlend.Value;
+                    return maybeSpawnInfoOverrides.Value.ColorBlend.Value.Color;
                 }
             }
         }
@@ -357,11 +361,14 @@ public class VisualSetVariant
     }
 
 #if DEBUG
-    public void Editor_SetTileColorOverride(PositionInVisualSet tilePosInSet, Color newColor)
+    public void Editor_SetTileColorOverride(
+        PositionInVisualSet tilePosInSet, Color newColor)
     {
         if (TileMetadataOverrides.ContainsKey(tilePosInSet))
         {
-            var (maybePrefabID, maybeFlags, maybeExtraSpawnInfo) = TileMetadataOverrides[tilePosInSet];
+            var (maybePrefabID, maybeFlags, maybeExtraSpawnInfo) =
+                TileMetadataOverrides[tilePosInSet];
+
             PrefabSpawnInfoOverride newExtraSpawnInfo;
             if (maybeExtraSpawnInfo.HasValue)
             {
@@ -371,8 +378,10 @@ public class VisualSetVariant
             {
                 newExtraSpawnInfo = new();
             }
-            newExtraSpawnInfo.ColorBlend = newColor;
-            TileMetadataOverrides[tilePosInSet] = (maybePrefabID, maybeFlags, newExtraSpawnInfo);
+            newExtraSpawnInfo.ColorBlend = new ColorBlend(newColor);
+
+            TileMetadataOverrides[tilePosInSet] =
+                (maybePrefabID, maybeFlags, newExtraSpawnInfo);
         }
     }
 #endif
