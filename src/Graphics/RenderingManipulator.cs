@@ -40,7 +40,7 @@ public class RenderingManipulator : MoonTools.ECS.Manipulator
         var position = Get<Position2D>(entity);
 
         //== Orientation
-        var orientation = Has<Angle>(entity) ? Get<Angle>(entity).Value : 0.0f;
+        var orientation = Has<Angle>(entity) ? Get<Angle>(entity).ValueInRadians : 0.0f;
         if (Has<RotatesWithDirection>(entity))
         {
             // FIXME: Does Direction2D here need to be SafeNormalized?
@@ -87,9 +87,9 @@ public class RenderingManipulator : MoonTools.ECS.Manipulator
 #endif
         );
 
-        if (Has<Alpha>(entity))
+        if (Has<AlphaOverride>(entity))
         {
-            color.A = Get<Alpha>(entity).Value;
+            color.A = Get<AlphaOverride>(entity).Value;
         }
 
         //== Depth

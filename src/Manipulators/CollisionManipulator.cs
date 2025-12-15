@@ -150,7 +150,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
         Set(entity, rayOrigin);
         Set(entity, new SpriteAnimation(SpriteAnimations.Pixel));
         Set(entity, new ColorBlend(Color.Red with { A = 100 }));
-        Set(entity, new Angle(rayAngle));
+        Set(entity, Angle.FromRadians(rayAngle));
 
         // Stretch the pixel to form a line
         Set(entity, new VisualScale(new Vector2(length, 1f)));

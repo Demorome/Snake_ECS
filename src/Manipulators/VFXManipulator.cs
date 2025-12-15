@@ -37,7 +37,7 @@ public class VFXManipulator : MoonTools.ECS.Manipulator
         Entity trail = CreateVFX(lastPos, trailSprite, depth, 0.5f, 0.5f);
         Set(trail, new ColorBlend(color));
 
-        Set(trail, new Angle(MathUtilities.GetHeadingAngle(lastPos.AsVector(), projectilePos)));
+        Set(trail, Angle.FromRadians(MathUtilities.GetHeadingAngle(lastPos.AsVector(), projectilePos)));
 
         // FIXME: Center scale changes based on sprite origin!!!!!
 

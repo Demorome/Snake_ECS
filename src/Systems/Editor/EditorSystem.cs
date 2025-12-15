@@ -459,7 +459,7 @@ public class EditorSystem : MoonTools.ECS.System
 
             // FIXME: Account for orientation/angle!! 
             // Selection is AABB, so maybe draw an oversized rectangle to cover it all?
-            var orientation = Has<Angle>(entity) ? Get<Angle>(entity).Value : 0.0f;
+            var orientation = Has<Angle>(entity) ? Get<Angle>(entity).ValueInRadians : 0.0f;
             if (orientation != 0.0f)
             {
                 // FIXME: Get highest & lowest points, somehow??

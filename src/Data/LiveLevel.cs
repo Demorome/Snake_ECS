@@ -138,11 +138,6 @@ public class LiveLevel
 #endif
     }
 
-    public static Color MixLayerColorWithEntityColor(Color layerColor, Color entityColorBlend)
-    {
-        return Color.Lerp(layerColor, entityColorBlend, 0.5f);
-    }
-
 #if DEBUG
     public class EditorLayer
     {
@@ -162,13 +157,23 @@ public class LiveLevel
         public LevelLayerTypes LayerType { get; private set; }
         public bool IsTiled => LayerType == LevelLayerTypes.TileSet;
 
-        // A layer either uses a visual set or a prefab type to spawn stuff.
+        // To spawn stuff, a layer either uses either a:
+        // a) visual set, or 
+        // b) prefab type.
+        // The visual set is expected to contain prefab types.
+        // FIXME: Use discriminated union here when it's available!!
         public VisualSet MaybeVisualSet;
         public VisualSetVariantID? MaybeVisualSetVariantID;
         public PrefabTypes? MaybePrefabType;
 
-        // Applies to all images/tiles.
-        public Color Color { get; private set; } = Color.White;
+        /// <summary>
+        /// Applies a tint to all images/tiles in this layer.
+        /// Could've set it to White by default instead of null,
+        /// but this way we could support custom blend modes 
+        /// more easily later on.
+        /// </summary>
+        public Color? MaybeColor { get; private set; } = null;
+        public float ColorBlendFactor { get; private set; } = 0.5f;
 
         public float Depth { get; private set; } = (float)DepthLayer.PlaceholderDepth;
         public bool IsDepthLocked => LayerType == LevelLayerTypes.Prefabs;
@@ -211,7 +216,8 @@ public class LiveLevel
             Depth = filedLayer.Depth;
             // NOTE: Assumes the layer's name's uniqueness was preserved.
             Name = filedLayer.EditorName;
-            Color = filedLayer.Color;
+            MaybeColor = filedLayer.MaybeColorBlend;
+            ColorBlendFactor = filedLayer.ColorBlendFactor;
 
             lock (room.LayersByName)
             {
@@ -264,28 +270,74 @@ public class LiveLevel
             }
         }
 
-        public void ChangeLayerColorBlend(Color newColor, World world)
+        private Color MixLayerColorWithEntityColor(
+            Color layerColor, Color entityBaseColor)
         {
-            Color = newColor;
+            return Color.Lerp(layerColor, entityBaseColor, ColorBlendFactor);
+        }
 
+        private void UpdateColorsForEntitiesInLayer(World world)
+        {
             // Recalculate the color blend for each entity in this layer.
             foreach (var entity in CachedEntities)
             {
-                var entityColor = Color.White;
-                if (world.Has<Editor_EntityBaseColorBlend>(entity))
+                Color? maybeEntityBaseColor = null;
+                if (world.Has<ColorBlend>(entity))
                 {
-                    entityColor = world.Get<Editor_EntityBaseColorBlend>(entity).Color;
+                    maybeEntityBaseColor = 
+                        world.Get<ColorBlend>(entity).Editor_MaybeBaseColor;
                 }
-                if (Color == Color.White && entityColor == Color.White)
+                if (!this.MaybeColor.HasValue)
                 {
-                    world.Remove<ColorBlend>(entity);
-                    world.Remove<Editor_EntityBaseColorBlend>(entity);
+                    if (!maybeEntityBaseColor.HasValue)
+                    {
+                        world.Remove<ColorBlend>(entity);
+                    }
+                    else
+                    {
+                        // Entity's color is unnaffected by the layer.
+                        world.Set(entity, 
+                            new ColorBlend(
+                                maybeEntityBaseColor.Value, 
+                                maybeEntityBaseColor.Value
+                            )
+                        );
+                    }
+                }
+                else if (maybeEntityBaseColor.HasValue)
+                {
+                    world.Set(entity, 
+                        new ColorBlend(
+                            MixLayerColorWithEntityColor(
+                                this.MaybeColor.Value, maybeEntityBaseColor.Value
+                            ), 
+                            maybeEntityBaseColor.Value
+                        )
+                    );
                 }
                 else
                 {
-                    world.Set(entity, new ColorBlend(MixLayerColorWithEntityColor(Color, entityColor)));
+                    // Entity's color tint will be entirely based on the layer.
+                    world.Set(entity, 
+                        new ColorBlend(
+                            MixLayerColorWithEntityColor(
+                                this.MaybeColor.Value, Color.White
+                            ),
+                            null // entity has no baseColor of its own.
+                        )
+                    );
                 }
             }
+        }
+        public void ChangeLayerColorBlend(Color? newColorMaybeNull, World world)
+        {
+            this.MaybeColor = newColorMaybeNull;
+            UpdateColorsForEntitiesInLayer(world);
+        }
+        public void ChangeLayerColorBlendFactor(float newFactor, World world)
+        {
+            this.ColorBlendFactor = newFactor;
+            UpdateColorsForEntitiesInLayer(world);
         }
 
         public void ChangeLayerDepth(float newDepth, World world)
@@ -327,7 +379,11 @@ public class LiveLevel
     static FiledWorldContext JsonLevelContext = new(LevelSerializerOptions);
 
 #if DEBUG
-    public void SaveToFile(string levelContentPath, World world, PrefabManipulator prefabManipulator)
+    public void SaveToFile(
+        string levelContentPath, 
+        World world, 
+        PrefabManipulator prefabManipulator
+        )
     {
         var filedLevel = new FiledLevel();
         filedLevel.SerializedVersion = 1;
@@ -348,66 +404,16 @@ public class LiveLevel
                 {
                     if (!world.Has<PrefabID>(liveEntity))
                     {
-                        Logger.LogWarn($"{EditorSystem.EntityToString(world, liveEntity)} in layer {liveLayer.Name} has no PrefabID. That's pretty weird!");
+                        Logger.LogError($"{EditorSystem.EntityToString(world, liveEntity)} in layer {liveLayer.Name} has no PrefabID. We won't save it!");
+                        continue;
                     }
-
-                    var filedEntity = new FiledEntity();
-                    filedEntity.PositionRelativeToRoom = new Position2D(world.Get<Position2D>(liveEntity) - liveRoom.Position);
-                    
-                    // Set spawn flags
-                    filedEntity.MaybeSpawnFlags = 
-                        world.Has<Editor_EntityOverrideSpawnFlags>(liveEntity) ?
-                        FiledEntity.Flags.None : null
-                    ;
-                    if (filedEntity.MaybeSpawnFlags.HasValue)
-                    {
-                        if (world.Has<HorizontalFlip>(liveEntity))
-                        {
-                            filedEntity.MaybeSpawnFlags |= FiledEntity.Flags.FlipX;
-                        }
-                        if (world.Has<VerticalFlip>(liveEntity))
-                        {
-                            filedEntity.MaybeSpawnFlags |= FiledEntity.Flags.FlipY;
-                        }
-                    }
-
-                    // Set spawn info
-                    if (liveLayer.LayerType != LevelLayerTypes.Prefabs)
-                    {
-                        var spawnInfo = new FiledEntity.SpawnInfo();
-                        if (liveLayer.LayerType == LevelLayerTypes.TileSet)
-                        {
-                            spawnInfo.PosInVisualSet = world.Get<TileID>(liveEntity).PosInSet;
-                        }
-                        else if (liveLayer.LayerType == LevelLayerTypes.ImageSet)
-                        {
-                            // TODO!
-                        }
-
-                        filedEntity.MaybeSpawnInfo = spawnInfo;
-                    }
-
-                    // Set extra spawn info
-                    if (world.Has<Editor_EntityOverrideExtraSpawnInfo>(liveEntity))
-                    {
-                        var extraSpawnInfo = new FiledEntity.ExtraSpawnInfo();
-                        if (world.Has<Editor_EntityBaseColorBlend>(liveEntity))
-                        {
-                            extraSpawnInfo.ColorBlendOverride = world.Get<Editor_EntityBaseColorBlend>(liveEntity).Color.PackedValue();
-                        }
-
-                        var angle = world.Has<Angle>(liveEntity) ? world.Get<Angle>(liveEntity).Value : 0.0f;
-                        if (world.Has<RotatesWithDirection>(liveEntity))
-                        {
-                            angle = MathUtilities.AngleFromUnitVector(world.Get<Direction2D>(liveEntity).Value);
-                        }
-                        if (angle != 0.0f)
-                        {
-                            extraSpawnInfo.AngleOverride = float.RadiansToDegrees(angle);
-                        }
-
-                        filedEntity.MaybeExtraSpawnInfo = extraSpawnInfo;
-                    }
+                    var filedEntity = FiledEntity.Editor_FromLiveEntity(
+                        liveEntity,
+                        world,
+                        liveRoom,
+                        liveLayer,
+                        prefabManipulator
+                    );
 
                     filedEntities.Add(filedEntity);
                 }
@@ -491,104 +497,17 @@ public class LiveLevel
                 for (int nthEntity = 0; nthEntity < filedLayer.Entities.Length; ++nthEntity)
                 {
                     var filedEntity = filedLayer.Entities[nthEntity];
-                    PrefabTypes prefabType;
-                    PrefabSpawnInfo? maybeSpawnInfo = null;
-
+                    _ = filedEntity.ToLiveEntity(
+                        filedRoom,
+                        filedLayer,
+                        maybeTileSetID,
+                        world, 
+                        prefabManipulator,
+                        liveRoom
 #if DEBUG
-                    bool overridesBaseSpawnFlags = false;
-                    bool overridesBaseExtraSpawnInfo = false;
+                        , liveEditorLayer
 #endif
-                    PrefabExtraSpawnInfo? maybeExtraSpawnInfo = PrefabExtraSpawnInfo.FromFiled(filedEntity.MaybeExtraSpawnInfo);;
-
-                    if (LevelLayerTypesFuncs.IsVisualSet(filedLayer.TypeID))
-                    {
-                        var visualFromSetID = new VisualFromSetID_ForSpawning(
-                            filedEntity.MaybeSpawnInfo.Value.PosInVisualSet.Value, 
-                            maybeTileSetID.Value, 
-                            new VisualSetVariantID(filedLayer.MaybeVisualSet.Value.VariantID)
-                        );
-                        (var prefabID, var maybeSpawnFlags, var maybeExtraSpawnInfo_FromVisualSet) = VisualSet.GetMetadata(visualFromSetID);
-                        prefabType = prefabID.ID;
-
-                        maybeSpawnInfo = PrefabSpawnInfo.ForVisualFromSet(visualFromSetID);
-                        if (!filedEntity.MaybeSpawnFlags.HasValue)
-                        {
-                            filedEntity.MaybeSpawnFlags = maybeSpawnFlags;
-                        }
-#if DEBUG
-                        else
-                        {
-                            overridesBaseSpawnFlags = true;
-                        }
-#endif
-                        if (filedEntity.MaybeExtraSpawnInfo == null)
-                        {
-                            maybeExtraSpawnInfo = maybeExtraSpawnInfo_FromVisualSet;
-                        }
-#if DEBUG
-                        else
-                        {
-                           overridesBaseExtraSpawnInfo = true;
-                        }
-#endif
-                    }
-                    else if (filedLayer.TypeID == LevelLayerTypes.Prefabs)
-                    {
-                        prefabType = filedLayer.MaybePrefabTypeForEntities.Value;
-                    }
-                    else
-                    {
-                        Logger.LogError($"Bad layer type: {filedLayer.TypeID}");
-                        continue;
-                    }
-
-                    var spawnPosition = filedEntity.PositionRelativeToRoom + filedRoom.Position;
-
-                    // Spawn the entities
-                    var maybeLiveEntity = prefabManipulator.TrySpawnPrefab(
-                        prefabType,
-                        spawnPosition,
-                        false,
-                        maybeSpawnInfo,
-                        filedEntity.MaybeSpawnFlags.HasValue ? filedEntity.MaybeSpawnFlags.Value : FiledEntity.Flags.None,
-                        maybeExtraSpawnInfo
                     );
-
-                    if (maybeLiveEntity.HasValue)
-                    {
-                        var liveEntity = maybeLiveEntity.Value;
-                        world.Set(liveEntity, liveRoom.ID);
-                        world.Set(liveEntity, new Depth(liveEditorLayer.Depth));
-
-                        if (filedEntity.UniqueTag != null && filedEntity.UniqueTag.Length != 0)
-                        {
-                            world.Tag(liveEntity, filedEntity.UniqueTag);
-                        }
-
-#if DEBUG                      
-                        world.Set(liveEntity, liveEditorLayer.LayerID);
-                        liveEditorLayer.CachedEntities.Add(liveEntity);
-
-                        if (overridesBaseSpawnFlags)
-                        {
-                            world.Set(liveEntity, new Editor_EntityOverrideSpawnFlags());
-                        }
-                        if (overridesBaseExtraSpawnInfo)
-                        {
-                            world.Set(liveEntity, new Editor_EntityOverrideExtraSpawnInfo());
-
-                            if (filedEntity.MaybeExtraSpawnInfo.Value.ColorBlendOverride.HasValue)
-                            {
-                                world.Set(liveEntity, 
-                                    new Editor_EntityBaseColorBlend(
-                                        world.Get<ColorBlend>(liveEntity).Color
-                                    )
-                                );
-                            }
-                        }
-
-#endif
-                    }
                 }
             }
         }

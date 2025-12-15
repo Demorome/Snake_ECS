@@ -339,19 +339,17 @@ public static class DrawComponents
     private static void DrawAngle(World world, Entity entity, ref bool changed)
     {
         var angle = world.Get<Angle>(entity);
-        var input = float.RadiansToDegrees(angle.Value);
+        var input = float.RadiansToDegrees(angle.ValueInRadians);
 
         if (ImGui.InputFloat("Angle (degrees)", ref input))
         {
-            var output = float.DegreesToRadians(input);
-            world.Set(entity, new Angle(output));
+            world.Set(entity, Angle.FromDegrees(input));
             changed = true;
         }
 
         if (ImGui.SliderFloat("Slider", ref input, -360f, 360))
         {
-            var output = float.DegreesToRadians(input);
-            world.Set(entity, new Angle(output));
+            world.Set(entity, Angle.FromDegrees(input));
             changed = true;
         }
     }

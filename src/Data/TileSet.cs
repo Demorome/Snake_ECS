@@ -48,7 +48,7 @@ public class TileSet : VisualSet
     }
 
     // Only used when loading a TileSprite as an entity, to set initial ColorBlend.
-    public static (TileSprite, Color) GetTileSpriteAndColor(TileID TileID)
+    /*public static (TileSprite, Color) GetTileSpriteAndColor(TileID TileID)
     {
         var tileSet = (TileSet)IDLookup[TileID.TileSetID.ID];
         var tileSprite = tileSet.TileSprites[TileID.PosInSet.X, TileID.PosInSet.Y];
@@ -63,7 +63,7 @@ public class TileSet : VisualSet
             var variantTileSet = tileSet.VariantSets[TileID.VariantID.ID];
             return new(tileSprite, variantTileSet.GetTileColorOverride(TileID.PosInSet));
         }
-    }
+    }*/
 
     public Texture GetTextureForVariant(VisualSetVariantID TileSetVariantID)
     {
@@ -150,7 +150,7 @@ public class TileSet : VisualSet
         return false;
     }
 
-    public static (PrefabID, FiledEntity.Flags, PrefabExtraSpawnInfo?) 
+    public static (PrefabID, FiledEntity.Flags, PrefabSpawnInfoOverride?) 
         GetMetadata(TileID tileID)
     {
         return VisualSet.GetMetadata(tileID.PosInSet, tileID.TileSetID, tileID.VariantID);

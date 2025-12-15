@@ -19,6 +19,7 @@ public enum PrefabTypes
     VisualTile,
     Image
 }
+// FIXME: Should this be Debug-only? To discourage anti-patterns.
 public readonly record struct PrefabID(PrefabTypes ID);
 
 public static class PrefabsFuncs
@@ -35,50 +36,47 @@ public static class PrefabsFuncs
 
 /// <summary>
 /// Some prefabs need args to be spawned.
-/// <para>See also: <see cref="FiledEntity.SpawnInfo"/> for serialized version.</para>
+/// TODO: Damn you C# for not having Discriminated Unions yet!!! 
+/// TODO: We'd use that + PrefabTypes union here.
 /// </summary>
-public struct PrefabSpawnInfo
+public struct PrefabSpawnInfo_Filed
+{
+    public PositionInVisualSet? PosInVisualSet;
+    public SpriteAnimation? SpriteAnim; 
+}
+
+/// <summary>
+/// Some filed entity info needs to be supplemented w/ info from 
+/// parents, like a parent layer/level, so that we can spawn them.
+/// <para>Value are ordered 1-1 to 
+/// <see cref="PrefabSpawnInfo_Filed"/>.</para>
+/// FIXME: Use discriminated union instead when available!
+/// </summary>
+public struct PrefabSpawnInfo_Processed
 {
     public VisualFromSetID_ForSpawning? VisualFromSetID;
-    //public SpriteAnimation? SpriteAnim; 
+    public SpriteAnimation? SpriteAnim; 
 
-    public static PrefabSpawnInfo ForVisualFromSet(VisualFromSetID_ForSpawning visualFromSetID)
+    //== Constructors
+    public PrefabSpawnInfo_Processed(VisualFromSetID_ForSpawning arg)
     {
-        return new PrefabSpawnInfo{VisualFromSetID = visualFromSetID};
+        VisualFromSetID = arg;
+    }
+    public PrefabSpawnInfo_Processed(SpriteAnimation arg)
+    {
+        SpriteAnim = arg;
     }
 }
 
-// For unique changes to entities, like changing its color blend.
-// See also: FiledEntity.ExtraSpawnInfo for serialized version.
-public struct PrefabExtraSpawnInfo
+/// <summary>
+/// For unique changes to entities, like changing its color blend.
+/// <para>These changes always apply last when the entity is created, 
+/// thus the 'override'.</para>
+/// <para>We manually pick what to save, since a deny-list 
+/// for components would be hard to maintain.</para>
+/// </summary>
+public struct PrefabSpawnInfoOverride
 {
-    public Color? ColorBlendOverride;
-    public Angle? AngleOverride;
-
-    public static PrefabExtraSpawnInfo? FromFiled(FiledEntity.ExtraSpawnInfo? maybeFiledExtraSpawnInfo)
-    {
-        if (!maybeFiledExtraSpawnInfo.HasValue)
-        {
-            return null;
-        }
-        var filedExtraSpawnInfo = maybeFiledExtraSpawnInfo.Value;
-        var result = new PrefabExtraSpawnInfo();
-
-        if (filedExtraSpawnInfo.ColorBlendOverride.HasValue)
-        {
-            // FIXME: BitCast shouldn't be used here!! (endianness)
-            /*result.ColorBlendOverride = Unsafe.BitCast<uint, Color>(
-                filedExtraSpawnInfo.ColorBlendOverride.Value
-            );*/
-        }
-
-        if (filedExtraSpawnInfo.AngleOverride.HasValue)
-        {
-            result.AngleOverride = new Angle(
-                float.DegreesToRadians(filedExtraSpawnInfo.AngleOverride.Value)
-            );
-        }
-
-        return result;
-    }
+    public ColorBlend? ColorBlend;
+    public Angle? Angle;
 }

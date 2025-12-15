@@ -38,7 +38,7 @@ public class ChangeAppearanceOverTime : MoonTools.ECS.System
             //var time = 1.0f - timer.RemainingPercentage
 
             var newAlpha = (byte)Easing.Interp(change.StartAlpha, change.EndAlpha, timer.Time, timer.Max, change.EasingMethod);
-            Set(entity, new Alpha(newAlpha));
+            Set(entity, new AlphaOverride(newAlpha));
         }
 
         foreach (var (entity, timerEntity) in Relations<ChangeAngleOverTime>())
@@ -48,7 +48,7 @@ public class ChangeAppearanceOverTime : MoonTools.ECS.System
             //var time = 1.0f - timer.RemainingPercentage
 
             var newAngle = Easing.Interp(change.StartAngle, change.EndAngle, timer.Time, timer.Max, change.EasingMethod);
-            Set(entity, new Angle(newAngle));
+            Set(entity, Angle.FromRadians(newAngle));
         }
     }
 

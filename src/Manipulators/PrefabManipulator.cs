@@ -35,9 +35,9 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
         PrefabTypes prefabType,
         Position2D pos,
         bool rememberCreationForUndo = true,
-        PrefabSpawnInfo? maybeSpawnInfo = null,
+        PrefabSpawnInfo_Processed spawnInfo = default,
         FiledEntity.Flags spawnFlags = FiledEntity.Flags.None,
-        PrefabExtraSpawnInfo? maybeExtraSpawnInfo = null
+        PrefabSpawnInfoOverride? maybeSpawnInfoOverrides = null
         )
     {
         Entity result;
@@ -59,18 +59,24 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
                 result = PlayerManipulator.SpawnPlayer(pos, 0);
                 break;
             case PrefabTypes.RegularSolidTile:
-                if (!maybeSpawnInfo.HasValue || !maybeSpawnInfo.Value.VisualFromSetID.HasValue)
+                if (!spawnInfo.VisualFromSetID.HasValue)
                 {
                     goto default;
                 }
-                result = TileManipulator.SpawnRegularSolidTile(pos, (TileID)maybeSpawnInfo.Value.VisualFromSetID.Value);
+                result = TileManipulator.SpawnRegularSolidTile(
+                    pos, 
+                    (TileID)spawnInfo.VisualFromSetID.Value
+                );
                 break;
             case PrefabTypes.VisualTile:
-                if (!maybeSpawnInfo.HasValue || !maybeSpawnInfo.Value.VisualFromSetID.HasValue)
+                if (!spawnInfo.VisualFromSetID.HasValue)
                 {
                     goto default;
                 }
-                result = TileManipulator.SpawnVisualTile(pos, (TileID)maybeSpawnInfo.Value.VisualFromSetID.Value);
+                result = TileManipulator.SpawnVisualTile(
+                    pos, 
+                    (TileID)spawnInfo.VisualFromSetID.Value
+                );
                 break;
             /*case Prefabs.Image:
                 if (maybeExtraSpawnInfo == null || !maybeExtraSpawnInfo.ContainsKey(FiledEntity.ExtraSpawnInfo.SpriteAnim))
@@ -100,19 +106,20 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
         }
 #endif
 
-        if (maybeExtraSpawnInfo.HasValue)
+        if (maybeSpawnInfoOverrides.HasValue)
         {
             /*if (ExtraSpawnInfo.ContainsKey(FiledEntity.ExtraDataTypes.SpriteAnimOverride))
             {
                 Set(result, (SpriteAnimation)ExtraSpawnInfo[FiledEntity.ExtraDataTypes.SpriteAnimOverride]);
             }*/
-            if (maybeExtraSpawnInfo.Value.ColorBlendOverride.HasValue)
+            // FIXME: Apply layer color?
+            if (maybeSpawnInfoOverrides.Value.ColorBlend.HasValue)
             {
-                Set(result, new ColorBlend(maybeExtraSpawnInfo.Value.ColorBlendOverride.Value));
+                Set(result, maybeSpawnInfoOverrides.Value.ColorBlend.Value);
             }
-            if (maybeExtraSpawnInfo.Value.AngleOverride.HasValue)
+            if (maybeSpawnInfoOverrides.Value.Angle.HasValue)
             {
-                Set(result, maybeExtraSpawnInfo.Value.AngleOverride.Value);
+                Set(result, maybeSpawnInfoOverrides.Value.Angle.Value);
             }
         }
 
@@ -197,7 +204,7 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
             }
             if (Has<RotatesWithDirection>(dummyPrefab))
             {
-                Set(debugEntity, new Angle(
+                Set(debugEntity, Angle.FromRadians(
                     MathUtilities.AngleFromUnitVector(
                         Get<Direction2D>(dummyPrefab).Value)
                     )

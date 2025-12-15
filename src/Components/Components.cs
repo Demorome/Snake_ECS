@@ -4,6 +4,8 @@ using RollAndCash.Data;
 using RollAndCash.Messages;
 using System.Numerics;
 using System;
+using System.Text.Json.Serialization;
+using RollAndCash.ComponentSerialization;
 
 namespace RollAndCash.Components;
 
@@ -76,7 +78,33 @@ public readonly record struct Rectangle(int X, int Y, int Width, int Height)
 
 public readonly record struct LastPosition(Position2D Value);
 public readonly record struct Player(int Index);
-public readonly record struct Angle(float Value);
+
+/// <summary>
+/// Prefer working in Radians, since most math functions use those.
+/// </summary>
+[JsonConverter(typeof(AngleJsonConverter))]
+public readonly record struct Angle()
+{
+    public readonly float ValueInRadians;
+    public readonly float ValueInDegrees => float.RadiansToDegrees(ValueInRadians);
+
+    // Private, to enforce use of the explicit static constructors.
+    private Angle(float valueInRadians) : this()
+    {
+        ValueInRadians = valueInRadians;
+    }
+
+    // Type-safe explicit static constructors.
+    public static Angle FromDegrees(float valueInDegrees)
+    {
+        return new Angle(float.DegreesToRadians(valueInDegrees));
+    }
+    public static Angle FromRadians(float valueInRadians)
+    {
+        return new Angle(valueInRadians);
+    }
+};
+
 public readonly record struct RotatesWithDirection(); // No need to touch Angle at all with this
 
 //public readonly record struct Solid();
@@ -85,8 +113,48 @@ public readonly record struct Name(int TextID);
 
 public readonly record struct Score(int Value);
 public readonly record struct DisplayScore(int Value);
-public readonly record struct ColorBlend(Color Color);
-public readonly record struct Alpha(byte Value); // 0-255, overrides the alpha in ColorBlend
+
+/// <summary>
+/// Applies a tint to an entire sprite.
+/// </summary>
+/// <param name="Color"></param>
+public readonly record struct ColorBlend()
+{
+    public readonly Color Color;
+
+#if DEBUG
+    /// <summary>
+    /// The original base color for the entity.
+    /// We need to store it, since the above Color is the final result
+    /// of a mix between the layer's color and the entity's base color.
+    /// Thus, when we switch the layer's color in the editor, we need to
+    /// be able to refer back to the original color.
+    /// </summary>
+    public readonly Color? Editor_MaybeBaseColor;
+
+    public ColorBlend(Color finalColorBlend, Color? maybeBaseColor)
+        : this(finalColorBlend)
+    {
+        Editor_MaybeBaseColor = maybeBaseColor;
+    }
+#endif
+
+    /// <summary>
+    /// For default constructor, assume that we're setting the base color.
+    /// </summary>
+    public ColorBlend(Color finalColorBlend) : this()
+    {
+        Color = finalColorBlend;
+#if DEBUG
+        Editor_MaybeBaseColor = finalColorBlend;
+#endif
+    }
+}
+
+/// <summary>
+/// 0-255, overrides the alpha in ColorBlend when rendering.
+/// </summary>
+public readonly record struct AlphaOverride(byte Value); 
 public readonly record struct HorizontalFlip();
 public readonly record struct VerticalFlip();
 public readonly record struct ColorSpeed(float RedSpeed, float GreenSpeed, float BlueSpeed);
@@ -243,7 +311,4 @@ public readonly record struct CursorPosition(Vector2 Value);
     public readonly record struct Editor_DontShowInLists();
     public readonly record struct Editor_DontAddToLevel();
     public readonly record struct Editor_GlobalDebugEntity();
-    public readonly record struct Editor_EntityBaseColorBlend(Color Color);
-    public readonly record struct Editor_EntityOverrideSpawnFlags();
-    public readonly record struct Editor_EntityOverrideExtraSpawnInfo();
 #endif

@@ -2,10 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
+using System.Text.Json.Serialization;
 using MoonTools.ECS;
 using MoonWorks;
 using MoonWorks.Graphics;
 using RollAndCash.Components;
+using RollAndCash.ComponentSerialization;
 using RollAndCash.Content;
 
 namespace RollAndCash.Data;
@@ -18,7 +20,17 @@ public readonly record struct VisualSetID(ushort ID);
 // An ID of 0 means using the default Visual Set.
 public readonly record struct VisualSetVariantID(byte ID);
 
-public readonly record struct VisualFromSetID_ForSpawning(PositionInVisualSet PosInSet, VisualSetID VisualSetID, VisualSetVariantID VariantID);
+public readonly record struct VisualFromSetID_ForSpawning(
+    PositionInVisualSet PosInSet, 
+    VisualSetID VisualSetID, 
+    VisualSetVariantID VariantID
+)
+{
+    public static explicit operator VisualFromSetID_ForSpawning(TileID t)
+    {
+        return new VisualFromSetID_ForSpawning(t.PosInSet, t.TileSetID, t.VariantID);
+    }
+}
 
 public abstract class VisualSet
 {
@@ -32,7 +44,7 @@ public abstract class VisualSet
     // So that we can automatically assign a PrefabID, flags & extradata to certain visuals when we spawn them.
     // Visuals not contained here must automatically be purely visual with nothing special going on.
     public Dictionary<PositionInVisualSet, 
-        (PrefabID, FiledEntity.Flags, PrefabExtraSpawnInfo?)> 
+        (PrefabID, FiledEntity.Flags, PrefabSpawnInfoOverride?)> 
         Metadata = new();
 
     // The default VisualSet has a variant ID of 0, but isn't included here.
@@ -109,13 +121,13 @@ public abstract class VisualSet
     }
     public byte GetVariantCount() => (byte)VariantSets.Count;
 
-    public static (PrefabID, FiledEntity.Flags, PrefabExtraSpawnInfo?) 
+    public static (PrefabID, FiledEntity.Flags, PrefabSpawnInfoOverride?) 
         GetMetadata(VisualFromSetID_ForSpawning v)
     {
         return GetMetadata(v.PosInSet, v.VisualSetID, v.VariantID);
     }
 
-    public static (PrefabID, FiledEntity.Flags, PrefabExtraSpawnInfo?) 
+    public static (PrefabID, FiledEntity.Flags, PrefabSpawnInfoOverride?) 
         GetMetadata(
             PositionInVisualSet PosInSet, 
             VisualSetID TileSetID, 
@@ -124,7 +136,7 @@ public abstract class VisualSet
     {
         var tileSet = IDLookup[TileSetID.ID];
 
-        (PrefabID, FiledEntity.Flags, PrefabExtraSpawnInfo?) result;
+        (PrefabID, FiledEntity.Flags, PrefabSpawnInfoOverride?) result;
         if (tileSet.Metadata.ContainsKey(PosInSet))
         {
             result = tileSet.Metadata[PosInSet];
@@ -170,7 +182,9 @@ public abstract class VisualSet
         bool isDummyForPaintingPreview = false
     )
     {
-        (var prefabID, var maybeSpawnFlags, var maybeExtraSpawnInfo_FromVisualSet) = GetMetadata(visualFromSetID);
+        var (prefabID, maybeSpawnFlags, maybeExtraSpawnInfo_FromVisualSet) 
+            = GetMetadata(visualFromSetID);
+
         var prefabType = prefabID.ID;
         if (isDummyVisual)
         {
@@ -194,7 +208,7 @@ public abstract class VisualSet
             }
         }
 
-        var maybeSpawnInfo = PrefabSpawnInfo.ForVisualFromSet(visualFromSetID);
+        var maybeSpawnInfo = new PrefabSpawnInfo_Processed(visualFromSetID);
 
         // Spawn the entities
         var maybeNewEntity = prefabManipulator.TrySpawnPrefab(
@@ -239,11 +253,18 @@ public abstract class VisualSet
         return newEntity;
     }
 
-    public abstract bool Editor_IsVisualFullyTransparent(PositionInVisualSet posInVisualSet, VisualSetVariantID variantID);
+    public abstract bool Editor_IsVisualFullyTransparent(
+        PositionInVisualSet posInVisualSet, 
+        VisualSetVariantID variantID
+    );
     public abstract bool Editor_CanAddOrRemoveVisuals();
     public bool Editor_CanResizeColumnCount => Editor_CanAddOrRemoveVisuals();
     public bool Editor_CanDeleteOrCreate => Editor_CanAddOrRemoveVisuals();
-    public abstract bool Editor_TrySetColumnCount(ushort newWidth); // returns false if we can't resize
+
+    /// <summary>
+    /// Returns false if we can't resize
+    /// </summary>
+    public abstract bool Editor_TrySetColumnCount(ushort newWidth); 
     
     public bool Editor_TrySetVisualColor(
         PositionInVisualSet posInVisualSet, 
@@ -306,7 +327,7 @@ public class VisualSetVariant
 
     // NOTE: If any field is non-null, it completely overrides the base field of the TileSet.
     public Dictionary<PositionInVisualSet, 
-        (PrefabID?, FiledEntity.Flags?, PrefabExtraSpawnInfo?)>  
+        (PrefabID?, FiledEntity.Flags?, PrefabSpawnInfoOverride?)>  
         TileMetadataOverrides = new();
 
     public VisualSetVariant(VisualSet parent)
@@ -326,9 +347,9 @@ public class VisualSetVariant
             var (_, _, maybeExtraSpawnInfo) = TileMetadataOverrides[tilePosInSet];
             if (maybeExtraSpawnInfo.HasValue)
             {
-                if (maybeExtraSpawnInfo.Value.ColorBlendOverride.HasValue)
+                if (maybeExtraSpawnInfo.Value.ColorBlend.HasValue)
                 {
-                    return maybeExtraSpawnInfo.Value.ColorBlendOverride.Value;
+                    return maybeExtraSpawnInfo.Value.ColorBlend.Value;
                 }
             }
         }
@@ -341,7 +362,7 @@ public class VisualSetVariant
         if (TileMetadataOverrides.ContainsKey(tilePosInSet))
         {
             var (maybePrefabID, maybeFlags, maybeExtraSpawnInfo) = TileMetadataOverrides[tilePosInSet];
-            PrefabExtraSpawnInfo newExtraSpawnInfo;
+            PrefabSpawnInfoOverride newExtraSpawnInfo;
             if (maybeExtraSpawnInfo.HasValue)
             {
                 newExtraSpawnInfo = maybeExtraSpawnInfo.Value;
@@ -350,13 +371,13 @@ public class VisualSetVariant
             {
                 newExtraSpawnInfo = new();
             }
-            newExtraSpawnInfo.ColorBlendOverride = newColor;
+            newExtraSpawnInfo.ColorBlend = newColor;
             TileMetadataOverrides[tilePosInSet] = (maybePrefabID, maybeFlags, newExtraSpawnInfo);
         }
     }
 #endif
 
-    public (PrefabID?, FiledEntity.Flags?, PrefabExtraSpawnInfo?)? 
+    public (PrefabID?, FiledEntity.Flags?, PrefabSpawnInfoOverride?)? 
         GetTileTileMetadataOverride(PositionInVisualSet tilePosInSet)
     {
         if (TileMetadataOverrides.ContainsKey(tilePosInSet))

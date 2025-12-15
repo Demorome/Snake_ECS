@@ -29,7 +29,7 @@ public class TimedChangeManipulator : MoonTools.ECS.Manipulator
         )
     {
         var alpha = (byte)Rando.Int(minStartAlpha, maxStartAlpha);
-        Set(entity, new Alpha(alpha));
+        Set(entity, new AlphaOverride(alpha));
 
         var endAlpha = (byte)Rando.Int(minEndAlpha, maxEndAlpha);
         if (endAlpha != alpha)
@@ -71,7 +71,7 @@ public class TimedChangeManipulator : MoonTools.ECS.Manipulator
         )
     {
         var angle = Rando.Range(minStartAngle, maxStartAngle);
-        Set(entity, new Angle(angle));
+        Set(entity, Angle.FromRadians(angle));
 
         var endAngle = Rando.Range(minEndAngle, maxEndAngle);
         if (endAngle != angle)

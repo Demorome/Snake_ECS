@@ -634,10 +634,26 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                 }
                 ImGui.Text("Hint: create a new layer if you want to change the above, or manually edit the saved file.");
 
-                var color = layer.Color.ToVector4();
-                if (ImGui.ColorEdit4("ColorBlend", ref color))
+                // FIXME: Use an Optional value instead of Nullable, 
+                // FIXME: so that we can store the original value.
+                if (ImGui.Button("Toggle Color Blend"))
                 {
-                    layer.ChangeLayerColorBlend(new Color(color), World);
+                    if (layer.MaybeColor.HasValue)
+                    {
+                        layer.ChangeLayerColorBlend(null, World);
+                    }
+                    else
+                    {
+                        layer.ChangeLayerColorBlend(Color.White, World);
+                    }
+                }
+                if (layer.MaybeColor.HasValue)
+                {
+                    var colorVec = layer.MaybeColor.Value.ToVector4();
+                    if (ImGui.ColorEdit4("ColorBlend", ref colorVec))
+                    {
+                        layer.ChangeLayerColorBlend(new Color(colorVec), World);
+                    }
                 }
             }
             ImGui.End();

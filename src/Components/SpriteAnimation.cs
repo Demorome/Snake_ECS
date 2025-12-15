@@ -2,12 +2,15 @@ using System;
 using System.Numerics;
 using RollAndCash.Data;
 using MoonWorks.Math;
+using System.Text.Json.Serialization;
+using RollAndCash.ComponentSerialization;
 
 namespace RollAndCash.Components;
 
+[JsonConverter(typeof(SpriteAnimationJsonConverter))]
 public readonly record struct SpriteAnimation : IAnimation
 {
-	//== IAnimation stuff.
+	//MARK: IAnimation stuff.
 	public readonly int FrameRate { get; }
 	public readonly bool Loop { get; }
 	public readonly Vector2 Origin { get; }
@@ -20,10 +23,10 @@ public readonly record struct SpriteAnimation : IAnimation
         } 
 	}
 
-	//== Our own members.
+	//MARK: Our own members.
 	public SpriteAnimationInfoID SpriteAnimationInfoID { get; }
 
-	//== Properties & methods.
+	//MARK: Properties & methods.
 	public SpriteAnimationInfo SpriteAnimationInfo 
 		=> SpriteAnimationInfo.FromID(SpriteAnimationInfoID)
 	;
