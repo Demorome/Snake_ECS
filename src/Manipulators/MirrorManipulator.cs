@@ -49,7 +49,7 @@ public class MirrorManipulator : MoonTools.ECS.Manipulator
         return entity;
     }
 
-    #region Prefabs
+    //MARK: Prefabs
 
     public Entity CreateStaticLevelMirror(Position2D pos)
     {
@@ -59,7 +59,4 @@ public class MirrorManipulator : MoonTools.ECS.Manipulator
             new Vector2(1, 0)
         );
     }
-    
-    
-    #endregion Prefabs
 }

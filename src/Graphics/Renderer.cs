@@ -191,7 +191,7 @@ public class Renderer : MoonTools.ECS.Renderer
 	{
 		ArtSpriteBatch.Start();
 
-		#region RECT RENDERING
+		//MARK: RECT RENDERING
 		foreach (var entity in DrawRectFilter.Entities)
 		{
 			var rectangle = Get<Rectangle>(entity);
@@ -208,9 +208,8 @@ public class Renderer : MoonTools.ECS.Renderer
 				)
 			);
 		}
-		#endregion RECT RENDERING
 
-		#region SPRITE RENDERING
+		//MARK: SPRITE RENDERING
 		foreach (var entity in SpriteAnimationFilter.Entities)
 		{
 			if (HasOutRelation<DontDraw>(entity))
@@ -229,9 +228,8 @@ public class Renderer : MoonTools.ECS.Renderer
 				)
 			);
 		}
-		#endregion SPRITE RENDERING
 
-		#region TILE RENDERING
+		//MARK: TILE RENDERING
 		foreach (var entity in TileFilter.Entities)
         {
             if (HasOutRelation<DontDraw>(entity))
@@ -264,9 +262,8 @@ public class Renderer : MoonTools.ECS.Renderer
                 Logger.LogError($"Couldn't find texture for a tile sprite: {tileID}");
             }
         }
-		#endregion TILE RENDERING
 
-		#region TEXT RENDERING
+		//MARK: TEXT RENDERING
 		TextBatch.Start();
 		foreach (var entity in TextFilter.Entities)
 		{
@@ -319,9 +316,8 @@ public class Renderer : MoonTools.ECS.Renderer
 			);
 
 		}
-		#endregion TEXT RENDERING
 
-		#region TRIANGLE RENDERING
+		//MARK: TRIANGLE RENDERING
 		TriangleBatch.Start();
 		foreach (var entity in DetectionConeFilter.Entities)
 		{
@@ -366,13 +362,12 @@ public class Renderer : MoonTools.ECS.Renderer
 				prevOther = other;
 			}
 		}
-		#endregion TRIANGLE RENDERING
 
-		#region EDITOR RENDERING
+		//MARK: EDITOR RENDERING
 #if DEBUG
 		EditorSpriteBatch.Start();
 
-		#region Show Grid
+		//MARK: Show Grid
 		if (LevelEditorManipulator.IsInLevelEditor && LevelEditorManipulator.ShowGrid)
 		{
 			var color = new Color(LevelEditorManipulator.GridLineColor);
@@ -421,9 +416,8 @@ public class Renderer : MoonTools.ECS.Renderer
 				DrawDebugRectangle(worldPos, tileRect, color, depth, DebugLineThickness);
 			}
 		}
-		#endregion Show Grid
  
-		#region Show Colliders
+		//MARK: Show Colliders
 		if (DrawDebugColliders)
 		{
 			foreach (var entity in ColliderFilter.Entities)
@@ -439,9 +433,9 @@ public class Renderer : MoonTools.ECS.Renderer
 				DrawDebugRectangle(entity, rect, color, depth, DebugLineThickness);
 			}
 		}
-		#endregion Show Colliders
+		//MARK: Show Colliders
 
-		#region Selection Mode
+		//MARK: Selection Mode
 		{
 			var outlineDepth = -(float)DepthLayer.Editor_SelectionOutline;
 
@@ -489,11 +483,9 @@ public class Renderer : MoonTools.ECS.Renderer
 				}
 			}
 		}
-		#endregion Selection Mode
 
 		EditorSpriteBatch.Upload(commandBuffer);
 #endif
-		#endregion EDITOR RENDERING
 
 		ArtSpriteBatch.Upload(commandBuffer); // Copy and Compute passes happen here!
 		TextBatch.UploadBufferData(commandBuffer);
@@ -504,7 +496,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			batch.Upload(commandBuffer);
         }
 
-		#region RENDER PASS
+		//MARK: RENDER PASS
 		var renderPass = commandBuffer.BeginRenderPass(
 			new DepthStencilTargetInfo(DepthTexture, 1, 0),
 			new ColorTargetInfo(RenderTexture, Color.Black)
@@ -547,7 +539,6 @@ public class Renderer : MoonTools.ECS.Renderer
 		TextBatch.Render(renderPass, GetCameraMatrix() * GetProjectionMatrix());
 
 		commandBuffer.EndRenderPass(renderPass);
-		#endregion RENDER PASS
 
 		commandBuffer.Blit(RenderTexture, swapchainTexture, MoonWorks.Graphics.Filter.Nearest);
 	}

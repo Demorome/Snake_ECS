@@ -45,7 +45,7 @@ public class PlayerController : MoonTools.ECS.System
 			//var playerIndex = Get<Player>(entity).Index;
 			var direction = Vector2.Zero;
 
-			#region Input
+			//MARK: Input
 			var inputState = Get<InputState>(entity);
 
 			if (inputState.Left.IsDown)
@@ -86,17 +86,14 @@ public class PlayerController : MoonTools.ECS.System
 					2000f
 				);
 			}
-			#endregion
 
-			#region Movement
+			//MARK: Movement
 			var maxSpeed = Get<MaxSpeed>(entity).Value;
 			direction = MathUtilities.SafeNormalize(direction);
 			//var velocity = direction * maxSpeed;
 
 			Set(entity, new Direction2D(direction));
 			Set(entity, new Speed(maxSpeed));
-
-			#endregion
 		}
 	}
 }

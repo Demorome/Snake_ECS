@@ -141,7 +141,7 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
         return projectile;
     }
 
-    #region Prefabs
+    //MARK: Prefabs
 
     Entity ShootFriendlinessPellet(
         Position2D position,
@@ -256,5 +256,4 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
         }
     }
     
-    #endregion Prefabs
 }

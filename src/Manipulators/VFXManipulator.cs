@@ -163,7 +163,7 @@ public class VFXManipulator : MoonTools.ECS.Manipulator
         }
     }
 
-    #region Prefabs
+    //MARK: Prefabs
     public Entity CreateTargetingVisual(Entity source, Entity target)
     {
         var sprite = new SpriteAnimation(SpriteAnimations.Pixel);
@@ -179,6 +179,4 @@ public class VFXManipulator : MoonTools.ECS.Manipulator
 
         return targetingVisual;
     }
-    
-    #endregion Prefabs
 }

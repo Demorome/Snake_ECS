@@ -83,7 +83,7 @@ public static class DrawComponents
         }
     }
 
-    #region Draw Components
+    //MARK: Draw Components
 
     delegate void DrawComponentAction(World world, Entity entity, ref bool changed);
 
@@ -390,7 +390,6 @@ public static class DrawComponents
             changed = true;
         }
     }
-    #endregion
 }
 
 #endif
