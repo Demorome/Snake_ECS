@@ -1005,8 +1005,8 @@ namespace RollAndCash.Content
 			{
 				var name = Path.GetFileNameWithoutExtension(file.Name);
 				readStrings.Add($"TileSetAtlasReader.ReadTileSetAtlas(GraphicsDevice, {name});");
-				assignmentStrings.Add($"asyncFileLoader.EnqueueCompressedImageLoad(Path.ChangeExtension({name}.JsonFilePath, \".png\"), {name}.Texture);");
-				definitionStrings.Add($"public static TileSet {name} = new TileSet(Path.Combine(TileTextureContentPath, \"{file.Name}\"));");
+				assignmentStrings.Add($"asyncFileLoader.EnqueueCompressedImageLoad(Path.ChangeExtension({name}.FullJsonFilePath, \".png\"), {name}.DefaultTexture);");
+				definitionStrings.Add($"public static TileSet {name} = new TileSet(\"{file.Name}\", Path.Combine(FullTileTextureContentPath, \"{file.Name}\"));");
 			}
 
 			var tileSetAtlasesClassCode = $@"
@@ -1020,7 +1020,21 @@ namespace RollAndCash.Content
 	public static class TileSetAtlases
 	{{
 		public static GraphicsDevice GraphicsDevice {{ get; private set; }}
-		public static string TileTextureContentPath = Path.Combine(System.AppContext.BaseDirectory, ""Content"", Path.Combine(""Textures"", ""TileSets""));
+
+		public static readonly string TileTextureContentPath;
+		public static readonly string FullTileTextureContentPath;
+		static TileSetAtlases()
+		{{
+			TileTextureContentPath = Path.Combine(
+				""Content"", 
+				Path.Combine(""Textures"", ""TileSets"")
+			);
+
+			FullTileTextureContentPath = Path.Combine(
+				System.AppContext.BaseDirectory, 
+				TileTextureContentPath
+			);
+		}}
 		
 		public static void Init(GraphicsDevice graphicsDevice)
 		{{

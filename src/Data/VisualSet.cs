@@ -38,7 +38,9 @@ public abstract class VisualSet
 
     //== Members
     public VisualSetID ID;
+
     public string Name;
+
     public ushort NumRows, NumColumns;
 
     // So that we can automatically assign a PrefabID, flags & extradata to certain visuals when we spawn them.
@@ -66,9 +68,9 @@ public abstract class VisualSet
 #endif
 
     //== Constructors
-    public VisualSet(string name)
+    public VisualSet(string fileName)
     {
-        Name = name;
+        Name = fileName;
 
         lock (IDLookup)
 		{

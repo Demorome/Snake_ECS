@@ -17,7 +17,7 @@ namespace ContentBuilderUI
 				ScreenMode = ScreenMode.Windowed
 			};
 
-			FramePacingSettings framePacingSettings = FramePacingSettings.CreateLatencyOptimized(60);
+			FramePacingSettings framePacingSettings = FramePacingSettings.CreateLatencyOptimized(60, 6);
 
 			var appInfo = new AppInfo("JerryCrew", "RollAndCashContentBuilder");
 
