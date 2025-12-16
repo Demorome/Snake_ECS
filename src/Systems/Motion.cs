@@ -72,6 +72,7 @@ public class Motion : MoonTools.ECS.System
     void HandleHitscanCollisions(Entity e)
     {
         // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
+        // FIXME: Refactor to use relations instead! Should be more efficient.
         foreach (var (other, _) in CollisionManipulator.RaycastHits)
         {
             bool duplicate = false;
