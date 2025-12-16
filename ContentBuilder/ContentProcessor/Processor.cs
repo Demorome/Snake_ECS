@@ -30,9 +30,9 @@ namespace ContentProcessor
 			CreateOrClearDirectory(shaderOutputDir);
 
 #if WINDOWS
-			var compilerExectuable = new FileInfo(Path.Combine(System.AppContext.BaseDirectory, "shadercross.exe"));
+			var compilerExecutable = new FileInfo(Path.Combine(System.AppContext.BaseDirectory, "shadercross.exe"));
 #elif LINUX || OSX // linux
-			var compilerExectuable = new FileInfo(Path.Combine(System.AppContext.BaseDirectory, "shadercross"));
+			var compilerExecutable = new FileInfo(Path.Combine(System.AppContext.BaseDirectory, "shadercross"));
 #endif
 
 			foreach (var file in shaderDir.EnumerateFiles())
@@ -40,7 +40,7 @@ namespace ContentProcessor
 				var arguments = $"{file.FullName} -o {Path.Combine(shaderOutputDir.FullName, file.Name)}.spv";
 
 				var process = new Process();
-				process.StartInfo.FileName = compilerExectuable.FullName;
+				process.StartInfo.FileName = compilerExecutable.FullName;
 				process.StartInfo.Arguments = arguments;
 				process.StartInfo.CreateNoWindow = true;
 				process.StartInfo.UseShellExecute = false;
