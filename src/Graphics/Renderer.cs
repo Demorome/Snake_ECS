@@ -366,56 +366,6 @@ public class Renderer : MoonTools.ECS.Renderer
 		//MARK: EDITOR RENDERING
 #if DEBUG
 		EditorSpriteBatch.Start();
-
-		//MARK: Show Grid
-		if (LevelEditorManipulator.IsInLevelEditor && LevelEditorManipulator.ShowGrid)
-		{
-			var color = new Color(LevelEditorManipulator.GridLineColor);
-			var depth = -(float)DepthLayer.PlaceholderDepth;
-			var verticalLength = Dimensions.TILE_ROW_COUNT * Dimensions.TILE_SIZE;
-			var horizontalLength = Dimensions.TILE_COLUMN_COUNT * Dimensions.TILE_SIZE;
-
-			// Top line
-			var worldPos = TileManipulator.TilePosToWorldPos_TopLeft(0, 0);
-			DrawDebugLine(worldPos.AsVector(), horizontalLength, DebugLineThickness, true, color, depth);
-
-			// Left vertical line
-			DrawDebugLine(worldPos.AsVector(), verticalLength, DebugLineThickness, false, color, depth);
-
-			// Use twice the thickness since we're technically drawing the line twice.
-			for (int col = 1; col < Dimensions.TILE_COLUMN_COUNT; ++col)
-			{
-				worldPos = TileManipulator.TilePosToWorldPos_TopLeft(col, 0);
-				DrawDebugLine(new Vector2(worldPos.X - DebugLineThickness, worldPos.Y),
-					verticalLength, DebugLineThickness * 2, false, color, depth
-				);
-			}
-
-			for (int row = 1; row < Dimensions.TILE_ROW_COUNT; ++row)
-			{
-				worldPos = TileManipulator.TilePosToWorldPos_TopLeft(0, row);
-				DrawDebugLine(new Vector2(worldPos.X, worldPos.Y - DebugLineThickness),
-					horizontalLength, DebugLineThickness * 2, true, color, depth
-				);
-			}
-
-			// Bottom line
-			worldPos = TileManipulator.TilePosToWorldPos_TopLeft(0, Dimensions.TILE_ROW_COUNT);
-			DrawDebugLine(worldPos.AsVector(), horizontalLength, DebugLineThickness, true, color, depth);
-
-			// Right vertical line
-			worldPos = TileManipulator.TilePosToWorldPos_TopLeft(Dimensions.TILE_COLUMN_COUNT, 0);
-			DrawDebugLine(worldPos.AsVector(), verticalLength, DebugLineThickness, false, color, depth);
-
-			if (EditorSystem.LevelEditor.HoveredOverTilePosition.HasValue)
-			{
-				color = Color.White with { A = 200 };
-				var tilePos = EditorSystem.LevelEditor.HoveredOverTilePosition.Value;
-				worldPos = TileManipulator.TilePosToWorldPos_TopLeft(tilePos);
-				var tileRect = new Rectangle(0, 0, Dimensions.TILE_SIZE, Dimensions.TILE_SIZE);
-				DrawDebugRectangle(worldPos, tileRect, color, depth, DebugLineThickness);
-			}
-		}
  
 		//MARK: Show Colliders
 		if (DrawDebugColliders)
@@ -423,12 +373,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			foreach (var entity in ColliderFilter.Entities)
 			{
 				var color = Color.Red;
-				var depth = 2f;
-				if (Has<Depth>(entity))
-				{
-					// Render above the actual entity.
-					depth = -Get<Depth>(entity).Value + 1;
-				}
+				var depth = -(float)DepthLayer.Debug_CollisionVisual;
 				var rect = Get<Rectangle>(entity);
 				DrawDebugRectangle(entity, rect, color, depth, DebugLineThickness);
 			}
@@ -481,6 +426,40 @@ public class Renderer : MoonTools.ECS.Renderer
 					var rect = Get<Rectangle>(entity);
 					DrawDebugRectangle(entity, rect, selectionColor, outlineDepth, DebugLineThickness);
 				}
+			}
+		}
+
+		//MARK: Show Grid
+		if (LevelEditorManipulator.IsInLevelEditor && LevelEditorManipulator.ShowGrid)
+		{
+			var color = new Color(LevelEditorManipulator.GridLineColor);
+			var depth = -(float)DepthLayer.Debug_GridVisual;
+			var verticalLength = Dimensions.TILE_ROW_COUNT * Dimensions.TILE_SIZE;
+			var horizontalLength = Dimensions.TILE_COLUMN_COUNT * Dimensions.TILE_SIZE;
+
+			for (int col = 0; col < Dimensions.TILE_COLUMN_COUNT; ++col)
+			{
+				var worldPos = TileManipulator.TilePosToWorldPos_TopLeft(col, 0);
+				DrawDebugLine(new Vector2(worldPos.X, worldPos.Y),
+					verticalLength, DebugLineThickness, false, color, depth
+				);
+			}
+
+			for (int row = 0; row < Dimensions.TILE_ROW_COUNT; ++row)
+			{
+				var worldPos = TileManipulator.TilePosToWorldPos_TopLeft(0, row);
+				DrawDebugLine(new Vector2(worldPos.X, worldPos.Y),
+					horizontalLength, DebugLineThickness, true, color, depth
+				);
+			}
+
+			if (EditorSystem.LevelEditor.HoveredOverTilePosition.HasValue)
+			{
+				color = Color.White with { A = 200 };
+				var tilePos = EditorSystem.LevelEditor.HoveredOverTilePosition.Value;
+				var worldPos = TileManipulator.TilePosToWorldPos_TopLeft(tilePos);
+				var tileRect = new Rectangle(0, 0, Dimensions.TILE_SIZE, Dimensions.TILE_SIZE);
+				DrawDebugRectangle(worldPos, tileRect, color, depth, DebugLineThickness);
 			}
 		}
 

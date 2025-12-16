@@ -171,14 +171,15 @@ public enum DepthLayer
     //== Foreground
     PlaceholderDepth = 0, // draw above all, even UIs, to be obnoxious.
     GameUI_Lowest = 2, // could be 1, but I'm leaving space for ImGui UI, should it need a Depth value.
-    GameUI_Highest = 8,
+    GameUI_Highest = 15,
 #if DEBUG
     Editor_SelectionOutline = GameUI_Highest + 1, // Render above everything (except menus).
     Debug_CollisionVisual = Editor_SelectionOutline,
+    Debug_GridVisual = Debug_CollisionVisual + 1,
 #endif
     // WARNING: These values should be LOCKED IN, 
     // for editor-created foreground layers to not have to be updated.
-    Foreground_Lowest = 10,
+    Foreground_Lowest = 20,
     Foreground_Highest = 30, // leave some wiggle room for custom foreground layers
 
     //== Game objects (middle-ground)
