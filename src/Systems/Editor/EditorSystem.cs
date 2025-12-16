@@ -60,6 +60,7 @@ public class EditorSystem : MoonTools.ECS.System
         PrefabManipulator = new(World);
     }
 
+    //MARK: Update
     public override void Update(TimeSpan delta)
     {
         if (!DebugEntity.HasValue)
@@ -83,6 +84,7 @@ public class EditorSystem : MoonTools.ECS.System
         HandleEntitySelectionMode();
     }
 
+    //MARK: VisualSet Menus
     static List<VisualSetMenu> OpenedVisualSetMenus = new();
     public void DrawVisualSetMenus()
     {
@@ -92,6 +94,7 @@ public class EditorSystem : MoonTools.ECS.System
         }
     }
 
+    //MARK: Window Menu Bar
     static VisualSet.Editor_Types VisualSetTypeToPreviewForList = VisualSet.Editor_Types.Invalid;
     public static void DrawWindowMenuBar(World world)
     {
@@ -117,45 +120,46 @@ public class EditorSystem : MoonTools.ECS.System
                 if (ImGui.Selectable("TileSets"u8))
                 {
                     VisualSetTypeToPreviewForList = VisualSet.Editor_Types.TileSet;
-                    ImGui.OpenPopup("SelectVisualSet"u8);
                 }
                 else if (ImGui.Selectable("ImageSets"u8))
                 {
                     VisualSetTypeToPreviewForList = VisualSet.Editor_Types.ImageSet;
-                    ImGui.OpenPopup("SelectVisualSet"u8);
                 }
+
                 ImGui.EndMenu();
+            }
+
+            // Need to open the pop-up outside of the menu stack: 
+            // https://github.com/ocornut/imgui/issues/5684#issuecomment-1247928651
+            if (VisualSetTypeToPreviewForList != VisualSet.Editor_Types.Invalid)
+            {
+                ImGui.OpenPopup("SelectVisualSet"u8);
             }
 
             if (ImGui.BeginPopup("SelectVisualSet"u8))
             {
-                if (VisualSetTypeToPreviewForList != VisualSet.Editor_Types.Invalid)
+                var visualSets = VisualSet.Editor_VisualSetsByType[VisualSetTypeToPreviewForList];
+                foreach (var visualSet in visualSets)
                 {
-                    var visualSets = VisualSet.Editor_VisualSetsByType[VisualSetTypeToPreviewForList];
-                    foreach (var visualSet in visualSets)
+                    if (ImGui.Selectable(visualSet.Name))
                     {
-                        if (ImGui.Selectable(visualSet.Name))
+                        // Make sure the pop-up won't re-open.
+                        VisualSetTypeToPreviewForList = VisualSet.Editor_Types.Invalid;
+
+                        bool found = false;
+                        foreach (var visualSetMenus in OpenedVisualSetMenus)
                         {
-                            bool found = false;
-                            foreach (var visualSetMenus in OpenedVisualSetMenus)
+                            if (visualSetMenus.VisualSet == visualSet)
                             {
-                                if (visualSetMenus.VisualSet == visualSet)
-                                {
-                                    found = true;
-                                    break;
-                                }
-                            }
-                            if (!found)
-                            {
-                                OpenedVisualSetMenus.Add(new VisualSetMenu(visualSet));
+                                found = true;
+                                break;
                             }
                         }
+                        if (!found)
+                        {
+                            OpenedVisualSetMenus.Add(new VisualSetMenu(visualSet));
+                        }
                     }
-                }
-                else
-                {
-                    Logger.LogError("ERROR: Invalid visual set type??");
-                    ImGui.Text("ERROR: Invalid visual set type??"u8);
                 }
 
                 ImGui.EndPopup();
@@ -165,6 +169,7 @@ public class EditorSystem : MoonTools.ECS.System
         }
     }
 
+    //MARK: Cached Entities
     void UpdateCachedLevelLayerEntities()
     {
         if (LevelEditor.ActiveLevel == null)
@@ -241,6 +246,7 @@ public class EditorSystem : MoonTools.ECS.System
         // Maybe only those that were dynamically generated, for unrecognized depth.
     }
 
+    //MARK: Selection Mode
     public static bool IsInEntitySelectionMode = false;
 
     static SpatialHash<Entity> VisualEntitiesSpatialHash =
@@ -476,6 +482,7 @@ public class EditorSystem : MoonTools.ECS.System
         return null;
     }
 
+    //MARK: Utilities
     static void ReInitComponentTypesList()
     {
         ComponentTypes.Clear();
