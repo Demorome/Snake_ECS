@@ -34,10 +34,8 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
     public LiveLevel ActiveLevel = new();
     public LiveLevel.Room ActiveRoom = null;
     public bool HasSelectedPrefab = false;
-    static bool SnapToGrid = true;
-    public static bool ShowGrid = true;
+    //static bool SnapToGrid = true;
     public Vector2? HoveredOverTilePosition = null;
-    public static Vector4 GridLineColor = (Color.DarkTurquoise * 0.5f).ToVector4();
 
     // To write outside of bin/Debug, in order to get to .csproj location. For editor use only; never ship this!
     // FIXME: This may break on you if you have a different deployment structure!
@@ -58,9 +56,6 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             //FIXME: ImGui.Text("Camera: ");
             ImGui.Text($"Mouse world position: {Input.WorldMousePosition}");
             ImGui.Text($"Tile position: {TileManipulator.GetTilePos(Input.WorldMousePosition)}");
-
-            ImGui.Checkbox("Show Grid?"u8, ref ShowGrid);
-            ImGui.ColorEdit4("Grid Line Color", ref GridLineColor);
 
             // TODO: Snap to grid option? Not sure if I should support going off-grid yet.
             //ImGui.Checkbox("Snap to Grid", ref SnapEntitiesToGrid);

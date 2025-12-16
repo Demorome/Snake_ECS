@@ -430,14 +430,14 @@ public class Renderer : MoonTools.ECS.Renderer
 		}
 
 		//MARK: Show Grid
-		if (LevelEditorManipulator.IsInLevelEditor && LevelEditorManipulator.ShowGrid)
+		if (EditorSystem.ShowGrid)
 		{
-			var color = new Color(LevelEditorManipulator.GridLineColor);
+			var color = new Color(EditorSystem.GridLineColor);
 			var depth = -(float)DepthLayer.Debug_GridVisual;
 			var verticalLength = Dimensions.TILE_ROW_COUNT * Dimensions.TILE_SIZE;
 			var horizontalLength = Dimensions.TILE_COLUMN_COUNT * Dimensions.TILE_SIZE;
 
-			for (int col = 0; col < Dimensions.TILE_COLUMN_COUNT; ++col)
+			for (int col = 0; col <= Dimensions.TILE_COLUMN_COUNT; ++col)
 			{
 				var worldPos = TileManipulator.TilePosToWorldPos_TopLeft(col, 0);
 				DrawDebugLine(new Vector2(worldPos.X, worldPos.Y),
@@ -445,7 +445,7 @@ public class Renderer : MoonTools.ECS.Renderer
 				);
 			}
 
-			for (int row = 0; row < Dimensions.TILE_ROW_COUNT; ++row)
+			for (int row = 0; row <= Dimensions.TILE_ROW_COUNT; ++row)
 			{
 				var worldPos = TileManipulator.TilePosToWorldPos_TopLeft(0, row);
 				DrawDebugLine(new Vector2(worldPos.X, worldPos.Y),

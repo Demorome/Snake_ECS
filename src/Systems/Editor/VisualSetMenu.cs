@@ -224,7 +224,7 @@ public class VisualSetMenu
                     }
                     else if (VisualSet.Editor_ShowGrid)
                     {
-                        gridOutlineColor = new Color(LevelEditorManipulator.GridLineColor);
+                        gridOutlineColor = new Color(EditorSystem.GridLineColor);
                     }
                     else
                     {
