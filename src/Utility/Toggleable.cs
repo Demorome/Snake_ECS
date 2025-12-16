@@ -12,6 +12,9 @@ namespace RollAndCash.Utility;
 /// </summary>
 public readonly record struct Toggleable<T> where T : unmanaged
 {
+    /// <summary>
+    /// ONLY use this if you checked <see cref="HasValue"/> beforehand! 
+    /// </summary>
     public readonly T Value_Unsafe;
     public readonly T Value 
     {   
