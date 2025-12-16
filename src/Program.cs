@@ -6,7 +6,8 @@ namespace RollAndCash
 {
 	class Program
 	{
-		public static string UserDataDirectory = $"{Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData), "ROLLANDCASH")}";
+		public static string UserDataDirectory = 
+			$"{Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData), "ROLLANDCASH")}";
 
 		static void Main(string[] args)
 		{
@@ -35,7 +36,8 @@ namespace RollAndCash
 			};
 #endif
 
-			FramePacingSettings framePacingSettings = FramePacingSettings.CreateLatencyOptimized(60);
+			FramePacingSettings framePacingSettings = 
+				FramePacingSettings.CreateLatencyOptimized(60, 6);
 
 			var debugMode = false;
 
@@ -48,7 +50,8 @@ namespace RollAndCash
 				appInfo,
 				windowCreateInfo,
 				framePacingSettings,
-				MoonWorks.Graphics.ShaderFormat.SPIRV | MoonWorks.Graphics.ShaderFormat.DXBC,
+				MoonWorks.Graphics.ShaderFormat.SPIRV 
+					| MoonWorks.Graphics.ShaderFormat.DXBC,
 				debugMode
 			);
 
