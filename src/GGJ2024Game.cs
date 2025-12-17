@@ -38,6 +38,7 @@ namespace RollAndCash
 #endif
 
 			TextureAtlases.Init(GraphicsDevice);
+			TileSetAtlases.Init(GraphicsDevice);
 			StaticAudioPacks.Init(AudioDevice);
 			StreamingAudio.Init(AudioDevice);
 			Fonts.LoadAll(GraphicsDevice, RootTitleStorage);
