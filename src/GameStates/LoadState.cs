@@ -61,6 +61,7 @@ public class LoadState : GameState
     {
         LoadTimer.Start();
         TextureAtlases.EnqueueLoadAllImages(AsyncFileLoader);
+        TileSetAtlases.EnqueueLoadAllImages(AsyncFileLoader);
         StaticAudioPacks.LoadAsync(AsyncFileLoader);
         StreamingAudio.LoadAsync(AsyncFileLoader);
         AsyncFileLoader.Submit();
