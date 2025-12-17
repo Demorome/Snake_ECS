@@ -6,6 +6,8 @@ using MoonWorks.Math;
 using System;
 using RollAndCash.Utility;
 
+// Using partial here, because we need to use Rendering.SpriteInstanceData,
+// which may not be part of every ImGui-using app we make.
 public static partial class ImGuiExtensions
 {
     /// <summary>
