@@ -56,10 +56,12 @@ public readonly record struct SpriteInstanceData
 	public readonly Vector2 UV3;
 
 #if DEBUG
-	// We discard Translation data, since we don't our rendering to be affected by the sprite's Origin offset.		
+	// We discard Translation data, since we don't want our rendering 
+	// to be affected by the sprite's Origin offset.		
 	public ImGuiRenderInfo ToImGuiRenderInfo(Vector2 centerPos)
     {
-		// Credits to @ocornut for this (slightly tweaked) rotation code: https://github.com/ocornut/imgui/issues/1982
+		// Credits to @ocornut for this (slightly tweaked) rotation code: 
+		// https://github.com/ocornut/imgui/issues/1982
 		var rotationMatrix = MathUtilities.GetRotationMatrix(Rotation);
 
 		// FIXME: Does this still work with negative scale values, to represent flipping?
@@ -76,7 +78,11 @@ public readonly record struct SpriteInstanceData
 
 		return new ImGuiRenderInfo(
 			posSpan[0], posSpan[1], posSpan[2], posSpan[3],
-			UV0, UV1, UV2, UV3,
+			// Yes, UV3 and UV2 are inverted on purpose.
+			// It seems ImGui has a different standard for how to order 
+			// UVs than we do, because without doing this,
+			// the sprite renders stretched/tilted.
+			UV0, UV1, UV3, UV2, 
 			ImGui.GetColorU32(Color)
 		);
     }
