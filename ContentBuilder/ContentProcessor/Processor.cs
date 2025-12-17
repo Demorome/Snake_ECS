@@ -1021,20 +1021,13 @@ namespace RollAndCash.Content
 	{{
 		public static GraphicsDevice GraphicsDevice {{ get; private set; }}
 
-		public static readonly string TileTextureContentPath;
-		public static readonly string FullTileTextureContentPath;
-		static TileSetAtlases()
-		{{
-			TileTextureContentPath = Path.Combine(
-				""Content"", 
-				Path.Combine(""Textures"", ""TileSets"")
-			);
+		public static readonly string TileTextureContentPath = Path.Combine(
+			""Content"", ""Textures"", ""TileSets""
+		);
 
-			FullTileTextureContentPath = Path.Combine(
-				System.AppContext.BaseDirectory, 
-				TileTextureContentPath
-			);
-		}}
+		public static readonly string FullTileTextureContentPath = Path.Combine(
+			System.AppContext.BaseDirectory, ""Content"", ""Textures"", ""TileSets""
+		);
 		
 		public static void Init(GraphicsDevice graphicsDevice)
 		{{
