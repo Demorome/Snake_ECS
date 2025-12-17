@@ -15,8 +15,10 @@ namespace RollAndCash.Editor;
 
 public class PaintingSelection
 {
-    // NOTE: This is a flat 2D array. See NumColumns for the column count.
-    // Some may be filler for a non-square selection scheme.
+    /// <summary>
+    /// NOTE: This is a flat 2D array. See NumColumns for the column count. <br/>
+    /// Some entries may be filler for an incomplete square selection scheme. <br/>
+    /// </summary>
     public List<(PositionInVisualSet, bool IsNotFiller)> Selected { get; private set; } = new();
     public int NumColumns { get; private set; } = -1;
 

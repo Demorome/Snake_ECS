@@ -88,9 +88,19 @@ public class EditorSystem : MoonTools.ECS.System
     static List<VisualSetMenu> OpenedVisualSetMenus = new();
     public void DrawVisualSetMenus()
     {
-        foreach (var visualSetMenu in OpenedVisualSetMenus)
+        // Backwards iteration for safe in-loop removal of elements.
+        for (int i = OpenedVisualSetMenus.Count - 1; i >= 0; --i)
         {
-            visualSetMenu.Show(World, PrefabManipulator, RenderingManipulator);
+            var visualSetMenu = OpenedVisualSetMenus[i];
+            
+            bool stillOpen = visualSetMenu.Show(
+                World, PrefabManipulator, RenderingManipulator
+            );
+
+            if (!stillOpen)
+            {
+                OpenedVisualSetMenus.RemoveAt(i);
+            }
         }
     }
 

@@ -50,12 +50,18 @@ public class VisualSetMenu
     // TODO: Support drawing (adding) tile metadata!
     // TODO: Support creating new set variants!
     // TODO: Support deleting set variants, w/ warning msg!
-    public void Show(World world, PrefabManipulator prefabManipulator, RenderingManipulator renderingManipulator)
+    public bool Show(
+        World world, 
+        PrefabManipulator prefabManipulator, 
+        RenderingManipulator renderingManipulator)
     {
-        if (!ImGui.Begin(VisualSet.Name + $"##{VisualSet.Editor_Type}"))
+        bool menuStaysOpen = true;
+        if (!ImGui.Begin(VisualSet.Name + $"##{VisualSet.Editor_Type}", ref menuStaysOpen)
+            || !menuStaysOpen)
         {
+            SelectedToPaint.ClearSelections();
             ImGui.End();
-            return;            
+            return menuStaysOpen;            
         }
 
         var startHeight = ImGui.GetCursorScreenPos().Y;
@@ -94,6 +100,7 @@ public class VisualSetMenu
         ShowVisualSelection(menuBottomPortionWidth, world, prefabManipulator, renderingManipulator);
 
         ImGui.End();
+        return menuStaysOpen;
     }
     
     private void MaybeChangeActiveSet(ImGuiMultiSelectIOPtr multiSelectIO)
@@ -124,7 +131,8 @@ public class VisualSetMenu
             ImGuiChildFlags.AlwaysAutoResize | ImGuiChildFlags.AutoResizeX | ImGuiChildFlags.AutoResizeY,
             ImGuiWindowFlags.AlwaysHorizontalScrollbar | ImGuiWindowFlags.AlwaysVerticalScrollbar))
         {
-            // Multi-selection code based off of Dear Imgui's Example Assets Browser: https://github.com/ocornut/imgui/blob/2ab3946ecb12962eff96c9bc13ef83d403c84dd8/imgui_demo.cpp#L10538
+            // Multi-selection code based off of Dear Imgui's Example Assets Browser: 
+            // https://github.com/ocornut/imgui/blob/2ab3946ecb12962eff96c9bc13ef83d403c84dd8/imgui_demo.cpp#L10538
             var multiSelectIO = ImGui.BeginMultiSelect(
                 ImGuiMultiSelectFlags.BoxSelect2D // enable drag-selection
                 | ImGuiMultiSelectFlags.ClearOnEscape
