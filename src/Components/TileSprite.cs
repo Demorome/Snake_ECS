@@ -27,7 +27,7 @@ public struct TileSprite
 	)
 	{
 		TileSetID = tileSet.ID;
-		TileSetVariantID = new(0);
+		TileSetVariantID = new(0); // expected to be manually set later.
 		FramePos = pixelPos;
 		UV = new UV(
 			new Vector2((float)FramePos.X / tileSet.PixelWidth, (float)FramePos.Y / tileSet.PixelHeight),

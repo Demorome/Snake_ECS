@@ -118,6 +118,16 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 
     public void HandleLevelEditor(Entity debugEntity)
     {
+        void ShowWarningIfSelectedVisualsToPaintAndCannotPaint()
+        {
+            if (HasSelectedVisualsToPaint())
+            {
+                ImGui.GetBackgroundDrawList().AddText(ImGui.GetMousePos(), 0xFFFFFFFF, 
+                    "Cannot Paint: Must be in Level Editor, with a Level + Room loaded, and a layer menu open."u8
+                );
+            }
+        }
+
         if (IsDragCreating && !ImGui.IsMouseDown(ImGuiMouseButton.Left))
         {
             IsDragCreating = false;
@@ -131,6 +141,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 
         if (!IsInLevelEditor)
         {
+            ShowWarningIfSelectedVisualsToPaintAndCannotPaint();
             return;
         }
 
@@ -138,6 +149,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 
         if (ActiveLevel == null || ActiveRoom == null)
         {
+            ShowWarningIfSelectedVisualsToPaintAndCannotPaint();
             return;
         }
 
@@ -163,10 +175,12 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         }
         if (MenuOpenedLayer == null || MenuOpenedLayer.MaybeVisualSet == null)
         {
+            ShowWarningIfSelectedVisualsToPaintAndCannotPaint();
             return;
         }
         if (!MenuOpenedLayer.MaybeVisualSetVariantID.HasValue)
         {
+            ShowWarningIfSelectedVisualsToPaintAndCannotPaint();
             Logger.LogError("VisualSetVariantID should not be null here!");
             return;
         }
@@ -183,7 +197,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         }
         else if (ImGui.IsMouseDown(ImGuiMouseButton.Right) && !EditorSystem.IsInEntitySelectionMode)
         {
-            // Erase/Delete tiles on this level layer!
+            // Erase/delete tiles on this level layer!
             if (MenuOpenedLayer.IsTiled || ImGui.IsMouseClicked(ImGuiMouseButton.Right))
             {
                 if (MenuOpenedLayer.IsTiled && !IsDragDeleting)
@@ -213,6 +227,11 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
     public LiveLevel.EditorLayer MenuOpenedLayer = null;
     public LiveLevel.EditorLayer SelectedLayerInList = null;
     public LiveLevel.EditorLayer HoveredOverLayer = null;
+
+    public bool HasSelectedVisualsToPaint()
+    {
+        return VisualSetMenu.SelectedToPaint.Selected.Count != 0;
+    }
 
     public List<(VisualFromSetID_ForSpawning, Position2D)> GetSelectedVisualsToPaint()
     {

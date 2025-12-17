@@ -158,7 +158,7 @@ public class VisualSetMenu
                 );
                 var maybeDummyEntity = VisualSet.Editor_TryCreateEntityFromVisualSet(
                     visualFromSetID,
-                    default,
+                    default, // spawn pos doesn't matter
                     world,
                     prefabManipulator,
                     null,
