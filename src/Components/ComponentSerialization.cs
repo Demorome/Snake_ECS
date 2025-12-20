@@ -24,10 +24,9 @@ public class ColorJsonConverter : JsonConverter<Color>
         Type typeToConvert,
         JsonSerializerOptions options)
     {
-        var packedColor = reader.GetUInt32();
-        // FIXME: Use big-endian static constructor!
+        var hexString = reader.GetString();
         return Color.White;
-        //return new Color(packedColor);
+        //return Color.FromHexString(hexString).Value;
     }
 
     public override void Write(
@@ -35,9 +34,9 @@ public class ColorJsonConverter : JsonConverter<Color>
         Color valueToConvert,
         JsonSerializerOptions options)
     {
-        // FIXME: Write big-endian packed value here!!!
+        // FIXME: Write big-endian value here!!!
         // Based on https://github.com/dotnet/runtime/blob/891c183b22d023eea7bc4aa57dbc219d54852036/src/libraries/System.Text.Json/src/System/Text/Json/Serialization/Converters/Value/Int32Converter.cs#L24
-        writer.WriteNumberValue((long)valueToConvert.PackedValue());
+        //writer.WriteStringValue(valueToConvert.ToHexString());
     }
 }
 
