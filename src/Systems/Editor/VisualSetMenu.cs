@@ -160,9 +160,9 @@ public class VisualSetMenu
 
                 // FIXME: Allow sprite animations to play (simulate frame countdown?)
                 var visualFromSetID = new VisualFromSetID_ForSpawning(
-                        posInVisualSet,
-                        VisualSet.ID,
-                        CurrentVariantID
+                    posInVisualSet,
+                    VisualSet.ID,
+                    CurrentVariantID
                 );
                 var maybeDummyEntity = VisualSet.Editor_TryCreateEntityFromVisualSet(
                     visualFromSetID,
@@ -204,7 +204,7 @@ public class VisualSetMenu
                 //var visualSizeScaled = VisualSet.GetVisualSize(posInVisualSet, CurrentVariantID) * scalingFactor;
                 var visualSizeScaled = spriteRenderData.Scale;
 
-                bool wasSelected = SelectedToPaint.Selected.Contains((posInVisualSet, true));
+                bool wasSelected = SelectedToPaint.TrueSelections.Contains(posInVisualSet);
                 bool wasHovered = posInVisualSet == HoveredVisualInSet;
                 bool isReplacing = posInVisualSet == VisualInSetToModify;
 

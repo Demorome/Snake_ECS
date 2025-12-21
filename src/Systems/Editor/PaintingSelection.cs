@@ -21,7 +21,8 @@ public class PaintingSelection
     /// </summary>
     public List<(PositionInVisualSet, bool IsNotFiller)> Selected 
         { get; private set; } = new();
-    private List<PositionInVisualSet> TrueSelections = new();
+    public List<PositionInVisualSet> TrueSelections 
+        { get; private set; } = new();
     public int NumColumns { get; private set; } = -1;
     public int NumTrueSelections => TrueSelections.Count;
 
