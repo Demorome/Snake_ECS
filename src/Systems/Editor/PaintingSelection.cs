@@ -19,8 +19,11 @@ public class PaintingSelection
     /// NOTE: This is a flat 2D array. See NumColumns for the column count. <br/>
     /// Some entries may be filler for an incomplete square selection scheme. <br/>
     /// </summary>
-    public List<(PositionInVisualSet, bool IsNotFiller)> Selected { get; private set; } = new();
+    public List<(PositionInVisualSet, bool IsNotFiller)> Selected 
+        { get; private set; } = new();
+    private List<PositionInVisualSet> TrueSelections = new();
     public int NumColumns { get; private set; } = -1;
+    public int NumTrueSelections => TrueSelections.Count;
 
     public PositionInVisualSet? FirstValidPositionInVisualSet
     {
@@ -40,38 +43,41 @@ public class PaintingSelection
     public void ClearSelections()
     {
         Selected.Clear();
+        TrueSelections.Clear();
         NumColumns = -1;
     }
 
-    public void HandleMultiSelectRequests(ImGuiMultiSelectIOPtr multiSelectIO, VisualSet visualSet)
+    public void HandleMultiSelectRequests(
+        ImGuiMultiSelectIOPtr multiSelectIO, 
+        VisualSet visualSet
+        )
     {
-        for (int requestNum = 0; requestNum < multiSelectIO.Requests.Size; ++requestNum)
+        for (int requestNum = 0; 
+            requestNum < multiSelectIO.Requests.Size; 
+            ++requestNum)
         {
             var request = multiSelectIO.Requests[requestNum];
 
             if (request.Type == ImGuiSelectionRequestType.SetAll)
             {
+                ClearSelections();
                 if (request.Selected != 0) // Select all
                 {
-                    Selected.Clear();
-
                     for (ushort row = 0; row < visualSet.NumRows; ++row)
                     {
                         for (ushort col = 0; col < visualSet.NumColumns; ++col)
                         {
                             var posInVisualSet = new PositionInVisualSet(col, row);
-                            Selected.Add((posInVisualSet, true));
+                            TrueSelections.Add(posInVisualSet);
                         }
                     }
-                }
-                else // Unselect all
-                {
-                    ClearSelections();
                 }
             }
             else if (request.Type == ImGuiSelectionRequestType.SetRange)
             {
-                for (var id = (ushort)request.RangeFirstItem; id <= (ushort)request.RangeLastItem; ++id)
+                for (var id = (ushort)request.RangeFirstItem; 
+                    id <= (ushort)request.RangeLastItem; 
+                    ++id)
                 {
                     var col = (ushort)(id % visualSet.NumColumns);
                     var row = (ushort)(id / visualSet.NumColumns);
@@ -79,19 +85,11 @@ public class PaintingSelection
 
                     if (request.Selected == 0) // selection removed
                     {
-                        UpdateMultiImagePaintSelection(null, posInVisualSet);
+                        TrueSelections.Remove(posInVisualSet);
                     }
                     else // selection added
                     {
-                        if (Selected.Count == 0)
-                        {
-                            NumColumns = 1;
-                            Selected.Add((posInVisualSet, true));
-                        }
-                        else
-                        {
-                            UpdateMultiImagePaintSelection(posInVisualSet, null);
-                        }
+                        TrueSelections.Add(posInVisualSet);
                     }
                 }
             }
@@ -100,36 +98,22 @@ public class PaintingSelection
                 throw new NotImplementedException("Unexpected selection request type!");
             }
         }
+
+        if (multiSelectIO.Requests.Size != 0)
+        {
+            UpdateMultiImagePaintSelection();
+        }
     }
 
-    private void UpdateMultiImagePaintSelection(
-        PositionInVisualSet? toAddPos = null, 
-        PositionInVisualSet? toRemovePos = null)
+    private void UpdateMultiImagePaintSelection()
     {
-        // LayerImageIDs may be invalid here, for odd selection schemes.
+        // Entries in Selected may be filler here, for odd selection schemes.
         // Ex: picking 2 sprites that are diagonal from each other.
         // This would produce a 2x2 selection scheme, with 2 tiles being 'invalid' (empty).
-        List<PositionInVisualSet> validPositions = new();
-        foreach (var (visualPosInSet, isNotFiller) in Selected)
-        {
-            if (isNotFiller)
-            {
-                validPositions.Add(visualPosInSet);
-            }
-        }
         Selected.Clear();
         NumColumns = -1;
-
-        if (toAddPos.HasValue)
-        {
-            validPositions.Add(toAddPos.Value);
-        }
-        if (toRemovePos.HasValue)
-        {
-            validPositions.Remove(toRemovePos.Value);
-        }
-
-        if (validPositions.Count == 0)
+        
+        if (TrueSelections.Count == 0)
         {
             return;
         }
@@ -139,7 +123,7 @@ public class PaintingSelection
         var left = ushort.MaxValue;
         var right = ushort.MinValue;
 
-        foreach (var visualPosInSet in validPositions)
+        foreach (var visualPosInSet in TrueSelections)
         {
             var col = visualPosInSet.X;
             var row = visualPosInSet.Y;
@@ -157,7 +141,7 @@ public class PaintingSelection
             for (ushort col = left; col <= right; ++col)
             {
                 var currentPos = new PositionInVisualSet(col, row);
-                if (validPositions.Contains(currentPos))
+                if (TrueSelections.Contains(currentPos))
                 {
                     Selected.Add((currentPos, true));
                 }
