@@ -138,7 +138,7 @@ public class VisualSetMenu
                 | ImGuiMultiSelectFlags.ClearOnEscape
                 | ImGuiMultiSelectFlags.ClearOnClickVoid
                 | ImGuiMultiSelectFlags.NavWrapX, // Enable keyboard wrapping on X axis
-                0, // FIXME: Pass # of selected items!
+                SelectedToPaint.NumTrueSelections,
                 VisualSet.NumVisuals
             );
             MaybeChangeActiveSet(multiSelectIO);
