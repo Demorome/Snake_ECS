@@ -105,12 +105,13 @@ public class VisualSetMenu
     
     private void MaybeChangeActiveSet(ImGuiMultiSelectIOPtr multiSelectIO)
     {
-        if (multiSelectIO.Requests.Size != 0)
+        if (multiSelectIO.Requests.Size != 0
+            && ActiveVisualSetMenu != this)
         {
             ActiveVisualSetMenu = this;
 
             SelectedToPaint.ClearSelections();
-            HoveredVisualInSet = null ;
+            HoveredVisualInSet = null;
             VisualInSetToModify = null;
         }
     }
