@@ -107,8 +107,6 @@ public class EditorSystem : MoonTools.ECS.System
     //MARK: Window Menu Bar
     public static bool ShowGrid = true;
     public static Vector4 GridLineColor = (Color.DarkTurquoise * 0.5f).ToVector4();
-
-    static VisualSet.Editor_Types VisualSetTypeToPreviewForList = VisualSet.Editor_Types.Invalid;
     public static void DrawWindowMenuBar(World world)
     {
         if (ImGui.BeginMainMenuBar())
@@ -130,61 +128,57 @@ public class EditorSystem : MoonTools.ECS.System
 
             if (ImGui.BeginMenu("View"u8))
             {
+                ImGui.PushItemFlag(ImGuiItemFlags.AutoClosePopups, false);
                 if (ImGui.BeginMenu("Grid"u8))
                 {
                     ImGui.MenuItem("Toggle Grid"u8, "", ref ShowGrid);
-                    //ImGui.Checkbox("Show Grid?"u8, ref );
                     ImGui.ColorEdit4("Grid Line Color", ref GridLineColor);
 
                     ImGui.EndMenu();
                 }
 
-                if (ImGui.Selectable("TileSets"u8))
+                if (ImGui.BeginMenu("VisualSets"u8))
                 {
-                    VisualSetTypeToPreviewForList = VisualSet.Editor_Types.TileSet;
-                }
-                else if (ImGui.Selectable("ImageSets"u8))
-                {
-                    VisualSetTypeToPreviewForList = VisualSet.Editor_Types.ImageSet;
-                }
-
-                ImGui.EndMenu();
-            }
-
-            // Need to open the pop-up outside of the menu stack: 
-            // https://github.com/ocornut/imgui/issues/5684#issuecomment-1247928651
-            if (VisualSetTypeToPreviewForList != VisualSet.Editor_Types.Invalid)
-            {
-                ImGui.OpenPopup("SelectVisualSet"u8);
-            }
-
-            if (ImGui.BeginPopup("SelectVisualSet"u8))
-            {
-                var visualSets = VisualSet.Editor_VisualSetsByType[VisualSetTypeToPreviewForList];
-                foreach (var visualSet in visualSets)
-                {
-                    if (ImGui.Selectable(visualSet.Name))
+                    void ShowVisualSetSelection(VisualSet.Editor_Types type)
                     {
-                        // Make sure the pop-up won't re-open.
-                        VisualSetTypeToPreviewForList = VisualSet.Editor_Types.Invalid;
-
-                        bool found = false;
-                        foreach (var visualSetMenus in OpenedVisualSetMenus)
+                        var visualSets = VisualSet.Editor_VisualSetsByType[type];
+                        foreach (var visualSet in visualSets)
                         {
-                            if (visualSetMenus.VisualSet == visualSet)
+                            if (ImGui.Selectable(visualSet.Name))
                             {
-                                found = true;
-                                break;
+                                bool found = false;
+                                foreach (var visualSetMenus in OpenedVisualSetMenus)
+                                {
+                                    if (visualSetMenus.VisualSet == visualSet)
+                                    {
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if (!found)
+                                {
+                                    OpenedVisualSetMenus.Add(new VisualSetMenu(visualSet));
+                                }
                             }
                         }
-                        if (!found)
-                        {
-                            OpenedVisualSetMenus.Add(new VisualSetMenu(visualSet));
-                        }
+
+                        ImGui.EndMenu();
                     }
+                    
+                    if (ImGui.BeginMenu("TileSets"u8))
+                    {
+                        ShowVisualSetSelection(VisualSet.Editor_Types.TileSet);
+                    }
+                    if (ImGui.BeginMenu("ImageSets"u8))
+                    {
+                        ShowVisualSetSelection(VisualSet.Editor_Types.ImageSet);
+                    }
+
+                    ImGui.EndMenu();
                 }
 
-                ImGui.EndPopup();
+                ImGui.PopItemFlag();
+                ImGui.EndMenu();
             }
 
             ImGui.EndMainMenuBar();

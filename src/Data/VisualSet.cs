@@ -60,11 +60,22 @@ public abstract class VisualSet
     public enum Editor_Types
     {
         Invalid = 0,
-        TileSet,
-        ImageSet
+        FIRST,
+        TileSet = FIRST,
+        ImageSet,
+        COUNT
     }
     public Editor_Types Editor_Type = Editor_Types.Invalid;
-    public static Dictionary<Editor_Types, List<VisualSet>> Editor_VisualSetsByType = new();
+    public static Dictionary<Editor_Types, List<VisualSet>> 
+        Editor_VisualSetsByType = new();
+
+    static VisualSet()
+    {
+        for (Editor_Types i = Editor_Types.FIRST; i < Editor_Types.COUNT; ++i)
+        {
+            Editor_VisualSetsByType.Add(i, new List<VisualSet>());
+        }
+    }
 #endif
 
     //== Constructors
@@ -90,16 +101,10 @@ public abstract class VisualSet
             Logger.LogError("Unrecognized VisualSet type!");
             return;
         }
+
         lock (Editor_VisualSetsByType)
         {
-            if (Editor_VisualSetsByType.ContainsKey(Editor_Type))
-            {
-                Editor_VisualSetsByType[Editor_Type].Add(this);
-            }
-            else
-            {
-                Editor_VisualSetsByType.Add(Editor_Type, new List<VisualSet>() { this });
-            }
+            Editor_VisualSetsByType[Editor_Type].Add(this);
         }
 #endif
     }
