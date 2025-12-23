@@ -142,29 +142,37 @@ public class EditorSystem : MoonTools.ECS.System
                     void ShowVisualSetSelection(VisualSet.Editor_Types type)
                     {
                         var visualSets = VisualSet.Editor_VisualSetsByType[type];
-                        foreach (var visualSet in visualSets)
+
+                        if (visualSets.Count == 0)
                         {
-                            if (ImGui.Selectable(visualSet.Name))
+                            ImGui.Text("None found."u8);
+                        }
+                        else
+                        {
+                            foreach (var visualSet in visualSets)
                             {
-                                bool found = false;
-                                foreach (var visualSetMenus in OpenedVisualSetMenus)
+                                if (ImGui.Selectable(visualSet.Name))
                                 {
-                                    if (visualSetMenus.VisualSet == visualSet)
+                                    bool found = false;
+                                    foreach (var visualSetMenus in OpenedVisualSetMenus)
                                     {
-                                        found = true;
-                                        break;
+                                        if (visualSetMenus.VisualSet == visualSet)
+                                        {
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!found)
+                                    {
+                                        OpenedVisualSetMenus.Add(new VisualSetMenu(visualSet));
                                     }
                                 }
-                                if (!found)
-                                {
-                                    OpenedVisualSetMenus.Add(new VisualSetMenu(visualSet));
-                                }
-                            }
+                            }  
                         }
 
                         ImGui.EndMenu();
                     }
-                    
+
                     if (ImGui.BeginMenu("TileSets"u8))
                     {
                         ShowVisualSetSelection(VisualSet.Editor_Types.TileSet);
