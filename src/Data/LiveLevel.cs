@@ -19,17 +19,39 @@ using RollAndCash.Editor;
 
 namespace RollAndCash.Data;
 
-// Each level has multiple rooms.
-// These rooms are self-contained gameplay areas with no spatial reference to other rooms.
-// Only a single room will be loaded/active at any given time.
+
+/// <summary>
+/// Each level has multiple rooms. <br/>
+/// 
+/// These rooms are self-contained gameplay areas, 
+/// with no direct spatial reference to other rooms. <br/>
+/// 
+/// In-editor, rooms connect together w/ teleport prefabs w/ a RoomID. 
+/// Rooms are laid out in diagram style, 
+/// to show how they're all tied together. <br/>
+/// 
+/// A room may connect to multiple rooms in a single corner, ala Metroid. 
+/// These rooms may not be directly connected; 
+/// they can have gaps for clarity in the editor. <br/>
+/// 
+/// Only a single room will be loaded/active at any given time. <br/>
+/// 
+/// Outside the editor, entities don't need to know what room they're in,
+/// since they can only ever exist in the current room.
+/// </summary>
 public readonly record struct LevelRoomID(int ID);
 
 #if DEBUG
-// Each room has multiple layers, which are a group of entities and tiles for the editor. 
+/// <summary>
+/// Each room has multiple layers, 
+/// which are a group of entities and tiles for the editor. 
+/// </summary>
 public readonly record struct Editor_LevelLayerID(int ID);
 #endif
 
-// Represents a level that's fully loaded in-game.
+/// <summary>
+/// Represents a level that's fully loaded in-game.
+/// </summary>
 public class LiveLevel
 {
     public string Name = "";

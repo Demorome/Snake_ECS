@@ -128,6 +128,8 @@ public class EditorSystem : MoonTools.ECS.System
 
             if (ImGui.BeginMenu("View"u8))
             {
+                // So that these submenus don't auto-close when an option is pressed.
+                // They'll still auto-close when clicking outside the menus.
                 ImGui.PushItemFlag(ImGuiItemFlags.AutoClosePopups, false);
                 if (ImGui.BeginMenu("Grid"u8))
                 {
