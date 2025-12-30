@@ -114,7 +114,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
     {
         void ShowWarningIfSelectedVisualsToPaintAndCannotPaint()
         {
-            if (HasSelectedVisualsToPaint())
+            if (HasSelectedVisualsToPaint)
             {
                 ImGui.GetBackgroundDrawList().AddText(ImGui.GetMousePos(), 0xFFFFFFFF, 
                     "Cannot Paint: Must be in Level Editor, with a Level + Room loaded, and a layer menu open."u8
@@ -222,10 +222,8 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
     public LiveLevel.EditorLayer SelectedLayerInList = null;
     public LiveLevel.EditorLayer HoveredOverLayer = null;
 
-    public bool HasSelectedVisualsToPaint()
-    {
-        return VisualSetMenu.SelectedToPaint.Selected.Count != 0;
-    }
+    public bool HasSelectedVisualsToPaint => 
+        VisualSetMenu.SelectedToPaint.Selected.Count != 0;
 
     public List<(VisualFromSetID_ForSpawning, Position2D)> GetSelectedVisualsToPaint()
     {
