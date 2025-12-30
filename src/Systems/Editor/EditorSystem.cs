@@ -282,7 +282,7 @@ public class EditorSystem : MoonTools.ECS.System
             return;
         }
 
-        if (ImGui.Begin("Show"))
+        if (ImGui.Begin("Show"u8))
         {
             ImGui.Text($"Mouse world position: {Input.WorldMousePosition}");
             ImGui.Text($"Tile position: {TileManipulator.GetTilePos(Input.WorldMousePosition)}");
