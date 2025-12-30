@@ -89,6 +89,9 @@ public static class EditorHelpActions
         { ImGuiKey.ModCtrl | ImGuiKey.E, new("Toggle Level Editor",
             () => { return LevelEditorManipulator.IsInLevelEditor = !LevelEditorManipulator.IsInLevelEditor; } )
         },
+        { ImGuiKey.F3,                   new("Show Position Info",
+            () => { return IsShowingPositionInfo = !IsShowingPositionInfo; } )
+        },
     };
 
     public static Dictionary<ImGuiKey, EditorAction> EditorEditKeybinds = new()

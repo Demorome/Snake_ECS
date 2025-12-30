@@ -39,7 +39,7 @@ public class TileManipulator : MoonTools.ECS.Manipulator
         return entity;
     }
 
-    public Vector2? GetTilePos(Position2D worldPos)
+    public static Vector2? GetTilePos(Position2D worldPos)
     {
         var tilePos = new Vector2(worldPos.X / Dimensions.TILE_SIZE, worldPos.Y / Dimensions.TILE_SIZE);
         if (!IsTilePosValid(tilePos))

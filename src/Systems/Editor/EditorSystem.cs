@@ -79,6 +79,7 @@ public class EditorSystem : MoonTools.ECS.System
         EditorHelpActions.HandleEditorKeybinds(World);
         DrawDetachedWindows(World);
         DrawComponents.DrawEntitiesWithComponentWindows(World);
+        ShowPositions();
 
         LevelEditor.HandleLevelEditor(DebugEntity.Value);
         HandleEntitySelectionMode();
@@ -270,6 +271,23 @@ public class EditorSystem : MoonTools.ECS.System
 
         // TODO: Delete level layers that no longer contain any entities.
         // Maybe only those that were dynamically generated, for unrecognized depth.
+    }
+
+    //MARK: Positions
+    public static bool IsShowingPositionInfo = false;
+    public static void ShowPositions()
+    {
+        if (!IsShowingPositionInfo)
+        {
+            return;
+        }
+
+        if (ImGui.Begin("Show"))
+        {
+            ImGui.Text($"Mouse world position: {Input.WorldMousePosition}");
+            ImGui.Text($"Tile position: {TileManipulator.GetTilePos(Input.WorldMousePosition)}");
+        }
+        ImGui.End();
     }
 
     //MARK: Selection Mode

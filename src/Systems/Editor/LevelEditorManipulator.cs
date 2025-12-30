@@ -46,7 +46,8 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         Path.Combine(@"../../../", Path.Combine("EditorContent", "Levels"))
     ;
 
-    // Layout inspired by Elias Daler's tutorial series: https://edw.is/using-imgui-with-sfml-pt1/
+    // Layout inspired by Elias Daler's tutorial series: 
+    // https://edw.is/using-imgui-with-sfml-pt1/
     void DrawLevelEditorMainWindow()
     {
         bool stillOpened = IsInLevelEditor;
@@ -54,8 +55,6 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         {
             //FIXME: ImGui.Text("Level path: ");
             //FIXME: ImGui.Text("Camera: ");
-            ImGui.Text($"Mouse world position: {Input.WorldMousePosition}");
-            ImGui.Text($"Tile position: {TileManipulator.GetTilePos(Input.WorldMousePosition)}");
 
             // TODO: Snap to grid option? Not sure if I should support going off-grid yet.
             //ImGui.Checkbox("Snap to Grid", ref SnapEntitiesToGrid);
@@ -63,7 +62,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             ImGui.Separator();
             ImGui.Text("Level Options"u8);
 
-            ImGui.InputText("Name"u8, ref ActiveLevel.Name, 30);
+            ImGui.InputText("Name"u8, ref ActiveLevel.Name, 256);
 
             if (ActiveLevel.Name == null || ActiveLevel.Name.Length == 0)
             {
