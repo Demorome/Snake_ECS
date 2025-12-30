@@ -39,9 +39,9 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 
     // To write outside of bin/Debug, in order to get to .csproj location. For editor use only; never ship this!
     // FIXME: This may break on you if you have a different deployment structure!
-    private static string OptimizedLevelContentPath =
+    /*private static string OptimizedLevelContentPath =
         Path.Combine(@"../../../", Path.Combine("Content", "Levels"))
-    ;
+    ;*/
     private static string EditorLevelContentPath =
         Path.Combine(@"../../../", Path.Combine("EditorContent", "Levels"))
     ;
