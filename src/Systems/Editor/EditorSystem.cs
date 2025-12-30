@@ -79,7 +79,7 @@ public class EditorSystem : MoonTools.ECS.System
         EditorHelpActions.HandleEditorKeybinds(World);
         DrawDetachedWindows(World);
         DrawComponents.DrawEntitiesWithComponentWindows(World);
-        ShowPositions();
+        ShowPositionInfo();
 
         LevelEditor.HandleLevelEditor(DebugEntity.Value);
         HandleEntitySelectionMode();
@@ -274,15 +274,15 @@ public class EditorSystem : MoonTools.ECS.System
     }
 
     //MARK: Positions
-    public static bool IsShowingPositionInfo = false;
-    public static void ShowPositions()
+    public static bool IsShowingPositionInfo = true;
+    public static void ShowPositionInfo()
     {
         if (!IsShowingPositionInfo)
         {
             return;
         }
 
-        if (ImGui.Begin("Show"u8))
+        if (ImGui.Begin("Position Info"u8, ref IsShowingPositionInfo))
         {
             ImGui.Text($"Mouse world position: {Input.WorldMousePosition}");
             ImGui.Text($"Tile position: {TileManipulator.GetTilePos(Input.WorldMousePosition)}");

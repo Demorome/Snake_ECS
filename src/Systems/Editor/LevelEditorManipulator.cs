@@ -30,7 +30,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         PrefabManipulator = new(World);
     }
 
-    public static bool IsInLevelEditor = false;
+    public static bool IsInLevelEditor = true;
     public LiveLevel ActiveLevel = new();
     public LiveLevel.Room ActiveRoom = null;
     public bool HasSelectedPrefab = false;
@@ -53,15 +53,6 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         bool stillOpened = IsInLevelEditor;
         if (ImGui.Begin("Level Editor"u8, ref stillOpened))
         {
-            //FIXME: ImGui.Text("Level path: ");
-            //FIXME: ImGui.Text("Camera: ");
-
-            // TODO: Snap to grid option? Not sure if I should support going off-grid yet.
-            //ImGui.Checkbox("Snap to Grid", ref SnapEntitiesToGrid);
-
-            ImGui.Separator();
-            ImGui.Text("Level Options"u8);
-
             ImGui.InputText("Name"u8, ref ActiveLevel.Name, 256);
 
             if (ActiveLevel.Name == null || ActiveLevel.Name.Length == 0)
@@ -89,6 +80,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             if (ImGui.Button("New"u8))
             {
                 // TODO: add a warning if there's unsaved changes!
+                // FIXME: Unload everything from the current level first!!!
             }
 
             if (ImGui.BeginPopup("##LoadLevelPopup"u8))
@@ -103,6 +95,9 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                 }
                 ImGui.EndPopup();
             }
+
+            // TODO: Snap to grid option? Not sure if I should support going off-grid yet.
+            //ImGui.Checkbox("Snap to Grid", ref SnapEntitiesToGrid);
         }
         ImGui.End();
 
