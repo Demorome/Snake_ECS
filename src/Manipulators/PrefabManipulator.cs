@@ -164,14 +164,17 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
         return result;
     }
 
-    private PrefabTypes PrefabToSpawn_ForPreview = PrefabTypes.None;
-
-    private void SetUpSelectedPrefabPreviewVisuals(Entity debugEntity)
+    private void SetUpSelectedPrefabPreviewVisuals(
+        PrefabTypes prefabToSpawn,
+        Entity debugEntity
+        )
     {
         if (!ImGui.GetIO().WantCaptureMouse)
         {
             // Spawn a copy of the prefab, then extract its visual info.
-            var dummyPrefab = TrySpawnPrefab(PrefabToSpawn_ForPreview, Input.WorldMousePosition, true).Value;
+            var dummyPrefab = TrySpawnPrefab(
+                prefabToSpawn, Input.WorldMousePosition, true
+            ).Value;
 
             Set(debugEntity, Get<Position2D>(dummyPrefab));
             if (Has<VisualScale>(dummyPrefab))
@@ -220,6 +223,7 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
         else
         {
             // Remove visual info.
+            // FIXME: Just use a different debug entity here and destroy it instead!
             Remove<Position2D>(debugEntity);
             Remove<VisualScale>(debugEntity);
             Remove<SpriteAnimation>(debugEntity);
@@ -232,7 +236,10 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
     }
 
     // Returns if a selection is made or not.
-    public bool ShowPrefabSpawner(Entity debugEntity)
+    public void ShowPrefabSpawnerAndMaybeSpawn(
+        ref PrefabTypes prefabToSpawn,
+        Entity debugEntity
+    )
     {
         if (ImGui.Begin("Prefab Objects"u8))
         {
@@ -247,33 +254,31 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
                     continue;
                 }
 
-                bool isSelected = PrefabToSpawn_ForPreview == prefab;
+                bool isSelected = prefabToSpawn == prefab;
                 ImGui.PushStyleColor(ImGuiCol.Header, Color.Green.ToVector4());
                 if (ImGui.Selectable(prefab.ToString(), isSelected))
                 {
-                    PrefabToSpawn_ForPreview = isSelected ? PrefabTypes.None : prefab;
+                    prefabToSpawn = isSelected ? PrefabTypes.None : prefab;
                 }
                 ImGui.PopStyleColor();
             }
 
             // TODO: Once button to spawn a prefab entity is pressed, make it appear transparent below cursor.
-            if (PrefabToSpawn_ForPreview != PrefabTypes.None)
+            if (prefabToSpawn != PrefabTypes.None)
             {
                 if (!ImGui.GetIO().WantCaptureMouse
                     && ImGui.IsMouseClicked(ImGuiMouseButton.Left))
                 {
-                    TrySpawnPrefab(PrefabToSpawn_ForPreview, Input.WorldMousePosition);
+                    TrySpawnPrefab(prefabToSpawn, Input.WorldMousePosition);
                 }
             }
         }
         ImGui.End();
 
-        if (PrefabToSpawn_ForPreview != PrefabTypes.None)
+        if (prefabToSpawn != PrefabTypes.None)
         {
-            SetUpSelectedPrefabPreviewVisuals(debugEntity);
-            return true;
+            SetUpSelectedPrefabPreviewVisuals(prefabToSpawn, debugEntity);
         }
-        return false;
     }
 #endif
 }

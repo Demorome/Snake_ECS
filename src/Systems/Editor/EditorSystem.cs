@@ -42,11 +42,14 @@ public class EditorSystem : MoonTools.ECS.System
     MoonTools.ECS.Filter PositionFilter;
 
     public Entity? DebugEntity = null; // So we can stick Relations on this to safely track other entities.
-    static string DebugEntityTag = "EDITOR";
+    static readonly string DebugEntityTag = "EDITOR";
 
     public LevelEditorManipulator LevelEditor;
     private RenderingManipulator RenderingManipulator;
     private PrefabManipulator PrefabManipulator;
+
+    // TODO: Support switching current tools based on different window being opened.
+    public static EditorTools ActiveTool = new();
 
     public EditorSystem(World world) : base(world)
     {
@@ -75,11 +78,13 @@ public class EditorSystem : MoonTools.ECS.System
 
         DrawWindowMenuBar(World);
         DrawVisualSetMenus();
+
         EditorHelpActions.DrawHelpWindow(World);
         EditorHelpActions.HandleEditorKeybinds(World);
         DrawDetachedWindows(World);
         DrawComponents.DrawEntitiesWithComponentWindows(World);
         ShowPositionInfo();
+        ActiveTool.ShowCurrentTool();
 
         LevelEditor.HandleLevelEditor(DebugEntity.Value);
         HandleEntitySelectionMode();
@@ -291,8 +296,6 @@ public class EditorSystem : MoonTools.ECS.System
     }
 
     //MARK: Selection Mode
-    public static bool IsInEntitySelectionMode = false;
-
     static SpatialHash<Entity> VisualEntitiesSpatialHash =
         new SpatialHash<Entity>(0, 0, Dimensions.GAME_W, Dimensions.GAME_H, 32);
 
@@ -340,7 +343,7 @@ public class EditorSystem : MoonTools.ECS.System
 
         Entity? maybeSelectedEntity = null;
 
-        if (IsInEntitySelectionMode)
+        if (ActiveTool.CurrentMode == ToolMode.EntitySelection)
         {
             UnrelateAll<Editor_SelectedEntity>(DebugEntity.Value);
             if (mouseHoveringOverAnyWindow)
@@ -397,7 +400,7 @@ public class EditorSystem : MoonTools.ECS.System
             // Exit selection mode if we confirm our selection.
             if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
             {
-                IsInEntitySelectionMode = false;
+                ActiveTool.RevertToLastMode();
                 Logger.LogInfo($"Selected {EntityToString(hoveredOverEntity)}");
             }
 

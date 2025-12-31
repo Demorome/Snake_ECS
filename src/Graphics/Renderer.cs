@@ -395,7 +395,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			// FIXME: Scale color intensity by depth?
 			var selectionColor = Color.LimeGreen with { A = 210 };
 
-			if (EditorSystem.IsInEntitySelectionMode)
+			if (EditorSystem.ActiveTool.CurrentMode == ToolMode.EntitySelection)
 			{
 				foreach (var entity in SpriteAnimationFilter.Entities)
 				{

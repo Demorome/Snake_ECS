@@ -10,6 +10,7 @@ using MoonWorks.Graphics;
 using RollAndCash.Components;
 using RollAndCash.Content;
 using RollAndCash.Data;
+using RollAndCash.Systems;
 
 namespace RollAndCash.Editor;
 
@@ -118,6 +119,9 @@ public class PaintingSelection
         {
             return;
         }
+
+        // Add selections to flat 2d array, 
+        // to easily handle tile spacing w/ potential gaps.
 
         var top = ushort.MaxValue;
         var bottom = ushort.MinValue;

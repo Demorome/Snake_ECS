@@ -31,11 +31,13 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
     }
 
     public static bool IsInLevelEditor = true;
+
     public LiveLevel ActiveLevel = new();
     public LiveLevel.Room ActiveRoom = null;
-    public bool HasSelectedPrefab = false;
     //static bool SnapToGrid = true;
     public Vector2? HoveredOverTilePosition = null;
+
+    private PrefabTypes PrefabToSpawn = PrefabTypes.None;
 
     // To write outside of bin/Debug, in order to get to .csproj location. For editor use only; never ship this!
     // FIXME: This may break on you if you have a different deployment structure!
@@ -107,6 +109,20 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         }
     }
 
+    private void SetOrRevertPaintingTool()
+    {
+        var hasSelectedPrefab = PrefabToSpawn != PrefabTypes.None;
+        if (VisualSetMenu.SelectedToPaint.TrueSelections.Count != 0
+            || hasSelectedPrefab)
+        {
+            EditorSystem.ActiveTool.TrySetMode(ToolMode.PaintingAndErasing);
+        }
+        else if (EditorSystem.ActiveTool.CurrentMode == ToolMode.PaintingAndErasing)
+        {
+            EditorSystem.ActiveTool.RevertToLastMode();
+        }
+    }
+
     private bool IsDragDeleting = false;
     private bool IsDragCreating = false;
 
@@ -121,6 +137,8 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                 );
             }
         }
+
+        SetOrRevertPaintingTool();
 
         if (IsDragCreating && !ImGui.IsMouseDown(ImGuiMouseButton.Left))
         {
@@ -147,11 +165,13 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             return;
         }
 
-        HasSelectedPrefab = PrefabManipulator.ShowPrefabSpawner(debugEntity);
-        if (HasSelectedPrefab)
-        {
-            EditorSystem.IsInEntitySelectionMode = false;
-        }
+        PrefabManipulator.ShowPrefabSpawnerAndMaybeSpawn(
+            ref PrefabToSpawn,
+            debugEntity
+        );
+        var hasSelectedPrefab = PrefabToSpawn != PrefabTypes.None;
+        // Update painting tool status w/ potential PrefabToSpawn change.
+        SetOrRevertPaintingTool();
 
         ShowActiveLayersForRoom_Menu(debugEntity);
 
@@ -178,20 +198,22 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             Logger.LogError("VisualSetVariantID should not be null here!");
             return;
         }
-
-        var visualsToPaint = GetSelectedVisualsToPaint();
-        if (visualsToPaint.Count >= 1)
+        if (EditorSystem.ActiveTool.CurrentMode != ToolMode.PaintingAndErasing)
         {
-            EditorSystem.IsInEntitySelectionMode = false;
+            return;
         }
 
-        if (!HasSelectedPrefab && visualsToPaint.Count >= 1 && ImGui.IsMouseDown(ImGuiMouseButton.Left))
+        var visualsToPaint = GetSelectedVisualsToPaint();
+
+        // Spawning for prefabs was already handled above, in prefab menu code.
+        if (!hasSelectedPrefab && visualsToPaint.Count >= 1 
+            && ImGui.IsMouseDown(ImGuiMouseButton.Left))
         {
             PaintVisuals(visualsToPaint);
         }
-        else if (ImGui.IsMouseDown(ImGuiMouseButton.Right) && !EditorSystem.IsInEntitySelectionMode)
+        else if (ImGui.IsMouseDown(ImGuiMouseButton.Right))
         {
-            // Erase/delete tiles on this level layer!
+            // Erase/delete entities on this level layer!
             if (MenuOpenedLayer.IsTiled || ImGui.IsMouseClicked(ImGuiMouseButton.Right))
             {
                 if (MenuOpenedLayer.IsTiled && !IsDragDeleting)
