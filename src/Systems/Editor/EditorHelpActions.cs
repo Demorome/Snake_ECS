@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using Hexa.NET.ImGui;
 using MoonTools.ECS;
 using RollAndCash.GameStates;
+using RollAndCash.Systems;
 using static RollAndCash.Systems.EditorSystem;
 
 namespace RollAndCash.Editor;
@@ -14,45 +15,54 @@ public static class EditorHelpActions
     public class EditorAction
     {
         public EditorAction(string name, Action<World> action,
-            bool opensWindow = false, bool drawsOwnWindow = false, Func<bool> isDisabledFunc = null)
+            bool opensWindow = false,
+            Func<bool> isDisabledFunc = null)
         {
+            Name = name;
             WorldAction = action;
-            Name = name;
             OpensWindow = opensWindow;
-            IsDisabledFunc = isDisabledFunc;
+            MaybeIsDisabledFunc = isDisabledFunc;
         }
-        public EditorAction(string name, Func<bool> func)
+        public EditorAction(
+            string name, 
+            Action toggleAction, 
+            Func<bool> getFunc,
+            Func<bool> isDisabledFunc = null
+            )
         {
-            ToggleFunc = func;
             Name = name;
+            MaybeToggleAction = toggleAction;
+            MaybeGetFunc = getFunc;
+            MaybeIsDisabledFunc = isDisabledFunc;
         }
 
         public string Name;
         public Action<World> WorldAction = null;
-        public Func<bool> ToggleFunc = null;
-        public Func<bool> IsDisabledFunc = null;
+        public Action MaybeToggleAction = null;
+        public Func<bool> MaybeGetFunc = null;
+        public Func<bool> MaybeIsDisabledFunc = null;
         public bool OpensWindow = false;
         public bool ShowInEditWindow = false;
 
         public bool IsDisabled()
         {
-            if (IsDisabledFunc != null && IsDisabledFunc())
+            if (MaybeIsDisabledFunc != null && MaybeIsDisabledFunc())
             {
                 return true;
             }
             return false;
         }
 
-        public bool? Invoke(World world)
+        public void Invoke(World world)
         {
             if (IsDisabled())
             {
-                return false;
+                return;
             }
 
             if (WorldAction == null)
             {
-                return ToggleFunc();
+                MaybeToggleAction();
             }
             else
             {
@@ -64,7 +74,6 @@ public static class EditorHelpActions
                 {
                     WorldAction(world);
                 }
-                return null;
             }
         }
     };
@@ -72,34 +81,47 @@ public static class EditorHelpActions
     public static Dictionary<ImGuiKey, EditorAction> EditorHelpKeybinds = new()
     {
         { ImGuiKey.MouseX1,              new("Toggle Freeze All",
-            () => { return GameplayState.FreezeTimeForAll = !GameplayState.FreezeTimeForAll; } )
+            () => { GameplayState.FreezeTimeForAll = !GameplayState.FreezeTimeForAll; },
+            () => GameplayState.FreezeTimeForAll)
         },
         { ImGuiKey.MouseX2,              new("Toggle Selection Mode",
-             () => { return IsInEntitySelectionMode = !IsInEntitySelectionMode; } )
+            EditorSystem.ActiveTool.ToggleEntitySelection,  
+            () => { return EditorSystem.ActiveTool.CurrentMode == ToolMode.EntitySelection; },
+            () => { return !EditorTools.CanEnableEntitySelection(EditorSystem.ActiveTool.CurrentMode); })
         },
         { ImGuiKey.F1,                   new("Search By Component",
             DrawComponents.DrawComponentTypeSearch, true)
         },
         { ImGuiKey.F2,                   new("Lock Cursor Position",
-            () => { return GameplayState.LockingCursorPosition = !GameplayState.LockingCursorPosition; } )
+            () => { GameplayState.LockingCursorPosition = !GameplayState.LockingCursorPosition; },
+            () => GameplayState.LockingCursorPosition )
         },
         { ImGuiKey.ModCtrl | ImGuiKey.T, new("Show Colliders",
-            () => { return Renderer.DrawDebugColliders = !Renderer.DrawDebugColliders; } )
+            () => { Renderer.DrawDebugColliders = !Renderer.DrawDebugColliders; },
+            () => Renderer.DrawDebugColliders)
         },
         { ImGuiKey.ModCtrl | ImGuiKey.E, new("Toggle Level Editor",
-            () => { return LevelEditorManipulator.IsInLevelEditor = !LevelEditorManipulator.IsInLevelEditor; } )
+            () => { LevelEditorManipulator.IsInLevelEditor = !LevelEditorManipulator.IsInLevelEditor; },
+            () => LevelEditorManipulator.IsInLevelEditor )
         },
         { ImGuiKey.F3,                   new("Show Position Info",
-            () => { return IsShowingPositionInfo = !IsShowingPositionInfo; } )
+            () => { IsShowingPositionInfo = !IsShowingPositionInfo; },
+            () => IsShowingPositionInfo )
         },
     };
 
     public static Dictionary<ImGuiKey, EditorAction> EditorEditKeybinds = new()
     {
-        { ImGuiKey.ModCtrl | ImGuiKey.Z, new("Undo", UndoRedo.UndoLastChange, false, false,
-            () => !UndoRedo.HasChangesToUndo()) },
-        { ImGuiKey.ModCtrl | ImGuiKey.Y, new("Redo", UndoRedo.RedoLastChange, false, false,
-            () => !UndoRedo.HasChangesToRedo()) },
+        { ImGuiKey.ModCtrl | ImGuiKey.Z, new("Undo", 
+            UndoRedo.UndoLastChange, 
+            false,
+            () => !UndoRedo.HasChangesToUndo()) 
+        },
+        { ImGuiKey.ModCtrl | ImGuiKey.Y, new("Redo", 
+            UndoRedo.RedoLastChange, 
+            false,
+            () => !UndoRedo.HasChangesToRedo()) 
+        },
     };
 
     public static void HandleEditorKeybinds(World world)
@@ -149,14 +171,20 @@ public static class EditorHelpActions
                 ImGui.Text(KeyComboToString(keybind));
 
                 ImGui.TableNextColumn();
+                bool disabled = false;
+                if (namedAction.MaybeIsDisabledFunc != null && namedAction.MaybeIsDisabledFunc())
+                {
+                    disabled = true;
+                    ImGui.BeginDisabled();
+                }
                 if (ImGui.SmallButton(namedAction.Name))
                 {
                     namedAction.Invoke(world);
                 }
-                if (namedAction.ToggleFunc != null)
+                if (namedAction.MaybeToggleAction != null 
+                    && namedAction.MaybeGetFunc != null)
                 {
-                    var isChecked = !namedAction.ToggleFunc();
-                    namedAction.ToggleFunc(); // toggle it again to reset it to what it was (hacky, I know).
+                    bool isChecked = namedAction.MaybeGetFunc();
                     ImGui.SameLine();
 
                     // Style manipulation is so we can shrink the checkbox; 
@@ -166,9 +194,13 @@ public static class EditorHelpActions
                     style.FramePadding.Y = 0.0f;
                     if (ImGui.Checkbox($"##{namedAction.Name}Toggle", ref isChecked))
                     {
-                        namedAction.ToggleFunc();
+                        namedAction.MaybeToggleAction();
                     }
                     style.FramePadding.Y = oldYFramePadding;
+                }
+                if (disabled)
+                {
+                    ImGui.EndDisabled();
                 }
             }
             ImGui.EndTable();
