@@ -119,7 +119,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         }
         else if (EditorSystem.ActiveTool.CurrentMode == ToolMode.PaintingAndErasing)
         {
-            EditorSystem.ActiveTool.RevertToLastMode();
+            EditorSystem.ActiveTool.RevertToDefaultMode();
         }
     }
 

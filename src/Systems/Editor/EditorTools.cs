@@ -45,9 +45,9 @@ public class EditorTools
     }
     private ToolMode LastMode = ToolMode.DEFAULT;
 
-    public void RevertToLastMode()
+    public void RevertToDefaultMode()
     {
-        CurrentMode = LastMode;
+        CurrentMode = ToolMode.DEFAULT;
     }
 
     public bool TrySetMode(ToolMode newMode)

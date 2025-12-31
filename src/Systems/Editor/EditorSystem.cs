@@ -400,7 +400,7 @@ public class EditorSystem : MoonTools.ECS.System
             // Exit selection mode if we confirm our selection.
             if (ImGui.IsMouseClicked(ImGuiMouseButton.Left))
             {
-                ActiveTool.RevertToLastMode();
+                ActiveTool.RevertToDefaultMode();
                 Logger.LogInfo($"Selected {EntityToString(hoveredOverEntity)}");
             }
 
