@@ -1,6 +1,4 @@
 #if DEBUG
-//using static RollAndCash.Systems.EditorSystem;
-
 using Hexa.NET.ImGui;
 using MoonWorks;
 
