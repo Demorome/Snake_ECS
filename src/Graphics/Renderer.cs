@@ -430,7 +430,7 @@ public class Renderer : MoonTools.ECS.Renderer
 		}
 
 		//MARK: Show Grid
-		if (EditorSystem.ShowGrid)
+		if (EditorSystem.IsShowingGrid)
 		{
 			var color = new Color(EditorSystem.GridLineColor);
 			var depth = -(float)DepthLayer.Debug_GridVisual;

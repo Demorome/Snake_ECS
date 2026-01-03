@@ -111,9 +111,9 @@ public class EditorSystem : MoonTools.ECS.System
     }
 
     //MARK: Window Menu Bar
-    public static bool ShowGrid = true;
+    public static bool IsShowingGrid = true;
     public static Vector4 GridLineColor = (Color.DarkTurquoise * 0.5f).ToVector4();
-    public static void DrawWindowMenuBar(World world)
+    private static void DrawWindowMenuBar(World world)
     {
         if (ImGui.BeginMainMenuBar())
         {
@@ -139,7 +139,7 @@ public class EditorSystem : MoonTools.ECS.System
                 ImGui.PushItemFlag(ImGuiItemFlags.AutoClosePopups, false);
                 if (ImGui.BeginMenu("Grid"u8))
                 {
-                    ImGui.MenuItem("Toggle Grid"u8, "", ref ShowGrid);
+                    ImGui.MenuItem("Toggle Grid"u8, "", ref IsShowingGrid);
                     ImGui.ColorEdit4("Grid Line Color", ref GridLineColor);
 
                     ImGui.EndMenu();
