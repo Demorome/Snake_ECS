@@ -84,7 +84,7 @@ public class Collision : MoonTools.ECS.System
 
                 var rayLayer = Get<Layer>(movingEntity);
                 //var rayVec = newDirection * Get<HitscanSpeed>(movingEntity).Value;
-                var prevDistanceTravelled = currentPos.Distance(previousPos);
+                var prevDistanceTravelled = currentPos.PixelDistance(previousPos);
 
                 // Reduce prevDistanceTravelled until we're a pixel before the ray hit the collider.
                 Position2D? maybeHitPos;

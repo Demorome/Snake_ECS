@@ -16,6 +16,7 @@ public readonly record struct Rectangle(int X, int Y, int Width, int Height)
     public int Top => Y;
     public int Bottom => Y + Height;
     public Vector2 Size => new Vector2(Width, Height);
+    public Vector2 Center => new Vector2(X + (Width / 2), Y + (Height / 2));
 
     public bool Intersects(Rectangle other)
     {
@@ -236,6 +237,7 @@ public readonly record struct DrawDetectionCone();
 public readonly record struct CanBeDetected();
 public readonly record struct ChargingUpAttack();
 
+public readonly record struct CameraFocus();
 
 public readonly record struct HasVisualTrail();
 

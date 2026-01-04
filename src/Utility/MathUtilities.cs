@@ -33,10 +33,18 @@ public static class MathUtilities
     }
 
     // In radians
+    // FIXME: Does this need to be SafeNormalized?
     public static float GetHeadingAngle(Vector2 origin, Vector2 target)
     {
         var orientation = MathF.Atan2(target.Y - origin.Y, target.X - origin.X);
         return orientation;
+    }
+
+    public static Vector2 GetHeadingUnitVector(Vector2 origin, Vector2 target)
+    {
+        return UnitVectorFromAngle(
+            GetHeadingAngle(origin, target)
+        );
     }
 
     // In radians
@@ -62,6 +70,11 @@ public static class MathUtilities
 
     public static Vector2 UnitVectorFromAngle(float angleInRadians)
     {
-        return SafeNormalize(new Vector2(MathF.Cos(angleInRadians), MathF.Sin(angleInRadians)));
+        return SafeNormalize(
+            new Vector2(
+                MathF.Cos(angleInRadians), 
+                MathF.Sin(angleInRadians)
+            )
+        );
     }
 }
