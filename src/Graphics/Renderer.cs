@@ -210,7 +210,12 @@ public class Renderer : MoonTools.ECS.Renderer
         }
 	}
 
-	public void Render(CommandBuffer commandBuffer, Texture swapchainTexture, Window window, double alpha)
+	public void Render(
+		CommandBuffer commandBuffer, 
+		Texture swapchainTexture, 
+		Window window, 
+		double alpha
+	)
 	{
 		ArtSpriteBatch.Start();
 
