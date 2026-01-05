@@ -7,7 +7,11 @@ namespace MonoGame.Extended.ViewportAdapters
 {
     public enum BoxingMode
     {
+        /// <summary>
+        /// Means the game integer-scaled perfectly to the window.
+        /// </summary>
         None,
+
         Letterbox,
         Pillarbox
     }
