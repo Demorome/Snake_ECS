@@ -59,7 +59,7 @@ namespace MonoGame.Extended
         /// <summary>
         /// Gets the center position of the camera's view in world coordinates.
         /// </summary>
-        public abstract T WorldCenter { get; }
+        public abstract T Center { get; }
 
         /// <summary>
         /// Moves the camera by the specified direction vector.

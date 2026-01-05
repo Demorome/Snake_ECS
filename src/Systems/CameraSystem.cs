@@ -7,6 +7,8 @@ using MoonWorks;
 using RollAndCash.Utility;
 using MoonWorks.Math;
 using MonoGame.Extended;
+using MonoGame.Extended.ViewportAdapters;
+
 
 #if DEBUG
 using Hexa.NET.ImGui;
@@ -62,7 +64,7 @@ public class CameraSystem : MoonTools.ECS.System
             if (ImGui.Begin("Camera Info"u8, ref EditorSystem.IsShowingCameraInfo))
             {
                 ImGui.Text($"Position: {Camera.Position}");
-                ImGui.Text($"Center (world coords): {Camera.WorldCenter}");
+                ImGui.Text($"Center (world coords): {Camera.Center}");
                 ImGui.Text($"Origin: {Camera.Origin}");
                 ImGui.Text($"Rotation: {Camera.Rotation}");
                 ImGui.Text($"Zoom: {Camera.Zoom}");
@@ -78,6 +80,13 @@ public class CameraSystem : MoonTools.ECS.System
                 ImGui.Text($"Window Width: {adapter.Window.Width}");
                 ImGui.Text($"World/Game Height: {adapter.GameHeight}");
                 ImGui.Text($"World/Game Width: {adapter.GameWidth}");
+
+                if (adapter is BoxingViewportAdapter)
+                {
+                    var boxingAdapter = (BoxingViewportAdapter)adapter;
+                    ImGui.Text($"Boxing mode: {boxingAdapter.BoxingMode}");
+                    ImGui.Text($"Scale: {boxingAdapter.GetScale()}");
+                }
 
                 ImGui.SeparatorText("Camera System"u8);
                 ImGui.Text($"Num camera focuses: {CameraFocusFilter.Count}");
