@@ -570,7 +570,12 @@ public class ImGuiBackend : IDisposable
 
         pass.CommandBuffer.PushVertexUniformData(
             Matrix4x4.CreateOrthographicOffCenter(
-                0.0f, Game.MainWindow.Width, Game.MainWindow.Height, 0.0f, -1.0f, 1.0f
+                0.0f, 
+                Game.MainWindow.Width, 
+                Game.MainWindow.Height, 
+                0.0f, 
+                -1.0f, 
+                1.0f
             )
         );
 
