@@ -59,15 +59,15 @@ namespace MonoGame.Extended.ViewportAdapters
             var scaledGameWidth = (int)((scale * GameWidth) + 0.5f);
             var scaledGameHeight = (int)((scale * GameHeight) + 0.5f);
 
-            if (scaledGameHeight >= newHeight 
+            if (scaledGameHeight > newHeight 
                 && scaledGameWidth < newWidth)
             {
                 BoxingMode = BoxingMode.Pillarbox;
             }
             else
             {
-                if (scaledGameWidth >= newHeight 
-                    && scaledGameHeight <= newHeight)
+                if (scaledGameWidth > newHeight 
+                    && scaledGameHeight < newHeight)
                 {
                     BoxingMode = BoxingMode.Letterbox;
                 }
