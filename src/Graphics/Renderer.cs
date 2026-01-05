@@ -44,7 +44,7 @@ public class Renderer : MoonTools.ECS.Renderer
 	/// <summary>
 	/// Updated by the CameraSystem, which shares this camera.
 	/// </summary>
-	public readonly OrthographicCamera Camera;
+	readonly OrthographicCamera Camera;
 
 	RenderingManipulator RenderingManipulator;
 
