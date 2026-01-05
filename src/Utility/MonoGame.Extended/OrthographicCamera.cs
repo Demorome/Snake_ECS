@@ -141,7 +141,7 @@ namespace MonoGame.Extended
         public override Vector2 Origin { get; set; }
 
         /// <inheritdoc/>
-        public override Vector2 WorldCenter => Position + Origin;
+        public override Vector2 Center => Position + Origin;
 
         /// <summary>
         /// Gets the bounding rectangle that defines the limits of the camera's movement.
