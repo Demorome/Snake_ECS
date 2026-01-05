@@ -32,10 +32,10 @@ public class CameraSystem : MoonTools.ECS.System
     public static Position2D CurrentPosition = default;
     private static Position2D TargetPosition = default;
 
-    private static readonly int PixelsToMovePerSecondWhenAtMaxSpeed 
+    private static int PixelsToMovePerSecondWhenAtMaxSpeed 
         = (int)float.Ceiling(PlayerController.MaxPlayerSpeedBase);
-    private const int PixelsToMoveBeforeReachingFullSpeed = 8;
-    private const int DistanceFromTargetBeforeSlowingDown = 8;
+    private static int PixelsToMoveBeforeReachingFullSpeed = 8;
+    private static int DistanceFromTargetBeforeSlowingDown = 8;
     private static float DistanceTravelled = 0f;
 
 	MoonTools.ECS.Filter CameraFocusFilter;
@@ -81,7 +81,15 @@ public class CameraSystem : MoonTools.ECS.System
 
                 ImGui.SeparatorText("Camera System"u8);
                 ImGui.Text($"Num camera focuses: {CameraFocusFilter.Count}");
+                ImGui.Text($"CurrentPosition: {CurrentPosition}");
+                ImGui.Text($"TargetPosition: {TargetPosition}");
+                ImGui.Text($"CurrentZoomOutScale: {CurrentZoomOutScale}");
+                ImGui.Text($"TargetZoomOutScale: {TargetZoomOutScale}");
 
+                ImGui.Text($"DistanceFromTargetBeforeSlowingDown: {DistanceFromTargetBeforeSlowingDown}");
+                ImGui.Text($"PixelsToMoveBeforeReachingFullSpeed: {PixelsToMoveBeforeReachingFullSpeed}");
+                ImGui.Text($"PixelsToMovePerSecondWhenAtMaxSpeed: {PixelsToMovePerSecondWhenAtMaxSpeed}");
+                ImGui.Text($"DistanceTravelled: {DistanceTravelled}");
             }
             ImGui.End();
         }
