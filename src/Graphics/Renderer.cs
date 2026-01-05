@@ -18,6 +18,7 @@ using Hexa.NET.ImGui;
 using RollAndCash.Editor;
 using RollAndCash.Data;
 using RollAndCash.Rendering;
+using MonoGame.Extended;
 
 namespace RollAndCash;
 
@@ -39,6 +40,11 @@ public class Renderer : MoonTools.ECS.Renderer
 	public static bool DrawDebugColliders = false;
 	TileManipulator TileManipulator;
 #endif
+
+	/// <summary>
+	/// Updated by the CameraSystem, which shares this camera.
+	/// </summary>
+	public readonly OrthographicCamera Camera;
 
 	RenderingManipulator RenderingManipulator;
 
@@ -64,6 +70,7 @@ public class Renderer : MoonTools.ECS.Renderer
 		GraphicsDevice graphicsDevice,
 		TitleStorage titleStorage,
 		TextureFormat swapchainFormat,
+		OrthographicCamera camera,
 #if DEBUG
 		EditorSystem editorSystem
 #endif
@@ -82,6 +89,7 @@ public class Renderer : MoonTools.ECS.Renderer
 		EditorSystem = editorSystem;
 		TileManipulator = new(world);
 #endif
+		Camera = camera;
 		RenderingManipulator = new(world);
 
 		RenderTexture = Texture.Create2D(GraphicsDevice, "Render Texture", Dimensions.GAME_W, Dimensions.GAME_H,
@@ -522,36 +530,36 @@ public class Renderer : MoonTools.ECS.Renderer
 		commandBuffer.Blit(RenderTexture, swapchainTexture, MoonWorks.Graphics.Filter.Nearest);
 	}
 
-	// World-to-View matrix
-	public Matrix4x4 GetCameraMatrix()
+	//MARK: Matrices
+
+	private Matrix4x4 GetCameraMatrix()
 	{
-		return Matrix4x4.Identity;
+		return Camera.GetViewMatrix();
+		/*
+		return 
+			Matrix4x4.CreateTranslation(
+				new Vector3(-Camera.CurrentPosition.AsVector(), 0f)
+			) 
+			* Matrix4x4.CreateScale(Camera.CurrentZoomOutScale);*/
 	}
 
-	// View-to-Clip-space matrix
-	public Matrix4x4 GetProjectionMatrix()
+	private Matrix4x4 GetProjectionMatrix()
 	{
-		return Matrix4x4.CreateOrthographicOffCenter(
-			0,
-			Dimensions.GAME_W,
-			Dimensions.GAME_H,
-			0,
-			0.01f,
-			1000
-		);
+		return Camera.GetProjectionMatrix();
 	}
 	
 	
 #if DEBUG
+	// MARK: Helper funcs
 	const float DebugLineThickness = 1f;
 
-	public void DrawDebugRectangle(Entity entity, Rectangle rect, Color color, float depth, float lineThickness)
+	private void DrawDebugRectangle(Entity entity, Rectangle rect, Color color, float depth, float lineThickness)
 	{
 		var position = Get<Position2D>(entity);
 		DrawDebugRectangle(position, rect, color, depth, lineThickness);
 	}
 
-	public void DrawDebugRectangle(Position2D position, Rectangle rect, Color color, float depth, float lineThickness)
+	private void DrawDebugRectangle(Position2D position, Rectangle rect, Color color, float depth, float lineThickness)
 	{
 		var orientation = 0.0f;
 
@@ -621,7 +629,7 @@ public class Renderer : MoonTools.ECS.Renderer
 		}
 	}
 	
-	public void DrawDebugLine(
+	private void DrawDebugLine(
 		Vector2 position,
 		float length,
 		float thickness,

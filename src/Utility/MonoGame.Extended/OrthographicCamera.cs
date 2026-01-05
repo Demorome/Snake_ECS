@@ -1,0 +1,566 @@
+﻿using System;
+using System.Numerics;
+using MonoGame.Extended.ViewportAdapters;
+using MoonWorks;
+using MoonWorks.Graphics;
+using MoonWorks.Math;
+using RollAndCash.Components;
+using RollAndCash.Utility;
+
+namespace MonoGame.Extended
+{
+    /// <summary>
+    /// Represents an orthographic (2D) camera that provides view and projection transformations for rendering
+    /// within a 2D world.
+    /// </summary>
+    public sealed class OrthographicCamera : Camera<Vector2>
+    {
+        public readonly ViewportAdapter ViewportAdapter;
+        private float _maximumZoom = float.MaxValue;
+        private float _minimumZoom;
+        private float _zoom;
+        private Vector2 _position;
+        private Rectangle _worldBounds;
+        private bool _clampZoomToWorldBounds;
+
+        /// <inheritdoc/>
+        /// <remarks>
+        /// When <see cref="IsClampedToWorldBounds"/> is <see langword="true"/>, the camera position is clamped so that its
+        /// view remains within the defined <see cref="WorldBounds"/>.
+        /// </remarks>
+        public override Vector2 Position
+        {
+            get => _position;
+            set
+            {
+                _position = value;
+
+                if (IsClampedToWorldBounds)
+                {
+                    ClampPositionToWorldBounds();
+                }
+            }
+        }
+
+        /// <inheritdoc/>
+        public override float Rotation { get; set; }
+
+        /// <inheritdoc/>
+        /// <remarks>
+        /// When <see cref="IsClampedToWorldBounds"/> is <see langword="true"/>, the camera zoom is clamped so that its
+        /// view remains within the defined <see cref="WorldBounds"/>.
+        /// </remarks>
+        public override float Zoom
+        {
+            get => _zoom;
+            set
+            {
+                _zoom = value;
+
+                bool canClampToWorldBounds = CanClampToWorldBounds();
+
+                if (IsZoomClampedToWorldBounds && canClampToWorldBounds)
+                {
+                    ClampZoomToWorldBounds();
+                }
+
+                _zoom = Math.Clamp(_zoom, _minimumZoom, _maximumZoom);
+
+                if (canClampToWorldBounds)
+                {
+                    ClampPositionToWorldBounds();
+                }
+            }
+        }
+
+        /// <inheritdoc/>
+        public override float MinimumZoom
+        {
+            get => _minimumZoom;
+            set
+            {
+                ArgumentOutOfRangeException.ThrowIfLessThan(value, 0);
+                _minimumZoom = value;
+
+                bool canClampToWorldBounds = CanClampToWorldBounds();
+
+                if (IsZoomClampedToWorldBounds && canClampToWorldBounds)
+                {
+                    ClampZoomToWorldBounds();
+                }
+
+                _zoom = Math.Clamp(_zoom, _minimumZoom, _maximumZoom);
+
+                if (canClampToWorldBounds)
+                {
+                    ClampPositionToWorldBounds();
+                }
+            }
+        }
+
+        /// <inheritdoc/>
+        public override float MaximumZoom
+        {
+            get => _maximumZoom;
+            set
+            {
+                ArgumentOutOfRangeException.ThrowIfLessThan(value, 0);
+                _maximumZoom = value;
+                bool canClampToWorldBounds = CanClampToWorldBounds();
+
+                if (IsZoomClampedToWorldBounds && canClampToWorldBounds)
+                {
+                    ClampZoomToWorldBounds();
+                }
+
+                _zoom = Math.Clamp(_zoom, _minimumZoom, _maximumZoom);
+
+                if (canClampToWorldBounds)
+                {
+                    ClampPositionToWorldBounds();
+                }
+            }
+        }
+
+        /// <inheritdoc/>
+        /*public override Rectangle BoundingRectangle
+        {
+            get
+            {
+                var frustum = GetBoundingFrustum();
+                var corners = frustum.GetCorners();
+                var topLeft = corners[0];
+                var bottomRight = corners[2];
+                var width = bottomRight.X - topLeft.X;
+                var height = bottomRight.Y - topLeft.Y;
+                return new Rectangle(topLeft.X, topLeft.Y, width, height);
+            }
+        }/*/
+
+        /// <inheritdoc/>
+        public override Vector2 Origin { get; set; }
+
+        /// <inheritdoc/>
+        public override Vector2 WorldCenter => Position + Origin;
+
+        /// <summary>
+        /// Gets the bounding rectangle that defines the limits of the camera's movement.
+        /// </summary>
+        /// <remarks>
+        /// Use <see cref="EnableWorldBounds(Rectangle)"/> to set world bounds and enable constraints,
+        /// or <see cref="DisableWorldBounds()"/> to remove constraints.
+        /// </remarks>
+        public Rectangle WorldBounds => _worldBounds;
+
+        /// <summary>
+        /// Gets a value indicating whether the camera is currently constrained within world bounds.
+        /// </summary>
+        /// <remarks>
+        /// Use <see cref="EnableWorldBounds(Rectangle)"/> to enable world bounds constraints,
+        /// or <see cref="DisableWorldBounds()"/> to disable them.
+        /// </remarks>
+        public bool IsClampedToWorldBounds { get; private set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the camera zoom should be clamped to world bounds.
+        /// </summary>
+        /// <remarks>
+        /// When <see langword="true"/>, the camera zoom is constrained so that the view cannot extend
+        /// beyond the world bounds. When <see langword="false"/>, zoom is only constrained by
+        /// <see cref="MinimumZoom"/> and <see cref="MaximumZoom"/>.
+        /// This property only has effect when <see cref="IsClampedToWorldBounds"/> is <see langword="true"/>.
+        /// </remarks>
+        public bool IsZoomClampedToWorldBounds
+        {
+            get => _clampZoomToWorldBounds;
+            set
+            {
+                _clampZoomToWorldBounds = value;
+
+                if (value)
+                {
+                    ClampZoomToWorldBounds();
+                    _zoom = Math.Clamp(_zoom, _minimumZoom, _maximumZoom);
+                    ClampPositionToWorldBounds();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="OrthographicCamera"/> class.
+        /// </summary>
+        /// <remarks>
+        /// This constructor uses the <see cref="DefaultViewportAdapter"/>.
+        /// </remarks>
+        public OrthographicCamera(Window window)
+            : this(new DefaultViewportAdapter(window))
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="OrthographicCamera"/> 
+        /// class using the specified viewport adapter.
+        /// </summary>
+        /// <param name="viewportAdapter">
+        /// The viewport adapter that defines how world 
+        /// and screen coordinates are transformed.
+        /// </param>
+        public OrthographicCamera(ViewportAdapter viewportAdapter)
+        {
+            ViewportAdapter = viewportAdapter;
+
+            Rotation = 0;
+            Zoom = 1;
+            Origin = new Vector2(
+                viewportAdapter.GameWidth / 2f, 
+                viewportAdapter.GameHeight / 2f
+            );
+            Position = Vector2.Zero;
+        }
+
+        /// <inheritdoc/>
+        public override void Move(Vector2 direction)
+        {
+            Position += Vector2.Transform(direction, Matrix4x4.CreateRotationZ(-Rotation));
+        }
+
+        /// <inheritdoc/>
+        public override void Rotate(float deltaRadians)
+        {
+            Rotation += deltaRadians;
+        }
+
+        /// <inheritdoc/>
+        public override void ZoomIn(float deltaZoom)
+        {
+            Zoom += deltaZoom;
+        }
+
+        /// <summary>
+        /// Increases the camera's zoom level while maintaining a specified world position as the zoom center.
+        /// </summary>
+        /// <param name="deltaZoom">The amount to increase the zoom by.</param>
+        /// <param name="zoomCenter">
+        /// The world position to use as the zoom center. This point will remain fixed in screen space
+        /// as the zoom changes.
+        /// </param>
+        public void ZoomIn(float deltaZoom, Vector2 zoomCenter)
+        {
+            float previousZoom = Zoom;
+            Zoom += deltaZoom;
+
+            if (Zoom != previousZoom)
+            {
+                Position += (zoomCenter - Origin - Position) * ((Zoom - previousZoom) / Zoom);
+            }
+        }
+
+        /// <inheritdoc/>
+        public override void ZoomOut(float deltaZoom)
+        {
+            Zoom -= deltaZoom;
+        }
+
+        /// <summary>
+        /// Decreases the camera's zoom level while maintaining a specified world position as the zoom center.
+        /// </summary>
+        /// <param name="deltaZoom">The amount to decrease the zoom by.</param>
+        /// <param name="zoomCenter">
+        /// The world position to use as the zoom center. This point will remain fixed in screen space
+        /// as the zoom changes.
+        /// </param>
+        public void ZoomOut(float deltaZoom, Vector2 zoomCenter)
+        {
+            float previousZoom = Zoom;
+            Zoom -= deltaZoom;
+
+            if (Zoom != previousZoom)
+            {
+                Position += (zoomCenter - Origin - Position) * ((Zoom - previousZoom) / Zoom);
+            }
+        }
+
+        /// <inheritdoc/>
+        /// <remarks>
+        /// The camera is positioned so that the specified <paramref name="position"/> appears at the center of
+        /// the viewport.
+        /// </remarks>
+        public override void LookAt(Vector2 position)
+        {
+            Position = position - new Vector2(
+                ViewportAdapter.GameWidth / 2f, 
+                ViewportAdapter.GameHeight / 2f
+            );
+        }
+
+        /// <summary>
+        /// Converts a position from world coordinates to screen coordinates.
+        /// </summary>
+        /// <param name="x">The x-position in world coordinates.</param>
+        /// <param name="y">The y-position in world coordinates.</param>
+        /// <returns>The corresponding position in screen coordinates.</returns>
+        public Vector2 WorldToScreen(float x, float y)
+        {
+            return WorldToScreen(new Vector2(x, y));
+        }
+
+        /// <inheritdoc/>
+        public override Vector2 WorldToScreen(Vector2 worldPosition)
+        {
+            Vector2 screenPosition 
+                = Vector2.Transform(worldPosition, GetViewMatrix());
+
+            // For scaling viewport adapters, the viewport offset 
+            // is part of the coordinate transformation
+            if (ViewportAdapter is ScalingViewportAdapter)
+            {
+                var viewport = ViewportAdapter.Viewport;
+                screenPosition += new Vector2(viewport.X, viewport.Y);
+            }
+
+            return screenPosition;
+        }
+
+        /// <summary>
+        /// Converts a position from screen coordinates to world coordinates.
+        /// </summary>
+        /// <param name="x">The x-position in screen coordinates.</param>
+        /// <param name="y">The y-position in screen coordinates.</param>
+        /// <returns>The corresponding position in world coordinates.</returns>
+        public Vector2 ScreenToWorld(float x, float y)
+        {
+            return ScreenToWorld(new Vector2(x, y));
+        }
+
+        /// <inheritdoc/>
+        public override Vector2 ScreenToWorld(Vector2 screenPosition)
+        {
+            // For scaling viewport adapters, the viewport offset 
+            // is part of the coordinate transformation
+            if (ViewportAdapter is ScalingViewportAdapter)
+            {
+                var viewport = ViewportAdapter.Viewport;
+                screenPosition -= new Vector2(viewport.X, viewport.Y);
+            }
+
+            return Vector2.Transform(screenPosition, GetInverseViewMatrix());
+        }
+
+        /// <summary>
+        /// Gets the view transformation matrix for the camera, 
+        /// applying a parallax factor.
+        /// </summary>
+        /// <param name="parallaxFactor">
+        /// The parallax factor to apply to the camera position. <br/>
+        /// A value of (1,1) applies no parallax,
+        /// while values closer to (0,0) create a stronger parallax effect 
+        /// for background layers.
+        /// </param>
+        /// <returns>
+        /// A <see cref="Matrix"/> representing the camera's 
+        /// view transformation with the specified parallax factor applied.
+        /// </returns>
+        public Matrix4x4 GetViewMatrix(Vector2 parallaxFactor)
+        {
+            return GetVirtualViewMatrix(parallaxFactor) 
+                * ViewportAdapter.GetScaleMatrix();
+        }
+
+        private Matrix4x4 GetVirtualViewMatrix(Vector2 parallaxFactor)
+        {
+            // Credits to https://gamedev.stackexchange.com/a/59450/200568
+            return
+                Matrix4x4.CreateTranslation(
+                    new Vector3(-Position * parallaxFactor, 0.0f)) *
+                Matrix4x4.CreateTranslation(new Vector3(-Origin, 0.0f)) *
+                Matrix4x4.CreateRotationZ(Rotation) *
+                Matrix4x4.CreateScale(Zoom, Zoom, 1) *
+                Matrix4x4.CreateTranslation(new Vector3(Origin, 0.0f));
+        }
+
+        private Matrix4x4 GetVirtualViewMatrix()
+        {
+            return GetVirtualViewMatrix(Vector2.One);
+        }
+
+        /// <inheritdoc/>
+        public override Matrix4x4 GetViewMatrix()
+        {
+            return GetViewMatrix(Vector2.One);
+        }
+
+        /// <inheritdoc/>
+        public override Matrix4x4 GetInverseViewMatrix()
+        {
+            Matrix4x4 invertedMatrix;
+            if (!Matrix4x4.Invert(GetViewMatrix(), out invertedMatrix))
+            {
+                throw new Exception("Unable to invert view matrix!");
+            }
+            return invertedMatrix;
+        }
+
+        public const float NearPlaneZ = 0.01f;
+        public const float FarPlaneZ = 1000f;
+
+        /// <summary>
+        /// AKA the View-to-Clip-space matrix.
+        /// </summary>
+        public Matrix4x4 GetProjectionMatrix()
+        {
+            return Matrix4x4.CreateOrthographicOffCenter(
+                0, 
+                ViewportAdapter.GameWidth, 
+                ViewportAdapter.GameHeight,
+                0, 
+                NearPlaneZ,
+                FarPlaneZ
+            );
+        }
+
+        /// <inheritdoc/>
+        /*public override BoundingFrustum GetBoundingFrustum()
+        {
+            var viewMatrix = GetVirtualViewMatrix();
+            var projectionMatrix = GetProjectionMatrix(viewMatrix);
+            return new BoundingFrustum(projectionMatrix);
+        }
+
+        /// <summary>
+        /// Determines whether the camera's view contains the specified point.
+        /// </summary>
+        /// <param name="point">The point to test, in world coordinates.</param>
+        /// <returns>
+        /// A <see cref="ContainmentType"/> indicating whether the point is inside, outside, or
+        /// intersects the camera's view.
+        /// </returns>
+        public ContainmentType Contains(Point point)
+        {
+            return Contains(point.ToVector2());
+        }
+
+        /// <inheritdoc/>
+        public override ContainmentType Contains(Vector2 vector2)
+        {
+            return GetBoundingFrustum().Contains(new Vector3(vector2.X, vector2.Y, 0));
+        }
+
+        /// <inheritdoc/>
+        public override ContainmentType Contains(Rectangle rectangle)
+        {
+            var max = new Vector3(rectangle.X + rectangle.Width, rectangle.Y + rectangle.Height, 0.5f);
+            var min = new Vector3(rectangle.X, rectangle.Y, 0.5f);
+            var boundingBox = new BoundingBox(min, max);
+            return GetBoundingFrustum().Contains(boundingBox);
+        }*/
+
+        /// <summary>
+        /// Enables world bounds constraint for the camera and sets the bounding rectangle.
+        /// </summary>
+        /// <param name="worldBounds">
+        /// The bounding rectangle that defines the limits of the camera's movement and zoom.
+        /// </param>
+        /// <remarks>
+        /// When world bounds are enabled, the camera position and zoom are automatically clamped to
+        /// ensure the visible area does not extend beyond the specified bounds. This only applies
+        /// when the camera has no rotation and the pitch is 1.0.
+        /// </remarks>
+        public void EnableWorldBounds(Rectangle worldBounds)
+        {
+            _worldBounds = worldBounds;
+            IsClampedToWorldBounds = true;
+            ClampPositionToWorldBounds();
+        }
+
+        /// <summary>
+        /// Disables world bounds constraint for the camera.
+        /// </summary>
+        /// <remarks>
+        /// When world bounds are disabled, the camera can move and zoom freely without any constraints.
+        /// The world bounds rectangle is reset to <see cref="Rectangle.Empty"/>.
+        /// </remarks>
+        public void DisableWorldBounds()
+        {
+            _worldBounds = default;
+            IsClampedToWorldBounds = false;
+        }
+
+        private void ClampZoomToWorldBounds()
+        {
+            // Calculate the size of the area the camera can see
+            Vector2 cameraSize = new Vector2(
+                ViewportAdapter.GameWidth, 
+                ViewportAdapter.GameHeight
+            );
+            cameraSize /= _zoom;
+
+            // Only enforce minimum zoom if the camera view is larger than world bounds
+            if (cameraSize.X > _worldBounds.Width || cameraSize.Y > _worldBounds.Height)
+            {
+                float minZoomX = 
+                    (float)ViewportAdapter.GameWidth / _worldBounds.Width;
+                float minZoomY = 
+                    (float)ViewportAdapter.GameHeight / _worldBounds.Height;
+                float minZoom = Math.Max(minZoomX, minZoomY);
+
+                if (_zoom < minZoom)
+                {
+                    _zoom = minZoom;
+                }
+            }
+        }
+
+        private void ClampPositionToWorldBounds()
+        {
+            // Calculate the size of the area the camera can see
+            Vector2 cameraSize = new Vector2(
+                ViewportAdapter.GameWidth, 
+                ViewportAdapter.GameHeight
+            );
+            cameraSize /= _zoom;
+
+            // If the world bounds are smaller than the camera view, 
+            // then we center the camera in the world bounds.
+            if (_worldBounds.Width < cameraSize.X 
+                || _worldBounds.Height < cameraSize.Y)
+            {
+                _position = _worldBounds.Center - Origin;
+                return;
+            }
+
+            // Get the camera's top-left corner in world space
+            Matrix4x4 inverseViewMatrix = GetInverseViewMatrix();
+            Vector2 cameraWorldMin = Vector2.Transform(Vector2.Zero, inverseViewMatrix);
+
+            Vector2 worldBoundsMin = new Vector2(_worldBounds.Left, _worldBounds.Top);
+            Vector2 worldBoundsMax = new Vector2(_worldBounds.Right, _worldBounds.Bottom);
+
+            // Calculate difference between position and world-space top-left.
+            Vector2 positionOffset = _position - cameraWorldMin;
+
+            // Clamp the camera's world-space top-left corner, then apply the offset
+            _position = Vector2.Clamp(
+                cameraWorldMin, 
+                worldBoundsMin, 
+                worldBoundsMax - cameraSize
+            );
+            _position += positionOffset;
+        }
+
+        private bool CanClampToWorldBounds()
+        {
+            if (!IsClampedToWorldBounds 
+                || _worldBounds.Width <= 0 || _worldBounds.Height <= 0)
+            {
+                return false;
+            }
+
+            if (Math.Abs(Rotation - 0.0f) >= 0.001f)
+            {
+                return false;
+            }
+
+            return true;
+        }
+    }
+}

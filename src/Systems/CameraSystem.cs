@@ -6,11 +6,18 @@ using System.Numerics;
 using MoonWorks;
 using RollAndCash.Utility;
 using MoonWorks.Math;
+using MonoGame.Extended;
+
+#if DEBUG
+using Hexa.NET.ImGui;
+#endif
 
 namespace RollAndCash.Systems;
 
-public class Camera : MoonTools.ECS.System
+public class CameraSystem : MoonTools.ECS.System
 {
+    public readonly OrthographicCamera Camera;
+
     /// <summary>
     /// Snaps to integer-mults, to maintain pixel-perfect rendering.
     /// The greater the value, the more zoomed out the camera is.
@@ -33,8 +40,11 @@ public class Camera : MoonTools.ECS.System
 
 	MoonTools.ECS.Filter CameraFocusFilter;
 
-	public Camera(World world) : base(world)
+	public CameraSystem(World world,
+        OrthographicCamera camera) : base(world)
     {
+        Camera = camera;
+
         CameraFocusFilter = 
             FilterBuilder
             .Include<CameraFocus>()
@@ -45,6 +55,37 @@ public class Camera : MoonTools.ECS.System
 	public override void Update(TimeSpan delta)
 	{
 		var dt = (float)delta.TotalSeconds;
+
+#if DEBUG
+        if (EditorSystem.IsShowingCameraInfo)
+        {
+            if (ImGui.Begin("Camera Info"u8, ref EditorSystem.IsShowingCameraInfo))
+            {
+                ImGui.Text($"Position: {Camera.Position}");
+                ImGui.Text($"Center (world coords): {Camera.WorldCenter}");
+                ImGui.Text($"Origin: {Camera.Origin}");
+                ImGui.Text($"Rotation: {Camera.Rotation}");
+                ImGui.Text($"Zoom: {Camera.Zoom}");
+
+                ImGui.Text($"IsClampedToWorldBounds: {Camera.IsClampedToWorldBounds}");
+                ImGui.Text($"IsZoomClampedToWorldBounds: {Camera.IsZoomClampedToWorldBounds}");
+
+                ImGui.SeparatorText("Viewport Adapter"u8);
+                var adapter = Camera.ViewportAdapter;
+                ImGui.Text($"Type: {adapter.GetType()}");
+                ImGui.Text($"Viewport: X: {adapter.Viewport.X}, Y: {adapter.Viewport.Y}, H: {adapter.Viewport.H}, W: {adapter.Viewport.W}");
+                ImGui.Text($"Window Height: {adapter.Window.Height}");
+                ImGui.Text($"Window Width: {adapter.Window.Width}");
+                ImGui.Text($"World/Game Height: {adapter.GameHeight}");
+                ImGui.Text($"World/Game Width: {adapter.GameWidth}");
+
+                ImGui.SeparatorText("Camera System"u8);
+                ImGui.Text($"Num camera focuses: {CameraFocusFilter.Count}");
+
+            }
+            ImGui.End();
+        }
+#endif
 
         if (!LevelEditorManipulator.IsInLevelEditor)
         {

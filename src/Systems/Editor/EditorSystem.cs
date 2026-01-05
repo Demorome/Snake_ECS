@@ -295,6 +295,8 @@ public class EditorSystem : MoonTools.ECS.System
         ImGui.End();
     }
 
+    public static bool IsShowingCameraInfo = false;
+
     //MARK: Selection Mode
     static SpatialHash<Entity> VisualEntitiesSpatialHash =
         new SpatialHash<Entity>(0, 0, Dimensions.GAME_W, Dimensions.GAME_H, 32);

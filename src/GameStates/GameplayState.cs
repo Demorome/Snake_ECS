@@ -1,4 +1,6 @@
 using System;
+using MonoGame.Extended;
+using MonoGame.Extended.ViewportAdapters;
 using MoonTools.ECS;
 using MoonWorks;
 using MoonWorks.Graphics;
@@ -38,6 +40,7 @@ public class GameplayState : GameState
     DetectionSystem DetectionSystem;
     EnemySystem EnemySystem;
     TrailVisualSystem TrailVisualSystem;
+    CameraSystem CameraSystem;
 
     ActorManipulator ActorManipulator;
 
@@ -86,6 +89,13 @@ public class GameplayState : GameState
         EnemySystem = new(World);
         TrailVisualSystem = new(World);
 
+        // FIXME: Can't create multiple BoxingViewportAdapters in other states,
+        // since that could cause multiple window resize callbacks to get stacked.
+        var camera = new OrthographicCamera(
+            new BoxingViewportAdapter(Game.MainWindow)
+        );
+        CameraSystem = new(World, camera);   
+
         ActorManipulator = new(World);
 
 #if DEBUG
@@ -95,7 +105,8 @@ public class GameplayState : GameState
             World,
             Game.GraphicsDevice,
             Game.RootTitleStorage,
-            Game.MainWindow.SwapchainFormat
+            Game.MainWindow.SwapchainFormat,
+            camera
 #if DEBUG
             , ImGuiEditor
 #endif
@@ -160,11 +171,13 @@ public class GameplayState : GameState
             ColorAnimation.Update(dt);
             FlickerSystem.Update(dt);
             FlipAnimationSystem.Update(dt);
+            CameraSystem.Update(dt);
 #if DEBUG
         }
         else
         {
             Input.Update(dt);
+            CameraSystem.Update(dt);
         }
 
         ImGuiEditor.Update(dt);

@@ -108,6 +108,10 @@ public static class EditorHelpActions
             () => { IsShowingPositionInfo = !IsShowingPositionInfo; },
             () => IsShowingPositionInfo )
         },
+        { ImGuiKey.F4,                   new("Show Camera Info",
+            () => { IsShowingCameraInfo = !IsShowingCameraInfo; },
+            () => IsShowingCameraInfo )
+        },
     };
 
     public static Dictionary<ImGuiKey, EditorAction> EditorEditKeybinds = new()

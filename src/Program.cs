@@ -36,6 +36,9 @@ namespace RollAndCash
 			};
 #endif
 
+			// FIXME: Allow arbitrary resolution, 
+			// w/ black borders by setting Viewport so we don't render in those letterbox corners?
+
 			FramePacingSettings framePacingSettings = 
 				FramePacingSettings.CreateLatencyOptimized(60, 6);
 
