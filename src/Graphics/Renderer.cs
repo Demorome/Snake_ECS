@@ -48,8 +48,7 @@ public class Renderer : MoonTools.ECS.Renderer
 
 	RenderingManipulator RenderingManipulator;
 
-	Texture RenderTexture;
-	Texture DepthTexture;
+	Texture DepthTexture = null;
 
 	Texture SpriteAtlasTexture;
 
@@ -65,8 +64,27 @@ public class Renderer : MoonTools.ECS.Renderer
 	MoonTools.ECS.Filter ColliderFilter;
 #endif
 
+	// FIXME: Resize to window size if the window size changes!
+	private void ReCreateDepthTexture(uint windowWidth, uint windowHeight)
+	{
+		if (DepthTexture != null)
+		{
+			DepthTexture.Dispose();
+		}
+
+		DepthTexture = Texture.Create2D(
+			GraphicsDevice, 
+			"Depth Texture", 
+			windowWidth,
+			windowHeight,
+			TextureFormat.D16Unorm,
+			TextureUsageFlags.DepthStencilTarget
+		);
+	}
+
 	public Renderer(
 		World world,
+		Window window,
 		GraphicsDevice graphicsDevice,
 		TitleStorage titleStorage,
 		TextureFormat swapchainFormat,
@@ -92,15 +110,7 @@ public class Renderer : MoonTools.ECS.Renderer
 		Camera = camera;
 		RenderingManipulator = new(world);
 
-		RenderTexture = Texture.Create2D(GraphicsDevice, "Render Texture", Dimensions.GAME_W, Dimensions.GAME_H,
-			swapchainFormat,
-			TextureUsageFlags.ColorTarget | TextureUsageFlags.Sampler
-		);
-
-		DepthTexture = Texture.Create2D(GraphicsDevice, "Depth Texture", Dimensions.GAME_W, Dimensions.GAME_H,
-			TextureFormat.D16Unorm,
-			TextureUsageFlags.DepthStencilTarget
-		);
+		ReCreateDepthTexture(window.Width, window.Height);
 
 		SpriteAtlasTexture = TextureAtlases.TP_Sprites.Texture;
 
@@ -157,7 +167,12 @@ public class Renderer : MoonTools.ECS.Renderer
 		);
 #endif
 
-		TriangleBatch = new TriangleBatch(GraphicsDevice, titleStorage, swapchainFormat, TextureFormat.D16Unorm);
+		TriangleBatch = new TriangleBatch(
+			GraphicsDevice, 
+			titleStorage, 
+			swapchainFormat, 
+			TextureFormat.D16Unorm
+		);
 
 		// TODO: If I have multiple tileset textures, is there a limit to how many batchers I can have at once?
 		TileSpriteBatches = new();
@@ -486,10 +501,13 @@ public class Renderer : MoonTools.ECS.Renderer
 		//MARK: RENDER PASS
 		var renderPass = commandBuffer.BeginRenderPass(
 			new DepthStencilTargetInfo(DepthTexture, 1, 0),
-			new ColorTargetInfo(RenderTexture, Color.Black)
+			new ColorTargetInfo(swapchainTexture, Color.Black)
 		);
 
-		var viewProjectionMatrices = new ViewProjectionMatrices(GetCameraMatrix(), GetProjectionMatrix());
+		var viewProjectionMatrices = new ViewProjectionMatrices(
+			GetCameraMatrix(), 
+			GetProjectionMatrix()
+		);
 
 		if (ArtSpriteBatch.InstanceCount > 0)
 		{
@@ -526,8 +544,6 @@ public class Renderer : MoonTools.ECS.Renderer
 		TextBatch.Render(renderPass, GetCameraMatrix() * GetProjectionMatrix());
 
 		commandBuffer.EndRenderPass(renderPass);
-
-		commandBuffer.Blit(RenderTexture, swapchainTexture, MoonWorks.Graphics.Filter.Nearest);
 	}
 
 	//MARK: Matrices

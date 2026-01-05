@@ -103,6 +103,7 @@ public class GameplayState : GameState
 #endif
         Renderer = new Renderer(
             World,
+            Game.MainWindow,
             Game.GraphicsDevice,
             Game.RootTitleStorage,
             Game.MainWindow.SwapchainFormat,
