@@ -24,7 +24,8 @@ namespace RollAndCash
 				WindowWidth = 1280,
 				WindowHeight = 720,
 				WindowTitle = "ROLL AND CASH: GROCERY LORDS: A LONDON JERRY STORY",
-				ScreenMode = ScreenMode.Windowed
+				ScreenMode = ScreenMode.Windowed,
+				SystemResizable = true
 			};
 #else
 			WindowCreateInfo windowCreateInfo = new WindowCreateInfo
