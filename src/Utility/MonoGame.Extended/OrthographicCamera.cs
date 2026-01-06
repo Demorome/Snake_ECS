@@ -362,8 +362,8 @@ namespace MonoGame.Extended
         /// </returns>
         public Matrix4x4 GetViewMatrix(Vector2 parallaxFactor)
         {
-            return GetVirtualViewMatrix(parallaxFactor) 
-                * ViewportAdapter.GetScaleMatrix();
+            return GetVirtualViewMatrix(parallaxFactor);
+               /// * ViewportAdapter.GetScaleMatrix();
         }
 
         private Matrix4x4 GetVirtualViewMatrix(Vector2 parallaxFactor)

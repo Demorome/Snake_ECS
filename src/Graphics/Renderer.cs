@@ -64,7 +64,6 @@ public class Renderer : MoonTools.ECS.Renderer
 	MoonTools.ECS.Filter ColliderFilter;
 #endif
 
-	// FIXME: Resize to window size if the window size changes!
 	private void ReCreateDepthTexture(uint windowWidth, uint windowHeight)
 	{
 		if (DepthTexture != null)
@@ -109,6 +108,11 @@ public class Renderer : MoonTools.ECS.Renderer
 #endif
 		Camera = camera;
 		RenderingManipulator = new(world);
+
+		window.RegisterSizeChangeCallback(
+			new Action<uint, uint>(ReCreateDepthTexture)
+			+ camera.ViewportAdapter.OnWindowResize_UpdateViewport
+		);
 
 		ReCreateDepthTexture(window.Width, window.Height);
 
@@ -555,7 +559,7 @@ public class Renderer : MoonTools.ECS.Renderer
 
 	private Matrix4x4 GetCameraMatrix()
 	{
-		return Camera.GetViewMatrix();
+		return Matrix4x4.Identity;// Camera.GetViewMatrix();
 		/*
 		return 
 			Matrix4x4.CreateTranslation(

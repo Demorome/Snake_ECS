@@ -20,7 +20,7 @@ namespace MonoGame.Extended.ViewportAdapters
             return BasicPointToScreen(x, y, GetScaleMatrix());
         }
 
-        protected override void OnWindowResize_UpdateViewport(
+        public override void OnWindowResize_UpdateViewport(
             uint newWidth, uint newHeight)
         {
             Viewport = new Viewport(0, 0, newWidth, newHeight);

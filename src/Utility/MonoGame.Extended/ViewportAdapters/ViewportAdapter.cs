@@ -18,9 +18,6 @@ namespace MonoGame.Extended.ViewportAdapters
         {
             Window = window;
 
-            // FIXME: Unregister size change callback if we dispose this???
-            Window.RegisterSizeChangeCallback(OnWindowResize_UpdateViewport);
-
             // Init viewport.
             OnWindowResize_UpdateViewport(Window.Width, Window.Height);
         }
@@ -68,7 +65,7 @@ namespace MonoGame.Extended.ViewportAdapters
         /// but that behavior may change if they want to support 
         /// checking the old size, to compare the size change.
         /// </summary>
-        protected abstract void OnWindowResize_UpdateViewport( 
+        public abstract void OnWindowResize_UpdateViewport( 
             uint newWidth, 
             uint newHeight
         );

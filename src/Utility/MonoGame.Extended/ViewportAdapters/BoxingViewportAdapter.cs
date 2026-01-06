@@ -45,7 +45,7 @@ namespace MonoGame.Extended.ViewportAdapters
 
         public BoxingMode BoxingMode { get; private set; }
 
-        protected override void OnWindowResize_UpdateViewport(
+        public override void OnWindowResize_UpdateViewport(
             uint newWidth, uint newHeight)
         {            
             var worldScaleX = (float)newWidth / GameWidth;
