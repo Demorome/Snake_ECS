@@ -592,7 +592,7 @@ public class Renderer : MoonTools.ECS.Renderer
 	/// and may have empty filler borders. <br/>
 	/// This is useful to maintain a pixel-perfect aspect ratio.
 	/// </summary>
-	/// <param name="destination">Assumed to be the swapchaing (window) texture.</param>
+	/// <param name="destination">Assumed to be the swapchain (window) texture.</param>
 	/// <exception cref="Exception"></exception>
 	private void LetterboxBlit(
 		CommandBuffer commandBuffer, 
