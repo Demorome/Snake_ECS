@@ -70,6 +70,15 @@ namespace MonoGame.Extended.ViewportAdapters
             uint newHeight
         );
 
+        /// <summary>
+        /// Forces a refresh-update of the viewport adapter.
+        /// Useful if you changed the internal state, for example.
+        /// </summary>
+        public void Refresh()
+        {
+            OnWindowResize_UpdateViewport(Window.Width, Window.Height);
+        }
+
         protected static void BasicOnWindowResize(
             uint newWidth, 
             uint newHeight,

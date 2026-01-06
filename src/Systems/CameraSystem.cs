@@ -74,18 +74,36 @@ public class CameraSystem : MoonTools.ECS.System
 
                 ImGui.SeparatorText("Viewport Adapter"u8);
                 var adapter = Camera.ViewportAdapter;
-                ImGui.Text($"Type: {adapter.GetType()}");
-                ImGui.Text($"Viewport: X: {adapter.Viewport.X}, Y: {adapter.Viewport.Y}, H: {adapter.Viewport.H}, W: {adapter.Viewport.W}");
-                ImGui.Text($"Window Height: {adapter.Window.Height}");
-                ImGui.Text($"Window Width: {adapter.Window.Width}");
-                ImGui.Text($"World/Game Height: {adapter.GameHeight}");
-                ImGui.Text($"World/Game Width: {adapter.GameWidth}");
+                bool changed = false;
+                ImGui.Text($"Viewport: X: {adapter.Viewport.X}, Y: {adapter.Viewport.Y}, W: {adapter.Viewport.W}, H: {adapter.Viewport.H}");
+                ImGui.Text($"Window Size: {adapter.Window.Width}x{adapter.Window.Height}");
+                ImGui.Text($"Game World Size: {adapter.GameWidth}x{adapter.GameHeight}");
 
+                ImGui.Text($"Type: {adapter.GetType()}");
                 if (adapter is BoxingViewportAdapter)
                 {
                     var boxingAdapter = (BoxingViewportAdapter)adapter;
                     ImGui.Text($"Boxing mode: {boxingAdapter.BoxingMode}");
-                    ImGui.Text($"Scale: {boxingAdapter.GetScale()}");
+                    ImGui.Text($"Scale: {boxingAdapter.Scale}");
+
+                    int horizontalBleed = (int)boxingAdapter.HorizontalBleed;
+                    if (ImGui.InputInt("Horizontal Bleed", ref horizontalBleed))
+                    {
+                        boxingAdapter.HorizontalBleed = (uint)horizontalBleed;
+                        changed = true;
+                    }
+
+                    int verticalBleed = (int)boxingAdapter.VerticalBleed;
+                    if (ImGui.InputInt("Vertical Bleed", ref verticalBleed))
+                    {
+                        boxingAdapter.VerticalBleed = (uint)verticalBleed;
+                        changed = true;
+                    }
+                }
+
+                if (changed)
+                {
+                    adapter.Refresh();
                 }
 
                 ImGui.SeparatorText("Camera System"u8);

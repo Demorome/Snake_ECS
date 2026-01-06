@@ -11,17 +11,14 @@ namespace MonoGame.Extended.ViewportAdapters
             : base(window)
         { }
 
-        public Vector2 GetScale()
-        {
-            return new Vector2(
-                (float)ViewportWidth / GameWidth,
-                (float)ViewportHeight / GameHeight
-            );
-        }
+        public Vector2 Scale => new Vector2(
+            (float)ViewportWidth / GameWidth,
+            (float)ViewportHeight / GameHeight
+        );
 
         public override Matrix4x4 GetScaleMatrix()
         {
-            return Matrix4x4.CreateScale(new Vector3(GetScale(), 1.0f));
+            return Matrix4x4.CreateScale(new Vector3(Scale, 1.0f));
         }
 
         public override Vector2 PointToScreen(int x, int y)
