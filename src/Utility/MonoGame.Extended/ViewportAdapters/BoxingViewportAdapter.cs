@@ -32,8 +32,8 @@ namespace MonoGame.Extended.ViewportAdapters
         /// </summary>
         public BoxingViewportAdapter(
             Window window,
-            int horizontalBleed = 0, 
-            int verticalBleed = 0
+            uint horizontalBleed = 0, 
+            uint verticalBleed = 0
             ) : base(window)
         { 
             HorizontalBleed = horizontalBleed;
@@ -44,37 +44,39 @@ namespace MonoGame.Extended.ViewportAdapters
         /// Size of horizontal bleed areas (from left and right edges) 
         /// which can be safely cut off, i.e. it's not gameplay-essential.
         /// </summary>
-        public int HorizontalBleed { get; }
+        /// FIXME: Unused!
+        public uint HorizontalBleed;
 
         /// <summary>
         /// Size of vertical bleed areas (from top and bottom edges) 
         /// which can be safely cut off, i.e. it's not gameplay-essential.
         /// </summary>
-        public int VerticalBleed { get; }
+        /// FIXME: Unused!
+        public uint VerticalBleed;
 
         public BoxingMode BoxingMode { get; private set; }
 
         public override void OnWindowResize_UpdateViewport(
             uint windowWidth, uint windowHeight)
         {            
-            var worldScaleX = (float)windowWidth / GameWidth;
-            var worldScaleY = (float)windowHeight / GameHeight;
-
-            var safeScaleX = (float)windowWidth / (GameWidth - HorizontalBleed);
-            var safeScaleY = (float)windowHeight / (GameHeight - VerticalBleed);
-
-            var worldScale = Math.Min(worldScaleX, worldScaleY);
-            var safeScale = Math.Min(safeScaleX, safeScaleY);
-            var scale = Math.Min(worldScale, safeScale);
+            var scale = Math.Min(
+                (float)windowWidth / GameWidth, 
+                (float)windowHeight / GameHeight
+            );
 
             // FIXME: Account for scale from DPI scaling?
 
-            // Floor the values: shouldn't be able to scale up higher than window size.
+            // FIXME: Use Vertical/HorizontalBleed, should we want it.
+            // Current MonoGame.Extended code is broken:
+            // https://github.com/MonoGame-Extended/Monogame-Extended/issues/1086
+            // Perhaps using this Nez could would be better:
+            // https://github.com/prime31/Nez/blob/master/Nez.Portable/ECS/Scene.cs#L692
+
             var scaledGameWidth = (int)(scale * GameWidth);
             var scaledGameHeight = (int)(scale * GameHeight);
 
             // FIXME: Determine what Pillarbox vs Letterbox actually means, then fix this code.
-            // FIXME: Could probably juse use the boxing offsets.
+            // FIXME: Could probably just use the boxing offsets.
             if (windowHeight > scaledGameHeight
                 && windowWidth < scaledGameWidth)
             {
