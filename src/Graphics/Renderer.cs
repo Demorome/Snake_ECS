@@ -14,11 +14,11 @@ using MoonWorks.Math;
 using CommandBuffer = MoonWorks.Graphics.CommandBuffer;
 using MoonWorks.Input;
 using RollAndCash.Systems;
-using Hexa.NET.ImGui;
 using RollAndCash.Editor;
 using RollAndCash.Data;
 using RollAndCash.Rendering;
 using MonoGame.Extended;
+using MonoGame.Extended.ViewportAdapters;
 
 namespace RollAndCash;
 
@@ -48,7 +48,8 @@ public class Renderer : MoonTools.ECS.Renderer
 
 	RenderingManipulator RenderingManipulator;
 
-	Texture DepthTexture = null;
+	readonly Texture RenderTexture;
+	readonly Texture DepthTexture;
 
 	Texture SpriteAtlasTexture;
 
@@ -63,23 +64,6 @@ public class Renderer : MoonTools.ECS.Renderer
 #if DEBUG
 	MoonTools.ECS.Filter ColliderFilter;
 #endif
-
-	private void ReCreateDepthTexture(uint windowWidth, uint windowHeight)
-	{
-		if (DepthTexture != null)
-		{
-			DepthTexture.Dispose();
-		}
-
-		DepthTexture = Texture.Create2D(
-			GraphicsDevice, 
-			"Depth Texture", 
-			windowWidth,
-			windowHeight,
-			TextureFormat.D16Unorm,
-			TextureUsageFlags.DepthStencilTarget
-		);
-	}
 
 	public Renderer(
 		World world,
@@ -109,12 +93,29 @@ public class Renderer : MoonTools.ECS.Renderer
 		Camera = camera;
 		RenderingManipulator = new(world);
 
+		// Register all Window resize callbacks here.
 		window.RegisterSizeChangeCallback(
-			new Action<uint, uint>(ReCreateDepthTexture)
-			+ camera.ViewportAdapter.OnWindowResize_UpdateViewport
+			camera.ViewportAdapter.OnWindowResize_UpdateViewport
 		);
 
-		ReCreateDepthTexture(window.Width, window.Height);
+		RenderTexture = Texture.Create2D(
+			GraphicsDevice, 
+			"Render Texture", 
+			Dimensions.GAME_W, 
+			Dimensions.GAME_H,
+			swapchainFormat,
+			// Sampler state is needed for blitting
+			TextureUsageFlags.ColorTarget | TextureUsageFlags.Sampler
+		);
+
+		DepthTexture = Texture.Create2D(
+			GraphicsDevice,
+			"Depth Texture",
+			Dimensions.GAME_W,
+			Dimensions.GAME_H,
+			TextureFormat.D16Unorm,
+			TextureUsageFlags.DepthStencilTarget
+		);
 
 		SpriteAtlasTexture = TextureAtlases.TP_Sprites.Texture;
 
@@ -510,11 +511,11 @@ public class Renderer : MoonTools.ECS.Renderer
 		//MARK: RENDER PASS
 		var renderPass = commandBuffer.BeginRenderPass(
 			new DepthStencilTargetInfo(DepthTexture, 1, 0),
-			new ColorTargetInfo(swapchainTexture, Color.Black)
+			new ColorTargetInfo(RenderTexture, Color.Black)
 		);
 
 		var viewProjectionMatrices = new ViewProjectionMatrices(
-			GetCameraMatrix(), 
+			GetViewMatrix(), 
 			GetProjectionMatrix()
 		);
 
@@ -550,22 +551,125 @@ public class Renderer : MoonTools.ECS.Renderer
         }
 
 		renderPass.BindGraphicsPipeline(TextPipeline);
-		TextBatch.Render(renderPass, GetCameraMatrix() * GetProjectionMatrix());
+		TextBatch.Render(renderPass, GetViewMatrix() * GetProjectionMatrix());
 
 		commandBuffer.EndRenderPass(renderPass);
+
+		if (Camera.ViewportAdapter is BoxingViewportAdapter)
+		{
+			LetterboxBlit(
+				commandBuffer,
+				RenderTexture, 
+				swapchainTexture,
+				(BoxingViewportAdapter)Camera.ViewportAdapter,
+				MoonWorks.Graphics.Filter.Nearest,
+				false
+			);
+		}
+		else if (Camera.ViewportAdapter is ScalingViewportAdapter)
+		{
+			commandBuffer.Blit(
+				RenderTexture, 
+				swapchainTexture, 
+				MoonWorks.Graphics.Filter.Nearest,
+				false
+			);
+		}
+		else
+		{
+			Logger.LogError("Unsupported viewport adapter for rendering!");
+		}
+	}
+
+	// MARK: Helper funcs
+
+	/// <summary>
+	/// Blits the virtual game texture to the destination, 
+	/// potentially upscaling it. <br/>
+	/// Respects letterbox / pillarbox constraints, 
+	/// meaning the game texture may not scale up fully 
+	/// and may have empty filler borders. <br/>
+	/// This is useful to maintain a pixel-perfect aspect ratio.
+	/// </summary>
+	/// <param name="commandBuffer"></param>
+	/// <param name="source"></param>
+	/// <param name="destination">Assumed to be the swapchaing (window) texture.</param>
+	/// <param name="viewportAdapter"></param>
+	/// <param name="filter"></param>
+	/// <param name="cycle"></param>
+	/// <exception cref="Exception"></exception>
+	private void LetterboxBlit(
+		CommandBuffer commandBuffer, 
+		Texture source, 
+		Texture destination,
+		BoxingViewportAdapter viewportAdapter,
+		MoonWorks.Graphics.Filter filter,
+		bool cycle = false
+	)
+	{
+		// Verify our viewport adapter isn't out-of-date 
+		// with the Window (swapchain) size.
+
+		// If it is, then we need to update our viewport, 
+		// to avoid exceeding the Window size.
+
+		// This can usually happen when grab-resizing the window,
+		// until the game logic loop gets busy and a window resize event 
+		// happens during game logic updates but doesn't get processed,
+		// since currently they only get processed before game logic.
+		if (viewportAdapter.Window.Height != destination.Height
+			|| viewportAdapter.Window.Width != destination.Width)
+		{
+			viewportAdapter.OnWindowResize_UpdateViewport(
+				destination.Width,
+				destination.Height
+			);
+		}
+
+		var blitInfo = new BlitInfo
+		{
+			Source = new BlitRegion
+			{
+				Texture = source.Handle,
+				W = source.Width,
+				H = source.Height
+			},
+			Destination = new BlitRegion
+			{
+				Texture = destination.Handle,
+				X = (uint)viewportAdapter.Viewport.X,
+				Y = (uint)viewportAdapter.Viewport.Y,
+
+				// FIXME: Handle DPI scaling here?
+				W = (uint)viewportAdapter.Viewport.W,
+				H = (uint)viewportAdapter.Viewport.H
+			},
+			Filter = filter,
+			LoadOp = LoadOp.DontCare,
+			Cycle = cycle
+		};
+
+		// Verify the blit can be safely performed.
+		{
+			var dest = blitInfo.Destination;
+			if ((dest.X + dest.W) > destination.Width)
+			{
+				throw new Exception("BAD WRONG exceeded destination texture width!");
+			}
+			if ((dest.Y + dest.H) > destination.Height)
+			{
+				throw new Exception("BAD WRONG exceeded destination texture height!");
+			}
+		}
+
+		commandBuffer.Blit(blitInfo);
 	}
 
 	//MARK: Matrices
 
-	private Matrix4x4 GetCameraMatrix()
+	private Matrix4x4 GetViewMatrix()
 	{
-		return Matrix4x4.Identity;// Camera.GetViewMatrix();
-		/*
-		return 
-			Matrix4x4.CreateTranslation(
-				new Vector3(-Camera.CurrentPosition.AsVector(), 0f)
-			) 
-			* Matrix4x4.CreateScale(Camera.CurrentZoomOutScale);*/
+		return Camera.GetViewMatrix();
 	}
 
 	private Matrix4x4 GetProjectionMatrix()
@@ -575,7 +679,7 @@ public class Renderer : MoonTools.ECS.Renderer
 	
 	
 #if DEBUG
-	// MARK: Helper funcs
+
 	const float DebugLineThickness = 1f;
 
 	private void DrawDebugRectangle(Entity entity, Rectangle rect, Color color, float depth, float lineThickness)

@@ -363,7 +363,6 @@ namespace MonoGame.Extended
         public Matrix4x4 GetViewMatrix(Vector2 parallaxFactor)
         {
             return GetVirtualViewMatrix(parallaxFactor);
-               /// * ViewportAdapter.GetScaleMatrix();
         }
 
         private Matrix4x4 GetVirtualViewMatrix(Vector2 parallaxFactor)
@@ -409,10 +408,10 @@ namespace MonoGame.Extended
         public Matrix4x4 GetProjectionMatrix()
         {
             return Matrix4x4.CreateOrthographicOffCenter(
-                0, 
+                0,
                 ViewportAdapter.GameWidth, 
                 ViewportAdapter.GameHeight,
-                0, 
+                0,
                 NearPlaneZ,
                 FarPlaneZ
             );
