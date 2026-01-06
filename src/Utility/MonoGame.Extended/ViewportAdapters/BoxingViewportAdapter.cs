@@ -16,6 +16,15 @@ namespace MonoGame.Extended.ViewportAdapters
         Pillarbox
     }
 
+    /// <summary>
+    /// Used to maintain the same aspect ratio as the virtual game space,
+    /// even as we scale up to any arbitrary resolution. <br/>
+    /// Useful especially to maintain pixel-perfect rendering 
+    /// (i.e. avoid stretched pixels). <br/>
+    /// May pad the window with letterboxing / pillarboxing if needed,
+    /// namely if the virtual game space doesn't integer-scale up perfectly 
+    /// to the window's dimensions.
+    /// </summary>
     public class BoxingViewportAdapter : ScalingViewportAdapter
     {
         /// <summary>
@@ -46,43 +55,45 @@ namespace MonoGame.Extended.ViewportAdapters
         public BoxingMode BoxingMode { get; private set; }
 
         public override void OnWindowResize_UpdateViewport(
-            uint newWidth, uint newHeight)
+            uint windowWidth, uint windowHeight)
         {            
-            var worldScaleX = (float)newWidth / GameWidth;
-            var worldScaleY = (float)newHeight / GameHeight;
+            var worldScaleX = (float)windowWidth / GameWidth;
+            var worldScaleY = (float)windowHeight / GameHeight;
 
-            var safeScaleX = (float)newWidth / (GameWidth - HorizontalBleed);
-            var safeScaleY = (float)newHeight / (GameHeight - VerticalBleed);
+            var safeScaleX = (float)windowWidth / (GameWidth - HorizontalBleed);
+            var safeScaleY = (float)windowHeight / (GameHeight - VerticalBleed);
 
-            var worldScale = Math.Max(worldScaleX, worldScaleY);
+            var worldScale = Math.Min(worldScaleX, worldScaleY);
             var safeScale = Math.Min(safeScaleX, safeScaleY);
             var scale = Math.Min(worldScale, safeScale);
 
             // FIXME: Account for scale from DPI scaling?
 
-            var scaledGameWidth = (int)((scale * GameWidth) + 0.5f);
-            var scaledGameHeight = (int)((scale * GameHeight) + 0.5f);
+            // Floor the values: shouldn't be able to scale up higher than window size.
+            var scaledGameWidth = (int)(scale * GameWidth);
+            var scaledGameHeight = (int)(scale * GameHeight);
 
-            if (scaledGameHeight > newHeight 
-                && scaledGameWidth < newWidth)
+            // FIXME: Determine what Pillarbox vs Letterbox actually means, then fix this code.
+            // FIXME: Could probably juse use the boxing offsets.
+            if (windowHeight > scaledGameHeight
+                && windowWidth < scaledGameWidth)
             {
                 BoxingMode = BoxingMode.Pillarbox;
             }
+            else if (windowHeight > scaledGameWidth
+                && windowHeight < scaledGameHeight)
+            {
+                BoxingMode = BoxingMode.Letterbox;
+            }
             else
             {
-                if (scaledGameWidth > newHeight 
-                    && scaledGameHeight < newHeight)
-                {
-                    BoxingMode = BoxingMode.Letterbox;
-                }
-                else
-                {
-                    BoxingMode = BoxingMode.None;
-                }
+                BoxingMode = BoxingMode.None;
             }
 
-            var x = (newWidth / 2) - (scaledGameWidth / 2);
-            var y = (newHeight / 2) - (scaledGameHeight / 2);
+            // Boxing offsets.
+            var x = (windowWidth / 2) - (scaledGameWidth / 2);
+            var y = (windowHeight / 2) - (scaledGameHeight / 2);
+
             Viewport = new Viewport(x, y, scaledGameWidth, scaledGameHeight);
         }
 
