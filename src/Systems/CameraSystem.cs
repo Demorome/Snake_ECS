@@ -86,7 +86,7 @@ public class CameraSystem : MoonTools.ECS.System
                     ImGui.Text($"Boxing mode: {boxingAdapter.BoxingMode}");
                     ImGui.Text($"Scale: {boxingAdapter.Scale}");
 
-                    int horizontalBleed = (int)boxingAdapter.HorizontalBleed;
+                    /*int horizontalBleed = (int)boxingAdapter.HorizontalBleed;
                     if (ImGui.InputInt("Horizontal Bleed", ref horizontalBleed))
                     {
                         boxingAdapter.HorizontalBleed = (uint)horizontalBleed;
@@ -98,7 +98,7 @@ public class CameraSystem : MoonTools.ECS.System
                     {
                         boxingAdapter.VerticalBleed = (uint)verticalBleed;
                         changed = true;
-                    }
+                    }*/
                 }
 
                 if (changed)

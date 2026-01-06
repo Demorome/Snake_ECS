@@ -31,28 +31,26 @@ namespace MonoGame.Extended.ViewportAdapters
         /// Initializes a new instance of the <see cref="BoxingViewportAdapter" />.
         /// </summary>
         public BoxingViewportAdapter(
-            Window window,
-            uint horizontalBleed = 0, 
-            uint verticalBleed = 0
+            Window window//,
+            //uint horizontalBleed = 0, 
+            //uint verticalBleed = 0
             ) : base(window)
         { 
-            HorizontalBleed = horizontalBleed;
-            VerticalBleed = verticalBleed;
+            //HorizontalBleed = horizontalBleed;
+            //VerticalBleed = verticalBleed;
         }
 
         /// <summary>
         /// Size of horizontal bleed areas (from left and right edges) 
         /// which can be safely cut off, i.e. it's not gameplay-essential.
         /// </summary>
-        /// FIXME: Unused!
-        public uint HorizontalBleed;
+        //public uint HorizontalBleed;
 
         /// <summary>
         /// Size of vertical bleed areas (from top and bottom edges) 
         /// which can be safely cut off, i.e. it's not gameplay-essential.
         /// </summary>
-        /// FIXME: Unused!
-        public uint VerticalBleed;
+        //public uint VerticalBleed;
 
         public BoxingMode BoxingMode { get; private set; }
 
@@ -75,6 +73,12 @@ namespace MonoGame.Extended.ViewportAdapters
             var scaledGameWidth = (int)(scale * GameWidth);
             var scaledGameHeight = (int)(scale * GameHeight);
 
+            if (scaledGameWidth > windowWidth 
+                || scaledGameHeight > windowHeight)
+            {
+                throw new Exception("WRONG BAD exceeded window size!");
+            }
+
             // FIXME: Determine what Pillarbox vs Letterbox actually means, then fix this code.
             // FIXME: Could probably just use the boxing offsets.
             if (windowHeight > scaledGameHeight
@@ -95,6 +99,11 @@ namespace MonoGame.Extended.ViewportAdapters
             // Boxing offsets.
             var x = (windowWidth / 2) - (scaledGameWidth / 2);
             var y = (windowHeight / 2) - (scaledGameHeight / 2);
+
+            if (x < 0 || y < 0)
+            {
+                throw new Exception("WRONG BAD negative viewport offset!");
+            }
 
             Viewport = new Viewport(x, y, scaledGameWidth, scaledGameHeight);
         }
