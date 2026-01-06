@@ -563,6 +563,7 @@ public class Renderer : MoonTools.ECS.Renderer
 				swapchainTexture,
 				(BoxingViewportAdapter)Camera.ViewportAdapter,
 				MoonWorks.Graphics.Filter.Nearest,
+				Color.SlateBlue,
 				false
 			);
 		}
@@ -599,6 +600,7 @@ public class Renderer : MoonTools.ECS.Renderer
 		Texture destination,
 		BoxingViewportAdapter viewportAdapter,
 		MoonWorks.Graphics.Filter filter,
+		Color letterboxColor,
 		bool cycle = false
 	)
 	{
@@ -644,7 +646,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			// We may not blit to the entire window, 
 			// so make sure to clear the letterbox sections.
 			LoadOp = LoadOp.Clear,
-			ClearColor = Color.Black,
+			ClearColor = letterboxColor,
 
 			Cycle = cycle
 		};
