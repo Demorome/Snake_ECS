@@ -591,12 +591,7 @@ public class Renderer : MoonTools.ECS.Renderer
 	/// and may have empty filler borders. <br/>
 	/// This is useful to maintain a pixel-perfect aspect ratio.
 	/// </summary>
-	/// <param name="commandBuffer"></param>
-	/// <param name="source"></param>
 	/// <param name="destination">Assumed to be the swapchaing (window) texture.</param>
-	/// <param name="viewportAdapter"></param>
-	/// <param name="filter"></param>
-	/// <param name="cycle"></param>
 	/// <exception cref="Exception"></exception>
 	private void LetterboxBlit(
 		CommandBuffer commandBuffer, 
@@ -645,7 +640,12 @@ public class Renderer : MoonTools.ECS.Renderer
 				H = (uint)viewportAdapter.Viewport.H
 			},
 			Filter = filter,
-			LoadOp = LoadOp.DontCare,
+
+			// We may not blit to the entire window, 
+			// so make sure to clear the letterbox sections.
+			LoadOp = LoadOp.Clear,
+			ClearColor = Color.Black,
+
 			Cycle = cycle
 		};
 
