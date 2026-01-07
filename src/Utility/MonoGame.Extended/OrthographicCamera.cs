@@ -307,16 +307,15 @@ namespace MonoGame.Extended
         /// <inheritdoc/>
         public override Vector2 WorldToScreen(Vector2 worldPosition)
         {
-            Vector2 screenPosition 
-                = Vector2.Transform(worldPosition, GetWorldSpaceToViewSpaceMatrix());
+            Vector2 screenPosition = Vector2.Transform(
+                worldPosition, 
+                GetWorldSpaceToViewSpaceMatrix()
+            );
 
             // For scaling viewport adapters, the viewport offset 
             // is part of the coordinate transformation
-            if (ViewportAdapter is ScalingViewportAdapter)
-            {
-                var viewport = ViewportAdapter.Viewport;
-                screenPosition += new Vector2(viewport.X, viewport.Y);
-            }
+            var viewport = ViewportAdapter.Viewport;
+            screenPosition += new Vector2(viewport.X, viewport.Y);
 
             return screenPosition;
         }
@@ -337,13 +336,13 @@ namespace MonoGame.Extended
         {
             // For scaling viewport adapters, the viewport offset 
             // is part of the coordinate transformation
-            if (ViewportAdapter is ScalingViewportAdapter)
-            {
-                var viewport = ViewportAdapter.Viewport;
-                screenPosition -= new Vector2(viewport.X, viewport.Y);
-            }
+            var viewport = ViewportAdapter.Viewport;
+            screenPosition -= new Vector2(viewport.X, viewport.Y);
 
-            return Vector2.Transform(screenPosition, GetViewSpaceToWorldSpaceMatrix());
+            return Vector2.Transform(
+                screenPosition, 
+                GetViewSpaceToWorldSpaceMatrix()
+            );
         }
 
         /// <summary>
