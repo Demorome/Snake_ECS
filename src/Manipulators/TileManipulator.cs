@@ -51,11 +51,11 @@ public class TileManipulator : MoonTools.ECS.Manipulator
 
     public static bool IsTilePosValid(Vector2 tilePos)
     {
-        if (tilePos.X < 0 || tilePos.X >= Dimensions.TILE_COLUMN_COUNT)
+        if (tilePos.X < 0 || tilePos.X >= Dimensions.TILEGRID_COLUMNS)
         {
             return false;
         }
-        else if (tilePos.Y < 0 || tilePos.Y >= Dimensions.TILE_ROW_COUNT)
+        else if (tilePos.Y < 0 || tilePos.Y >= Dimensions.TILEGRID_ROWS)
         {
             return false;
         }

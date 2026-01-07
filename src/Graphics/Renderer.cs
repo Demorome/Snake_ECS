@@ -467,10 +467,10 @@ public class Renderer : MoonTools.ECS.Renderer
 		{
 			var color = new Color(EditorSystem.GridLineColor);
 			var depth = -(float)DepthLayer.Debug_GridVisual;
-			var verticalLength = Dimensions.TILE_ROW_COUNT * Dimensions.TILE_SIZE;
-			var horizontalLength = Dimensions.TILE_COLUMN_COUNT * Dimensions.TILE_SIZE;
+			var verticalLength = Dimensions.TILEGRID_ROWS * Dimensions.TILE_SIZE;
+			var horizontalLength = Dimensions.TILEGRID_COLUMNS * Dimensions.TILE_SIZE;
 
-			for (int col = 0; col <= Dimensions.TILE_COLUMN_COUNT; ++col)
+			for (int col = 0; col <= Dimensions.TILEGRID_COLUMNS; ++col)
 			{
 				var worldPos = TileManipulator.TilePosToWorldPos_TopLeft(col, 0);
 				DrawDebugLine(new Vector2(worldPos.X, worldPos.Y),
@@ -478,7 +478,7 @@ public class Renderer : MoonTools.ECS.Renderer
 				);
 			}
 
-			for (int row = 0; row <= Dimensions.TILE_ROW_COUNT; ++row)
+			for (int row = 0; row <= Dimensions.TILEGRID_ROWS; ++row)
 			{
 				var worldPos = TileManipulator.TilePosToWorldPos_TopLeft(0, row);
 				DrawDebugLine(new Vector2(worldPos.X, worldPos.Y),

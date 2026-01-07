@@ -21,9 +21,13 @@ public static class Dimensions
 	public static Vector2 GAME_DIMENSIONS = new Vector2(GAME_W, GAME_H);
 
 	public const int TILE_SIZE = 16;
-	public static Vector2 TILE_DIMENSIONS = new Vector2(TILE_SIZE, TILE_SIZE);
-    public const int TILE_ROW_COUNT = GAME_H / TILE_SIZE;
-    public const int TILE_COLUMN_COUNT = GAME_W / TILE_SIZE;
+	public static readonly Vector2 TILE_DIMENSIONS 
+		= new(TILE_SIZE, TILE_SIZE);
+
+    public const int TILEGRID_ROWS = GAME_H / TILE_SIZE;
+    public const int TILEGRID_COLUMNS = GAME_W / TILE_SIZE;
+	public static readonly Vector2 TILEGRID_SIZE 
+		= new(TILEGRID_ROWS, TILEGRID_COLUMNS);
 
 	public const int BATTLE_AREA_W = GAME_W / 2;
 	public const int BATTLE_AREA_H = GAME_H / 2;

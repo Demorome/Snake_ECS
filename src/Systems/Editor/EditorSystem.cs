@@ -290,7 +290,9 @@ public class EditorSystem : MoonTools.ECS.System
         if (ImGui.Begin("Position Info"u8, ref IsShowingPositionInfo))
         {
             ImGui.Text($"Mouse world position: {Input.WorldMousePosition}");
+            ImGui.Text($"Mouse screen position: {ImGui.GetMousePos()}");
             ImGui.Text($"Tile position: {TileManipulator.GetTilePos(Input.WorldMousePosition)}");
+            ImGui.Text($"TileGrid size: {Dimensions.TILEGRID_SIZE}");
         }
         ImGui.End();
     }
