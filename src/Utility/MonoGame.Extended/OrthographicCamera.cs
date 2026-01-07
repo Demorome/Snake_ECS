@@ -313,7 +313,7 @@ namespace MonoGame.Extended
             );
 
             // For scaling viewport adapters, the viewport offset 
-            // is part of the coordinate transformation
+            // is part of the coordinate transformation.
             var viewport = ViewportAdapter.Viewport;
             screenPosition += new Vector2(viewport.X, viewport.Y);
 
@@ -335,7 +335,7 @@ namespace MonoGame.Extended
         public override Vector2 ScreenToWorld(Vector2 screenPosition)
         {
             // For scaling viewport adapters, the viewport offset 
-            // is part of the coordinate transformation
+            // is part of the coordinate transformation.
             var viewport = ViewportAdapter.Viewport;
             screenPosition -= new Vector2(viewport.X, viewport.Y);
 
