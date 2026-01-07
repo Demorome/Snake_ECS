@@ -107,16 +107,15 @@ namespace MonoGame.Extended
 
         /// <summary>
         /// Gets the view transformation matrix for the camera.
-        /// AKA the World-to-View matrix.
         /// </summary>
         /// <returns>A <see cref="Matrix"/> representing the camera's view transformation.</returns>
-        public abstract Matrix4x4 GetViewMatrix();
+        public abstract Matrix4x4 GetWorldSpaceToViewSpaceMatrix();
 
         /// <summary>
         /// Gets the inverse of the view transformation matrix for the camera.
         /// </summary>
         /// <returns>A <see cref="Matrix"/> representing the inverse of the camera's view transformation.</returns>
-        public abstract Matrix4x4 GetInverseViewMatrix();
+        public abstract Matrix4x4 GetViewSpaceToWorldSpaceMatrix();
 
 /*
         /// <summary>

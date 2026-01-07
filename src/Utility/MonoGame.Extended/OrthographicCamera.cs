@@ -308,7 +308,7 @@ namespace MonoGame.Extended
         public override Vector2 WorldToScreen(Vector2 worldPosition)
         {
             Vector2 screenPosition 
-                = Vector2.Transform(worldPosition, GetViewMatrix());
+                = Vector2.Transform(worldPosition, GetWorldSpaceToViewSpaceMatrix());
 
             // For scaling viewport adapters, the viewport offset 
             // is part of the coordinate transformation
@@ -343,7 +343,7 @@ namespace MonoGame.Extended
                 screenPosition -= new Vector2(viewport.X, viewport.Y);
             }
 
-            return Vector2.Transform(screenPosition, GetInverseViewMatrix());
+            return Vector2.Transform(screenPosition, GetViewSpaceToWorldSpaceMatrix());
         }
 
         /// <summary>
@@ -360,12 +360,12 @@ namespace MonoGame.Extended
         /// A <see cref="Matrix"/> representing the camera's 
         /// view transformation with the specified parallax factor applied.
         /// </returns>
-        public Matrix4x4 GetViewMatrix(Vector2 parallaxFactor)
+        public Matrix4x4 GetWorldSpaceToViewSpaceMatrix(Vector2 parallaxFactor)
         {
-            return GetVirtualViewMatrix(parallaxFactor);
+            return GetVirtualWorldSpaceToViewSpaceMatrix(parallaxFactor);
         }
 
-        private Matrix4x4 GetVirtualViewMatrix(Vector2 parallaxFactor)
+        private Matrix4x4 GetVirtualWorldSpaceToViewSpaceMatrix(Vector2 parallaxFactor)
         {
             // Credits to https://gamedev.stackexchange.com/a/59450/200568
             return
@@ -377,22 +377,22 @@ namespace MonoGame.Extended
                 Matrix4x4.CreateTranslation(new Vector3(Origin, 0.0f));
         }
 
-        private Matrix4x4 GetVirtualViewMatrix()
+        private Matrix4x4 GetVirtualWorldSpaceToViewSpaceMatrix()
         {
-            return GetVirtualViewMatrix(Vector2.One);
+            return GetVirtualWorldSpaceToViewSpaceMatrix(Vector2.One);
         }
 
         /// <inheritdoc/>
-        public override Matrix4x4 GetViewMatrix()
+        public override Matrix4x4 GetWorldSpaceToViewSpaceMatrix()
         {
-            return GetViewMatrix(Vector2.One);
+            return GetWorldSpaceToViewSpaceMatrix(Vector2.One);
         }
 
         /// <inheritdoc/>
-        public override Matrix4x4 GetInverseViewMatrix()
+        public override Matrix4x4 GetViewSpaceToWorldSpaceMatrix()
         {
             Matrix4x4 invertedMatrix;
-            if (!Matrix4x4.Invert(GetViewMatrix(), out invertedMatrix))
+            if (!Matrix4x4.Invert(GetWorldSpaceToViewSpaceMatrix(), out invertedMatrix))
             {
                 throw new Exception("Unable to invert view matrix!");
             }
@@ -403,9 +403,9 @@ namespace MonoGame.Extended
         public const float FarPlaneZ = 1000f;
 
         /// <summary>
-        /// AKA the View-to-Clip-space matrix.
+        /// AKA the projection matrix.
         /// </summary>
-        public Matrix4x4 GetProjectionMatrix()
+        public Matrix4x4 GetViewSpaceToClipSpaceMatrix()
         {
             return Matrix4x4.CreateOrthographicOffCenter(
                 0,
@@ -415,6 +415,16 @@ namespace MonoGame.Extended
                 NearPlaneZ,
                 FarPlaneZ
             );
+        }
+
+        public Matrix4x4 GetClipSpaceToViewSpaceMatrix()
+        {
+            Matrix4x4 invertedMatrix;
+            if (!Matrix4x4.Invert(GetViewSpaceToClipSpaceMatrix(), out invertedMatrix))
+            {
+                throw new Exception("Unable to invert projection matrix!");
+            }
+            return invertedMatrix;
         }
 
         /// <inheritdoc/>
@@ -528,7 +538,7 @@ namespace MonoGame.Extended
             }
 
             // Get the camera's top-left corner in world space
-            Matrix4x4 inverseViewMatrix = GetInverseViewMatrix();
+            Matrix4x4 inverseViewMatrix = GetViewSpaceToWorldSpaceMatrix();
             Vector2 cameraWorldMin = Vector2.Transform(Vector2.Zero, inverseViewMatrix);
 
             Vector2 worldBoundsMin = new Vector2(_worldBounds.Left, _worldBounds.Top);

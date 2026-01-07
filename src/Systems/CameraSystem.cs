@@ -27,11 +27,11 @@ public class CameraSystem : MoonTools.ECS.System
     /// this will temporarily *not* be pixel-perfect. A necessary evil,
     /// to smoothen the zooming motion, and probably hardly noticeable.
     /// </summary>
-    public static float CurrentZoomOutScale = 1f;
+    private static float CurrentZoomOutScale = 1f;
     private static float TargetZoomOutScale = 1f;
-    public const float MIN_SCALE = 1f;
+    private const float MIN_SCALE = 1f;
 
-    public static Position2D CurrentPosition = default;
+    private static Position2D CurrentPosition = default;
     private static Position2D TargetPosition = default;
 
     private static int PixelsToMovePerSecondWhenAtMaxSpeed 

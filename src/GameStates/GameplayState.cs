@@ -61,12 +61,19 @@ public class GameplayState : GameState
     {
         World = new World();
 
+        // FIXME: Can't create multiple BoxingViewportAdapters in other states,
+        // since that could cause multiple window resize callbacks to get stacked.
+        var camera = new OrthographicCamera(
+            new BoxingViewportAdapter(Game.MainWindow, true)
+        );
+        CameraSystem = new(World, camera);   
+
         Timing = new(World);
         Input = new Input(
             World,
             Game.Inputs
 #if DEBUG
-            , Game.MainWindow
+            , camera
 #endif
         );
         Motion = new Motion(World);
@@ -88,13 +95,6 @@ public class GameplayState : GameState
         DetectionSystem = new DetectionSystem(World);
         EnemySystem = new(World);
         TrailVisualSystem = new(World);
-
-        // FIXME: Can't create multiple BoxingViewportAdapters in other states,
-        // since that could cause multiple window resize callbacks to get stacked.
-        var camera = new OrthographicCamera(
-            new BoxingViewportAdapter(Game.MainWindow, true)
-        );
-        CameraSystem = new(World, camera);   
 
         ActorManipulator = new(World);
 

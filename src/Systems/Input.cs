@@ -1,3 +1,4 @@
+using MonoGame.Extended;
 using MoonTools.ECS;
 using MoonWorks;
 using MoonWorks.Input;
@@ -38,21 +39,20 @@ public class Input : MoonTools.ECS.System
 	ControlSet PlayerTwoKeyboard = new ControlSet();
 	ControlSet PlayerTwoGamepad = new ControlSet();
 
+	OrthographicCamera Camera;
+
 #if DEBUG
-	Window MainWindow;
 	public static Position2D WorldMousePosition = new Position2D();
 #endif
 
 	public Input(
 		World world,
-		Inputs inputs
-#if DEBUG
-		, Window mainWindow
-#endif
+		Inputs inputs, 
+		OrthographicCamera camera
 		) : base(world)
 	{
 #if DEBUG
-		MainWindow = mainWindow;
+		Camera = camera;
 #endif
 
 		Inputs = inputs;
@@ -88,10 +88,16 @@ public class Input : MoonTools.ECS.System
 	public override void Update(TimeSpan timeSpan)
 	{
 		// FIXME: Use a more accurate formula?
-		var mouseWorldPosition = new Vector2(
+		/*var mouseWorldPosition = new Vector2(
 			(Inputs.Mouse.X + 0.5f) * ((float)Dimensions.GAME_W / MainWindow.Width),
 			(Inputs.Mouse.Y + 0.5f) * ((float)Dimensions.GAME_H / MainWindow.Height)
+		);*/
+
+		var mouseWorldPosition = Camera.ScreenToWorld(
+			Inputs.Mouse.X, 
+			Inputs.Mouse.Y
 		);
+
 #if DEBUG
 		WorldMousePosition = new Position2D(mouseWorldPosition);
 #endif

@@ -671,12 +671,12 @@ public class Renderer : MoonTools.ECS.Renderer
 
 	private Matrix4x4 GetViewMatrix()
 	{
-		return Camera.GetViewMatrix();
+		return Camera.GetWorldSpaceToViewSpaceMatrix();
 	}
 
 	private Matrix4x4 GetProjectionMatrix()
 	{
-		return Camera.GetProjectionMatrix();
+		return Camera.GetViewSpaceToClipSpaceMatrix();
 	}
 	
 	
