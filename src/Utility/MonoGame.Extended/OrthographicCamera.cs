@@ -310,7 +310,7 @@ namespace MonoGame.Extended
             var scale = ViewportAdapter.Scale;
             Vector2 screenPosition = Vector2.Transform(
                 worldPosition * scale, 
-                GetWorldSpaceToViewSpaceMatrix()
+                GetScaledWorldSpaceToViewSpaceMatrix()
             );
 
             // For scaling viewport adapters, the viewport offset 
@@ -342,9 +342,9 @@ namespace MonoGame.Extended
 
             var scale = ViewportAdapter.Scale;
             return Vector2.Transform(
-                screenPosition / scale, 
-                GetViewSpaceToWorldSpaceMatrix()
-            );
+                screenPosition, 
+                GetViewSpaceToScaledWorldSpaceMatrix()
+            ) / scale;
         }
 
         /// <summary>
@@ -361,12 +361,12 @@ namespace MonoGame.Extended
         /// A <see cref="Matrix"/> representing the camera's 
         /// view transformation with the specified parallax factor applied.
         /// </returns>
-        public Matrix4x4 GetWorldSpaceToViewSpaceMatrix(Vector2 parallaxFactor)
+        public Matrix4x4 GetScaledWorldSpaceToViewSpaceMatrix(Vector2 parallaxFactor)
         {
-            return GetVirtualWorldSpaceToViewSpaceMatrix(parallaxFactor);
+            return GetVirtualScaledWorldSpaceToViewSpaceMatrix(parallaxFactor);
         }
 
-        private Matrix4x4 GetVirtualWorldSpaceToViewSpaceMatrix(Vector2 parallaxFactor)
+        private Matrix4x4 GetVirtualScaledWorldSpaceToViewSpaceMatrix(Vector2 parallaxFactor)
         {
             // Credits to https://gamedev.stackexchange.com/a/59450/200568
             return
@@ -378,22 +378,22 @@ namespace MonoGame.Extended
                 Matrix4x4.CreateTranslation(new Vector3(Origin, 0.0f));
         }
 
-        private Matrix4x4 GetVirtualWorldSpaceToViewSpaceMatrix()
+        private Matrix4x4 GetVirtualScaledWorldSpaceToViewSpaceMatrix()
         {
-            return GetVirtualWorldSpaceToViewSpaceMatrix(Vector2.One);
+            return GetVirtualScaledWorldSpaceToViewSpaceMatrix(Vector2.One);
         }
 
         /// <inheritdoc/>
-        public override Matrix4x4 GetWorldSpaceToViewSpaceMatrix()
+        public override Matrix4x4 GetScaledWorldSpaceToViewSpaceMatrix()
         {
-            return GetWorldSpaceToViewSpaceMatrix(Vector2.One);
+            return GetScaledWorldSpaceToViewSpaceMatrix(Vector2.One);
         }
 
         /// <inheritdoc/>
-        public override Matrix4x4 GetViewSpaceToWorldSpaceMatrix()
+        public override Matrix4x4 GetViewSpaceToScaledWorldSpaceMatrix()
         {
             Matrix4x4 invertedMatrix;
-            if (!Matrix4x4.Invert(GetWorldSpaceToViewSpaceMatrix(), out invertedMatrix))
+            if (!Matrix4x4.Invert(GetScaledWorldSpaceToViewSpaceMatrix(), out invertedMatrix))
             {
                 throw new Exception("Unable to invert view matrix!");
             }
@@ -539,7 +539,7 @@ namespace MonoGame.Extended
             }
 
             // Get the camera's top-left corner in world space
-            Matrix4x4 inverseViewMatrix = GetViewSpaceToWorldSpaceMatrix();
+            Matrix4x4 inverseViewMatrix = GetViewSpaceToScaledWorldSpaceMatrix();
             Vector2 cameraWorldMin = Vector2.Transform(Vector2.Zero, inverseViewMatrix);
 
             Vector2 worldBoundsMin = new Vector2(_worldBounds.Left, _worldBounds.Top);
