@@ -74,7 +74,7 @@ public class CameraSystem : MoonTools.ECS.System
 
                 ImGui.SeparatorText("Viewport Adapter"u8);
                 var adapter = Camera.ViewportAdapter;
-                bool changed = false;
+                bool adapterChanged = false;
                 ImGui.Text($"Viewport: X: {adapter.Viewport.X}, Y: {adapter.Viewport.Y}, W: {adapter.Viewport.W}, H: {adapter.Viewport.H}");
                 ImGui.Text($"Window Size: {adapter.Window.Width}x{adapter.Window.Height}");
                 ImGui.Text($"Game World Size: {adapter.GameWidth}x{adapter.GameHeight}");
@@ -89,7 +89,7 @@ public class CameraSystem : MoonTools.ECS.System
                     if (ImGui.Checkbox("Force Integer Scaling"u8, 
                         ref boxingAdapter.ForceIntegerScaling))
                     {
-                        changed = true;
+                        adapterChanged = true;
                     }
     
                     /*int horizontalBleed = (int)boxingAdapter.HorizontalBleed;
@@ -107,7 +107,7 @@ public class CameraSystem : MoonTools.ECS.System
                     }*/
                 }
 
-                if (changed)
+                if (adapterChanged)
                 {
                     adapter.Refresh();
                 }
