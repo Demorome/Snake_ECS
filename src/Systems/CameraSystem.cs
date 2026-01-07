@@ -86,6 +86,12 @@ public class CameraSystem : MoonTools.ECS.System
                     var boxingAdapter = (BoxingViewportAdapter)adapter;
                     ImGui.Text($"Boxing mode: {boxingAdapter.BoxingMode}");
 
+                    if (ImGui.Checkbox("Force Integer Scaling"u8, 
+                        ref boxingAdapter.ForceIntegerScaling))
+                    {
+                        changed = true;
+                    }
+    
                     /*int horizontalBleed = (int)boxingAdapter.HorizontalBleed;
                     if (ImGui.InputInt("Horizontal Bleed", ref horizontalBleed))
                     {
