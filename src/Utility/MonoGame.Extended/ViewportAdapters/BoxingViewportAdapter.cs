@@ -31,11 +31,13 @@ namespace MonoGame.Extended.ViewportAdapters
         /// Initializes a new instance of the <see cref="BoxingViewportAdapter" />.
         /// </summary>
         public BoxingViewportAdapter(
-            Window window//,
+            Window window,
+            bool forceIntegerScaling
             //uint horizontalBleed = 0, 
             //uint verticalBleed = 0
             ) : base(window)
         { 
+            ForceIntegerScaling = forceIntegerScaling;
             //HorizontalBleed = horizontalBleed;
             //VerticalBleed = verticalBleed;
         }
@@ -52,15 +54,32 @@ namespace MonoGame.Extended.ViewportAdapters
         /// </summary>
         //public uint VerticalBleed;
 
+        public bool ForceIntegerScaling;
+
         public BoxingMode BoxingMode { get; private set; }
+
+        private float _ScaleUniform = float.NaN;
+        public override Vector2 Scale 
+            => new Vector2(_ScaleUniform, _ScaleUniform);
 
         public override void OnWindowResize_UpdateViewport(
             uint windowWidth, uint windowHeight)
         {            
-            var scale = Math.Min(
+            _ScaleUniform = Math.Min(
                 (float)windowWidth / GameWidth, 
                 (float)windowHeight / GameHeight
             );
+
+            if (ForceIntegerScaling)
+            {
+                // Enforce integer scaling only if we maintain a minimum scale of 1.
+                // Otherwise, allow non-integer scaling 
+                // for whatever really small window someone wants to use.
+                if (_ScaleUniform > 1f)
+                {
+                    _ScaleUniform = MathF.Floor(_ScaleUniform);
+                }
+            }
 
             // FIXME: Account for scale from DPI scaling?
 
@@ -70,8 +89,8 @@ namespace MonoGame.Extended.ViewportAdapters
             // Perhaps using this Nez could would be better:
             // https://github.com/prime31/Nez/blob/master/Nez.Portable/ECS/Scene.cs#L692
 
-            var scaledGameWidth = (int)(scale * GameWidth);
-            var scaledGameHeight = (int)(scale * GameHeight);
+            var scaledGameWidth = (int)(_ScaleUniform * GameWidth);
+            var scaledGameHeight = (int)(_ScaleUniform * GameHeight);
 
             if (scaledGameWidth > windowWidth 
                 || scaledGameHeight > windowHeight)

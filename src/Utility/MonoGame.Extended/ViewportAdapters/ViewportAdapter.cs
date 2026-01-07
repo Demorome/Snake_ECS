@@ -31,6 +31,7 @@ namespace MonoGame.Extended.ViewportAdapters
             new Rectangle(0, 0, (int)GameWidth, (int)GameHeight);
         public Vector2 GameCenter => new Vector2(GameWidth / 2, GameHeight / 2);
 
+        public abstract Vector2 Scale { get; }
         public abstract Matrix4x4 GetScaleMatrix();
 
         /// <summary>

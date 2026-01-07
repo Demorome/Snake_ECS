@@ -10,6 +10,7 @@ namespace MonoGame.Extended.ViewportAdapters
         public DefaultViewportAdapter(Window window) : base(window)
         { }
 
+        public override Vector2 Scale => Vector2.One;
         public override Matrix4x4 GetScaleMatrix()
         {
             return Matrix4x4.Identity;

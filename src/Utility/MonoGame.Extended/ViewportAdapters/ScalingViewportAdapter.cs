@@ -7,11 +7,13 @@ namespace MonoGame.Extended.ViewportAdapters
 {
     public class ScalingViewportAdapter : ViewportAdapter
     {
-        public ScalingViewportAdapter(Window window) 
+        public ScalingViewportAdapter(Window window ) 
             : base(window)
-        { }
+        {
+        }
 
-        public Vector2 Scale => new Vector2(
+
+        public override Vector2 Scale => new Vector2(
             (float)ViewportWidth / GameWidth,
             (float)ViewportHeight / GameHeight
         );

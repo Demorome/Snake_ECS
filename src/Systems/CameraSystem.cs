@@ -78,13 +78,13 @@ public class CameraSystem : MoonTools.ECS.System
                 ImGui.Text($"Viewport: X: {adapter.Viewport.X}, Y: {adapter.Viewport.Y}, W: {adapter.Viewport.W}, H: {adapter.Viewport.H}");
                 ImGui.Text($"Window Size: {adapter.Window.Width}x{adapter.Window.Height}");
                 ImGui.Text($"Game World Size: {adapter.GameWidth}x{adapter.GameHeight}");
+                ImGui.Text($"Scale: {adapter.Scale}");
 
                 ImGui.Text($"Type: {adapter.GetType()}");
                 if (adapter is BoxingViewportAdapter)
                 {
                     var boxingAdapter = (BoxingViewportAdapter)adapter;
                     ImGui.Text($"Boxing mode: {boxingAdapter.BoxingMode}");
-                    ImGui.Text($"Scale: {boxingAdapter.Scale}");
 
                     /*int horizontalBleed = (int)boxingAdapter.HorizontalBleed;
                     if (ImGui.InputInt("Horizontal Bleed", ref horizontalBleed))

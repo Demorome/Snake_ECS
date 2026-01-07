@@ -92,7 +92,7 @@ public class GameplayState : GameState
         // FIXME: Can't create multiple BoxingViewportAdapters in other states,
         // since that could cause multiple window resize callbacks to get stacked.
         var camera = new OrthographicCamera(
-            new BoxingViewportAdapter(Game.MainWindow)
+            new BoxingViewportAdapter(Game.MainWindow, true)
         );
         CameraSystem = new(World, camera);   
 
