@@ -307,8 +307,9 @@ namespace MonoGame.Extended
         /// <inheritdoc/>
         public override Vector2 WorldToScreen(Vector2 worldPosition)
         {
+            var scale = ViewportAdapter.Scale;
             Vector2 screenPosition = Vector2.Transform(
-                worldPosition, 
+                worldPosition * scale, 
                 GetWorldSpaceToViewSpaceMatrix()
             );
 
@@ -339,8 +340,9 @@ namespace MonoGame.Extended
             var viewport = ViewportAdapter.Viewport;
             screenPosition -= new Vector2(viewport.X, viewport.Y);
 
+            var scale = ViewportAdapter.Scale;
             return Vector2.Transform(
-                screenPosition, 
+                screenPosition / scale, 
                 GetViewSpaceToWorldSpaceMatrix()
             );
         }
