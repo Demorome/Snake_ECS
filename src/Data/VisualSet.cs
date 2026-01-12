@@ -183,8 +183,8 @@ public abstract class VisualSet
         Position2D spawnPosition,
         World world,
         PrefabManipulator prefabManipulator,
-        LiveLevel.Room currentRoom = null,
-        LiveLevel.EditorLayer maybeLayer = null,
+        LiveLevel.Room? maybeRoom = null,
+        LiveLevel.EditorLayer? maybeLayer = null,
         bool isDummyVisual = false,
         bool isDummyForPaintingPreview = false
     )
@@ -208,7 +208,7 @@ public abstract class VisualSet
         }
         else
         {
-            if (currentRoom == null || maybeLayer == null)
+            if (maybeRoom == null || maybeLayer == null)
             {
                 Logger.LogError("Room/layer shouldn't be null for a non-dummy visual!");
                 return null;
@@ -247,8 +247,8 @@ public abstract class VisualSet
         }
         else
         {
-            world.Set(newEntity, currentRoom.ID);
-            world.Set(newEntity, maybeLayer.LayerID);
+            world.Set(newEntity, maybeRoom!.ID);
+            world.Set(newEntity, maybeLayer!.LayerID);
             maybeLayer.CachedEntities.Add(newEntity);
         }
 
@@ -329,7 +329,7 @@ public class VisualSetVariant
 
 #if DEBUG
     // Only used as an optional describer for the Editor.
-    public string Editor_Name;
+    public string? Editor_Name;
 #endif
 
     // NOTE: If any field is non-null, it completely overrides the base field of the TileSet.

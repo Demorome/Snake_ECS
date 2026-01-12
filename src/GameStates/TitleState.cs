@@ -16,19 +16,22 @@ public class TitleState : GameState
     GraphicsDevice GraphicsDevice;
     AudioDevice AudioDevice;
     GameState TransitionStateA;
-    GameState TransitionStateB;
+    GameState? TransitionStateB;
 
     SpriteBatch HiResSpriteBatch;
     Texture RenderTexture;
     Sampler LinearSampler;
 
-    PersistentVoice MusicVoice;
-    AudioDataQoa Music;
+    PersistentVoice? MusicVoice;
+    AudioDataQoa? Music;
 
     float Time = 30.0f;
     private float Timer = 0.0f;
 
-    public TitleState(RollAndCashGame game, GameState transitionStateA, GameState transitionStateB)
+    public TitleState(
+        RollAndCashGame game, 
+        GameState transitionStateA, 
+        GameState? transitionStateB)
     {
         Game = game;
         GraphicsDevice = game.GraphicsDevice;
@@ -36,27 +39,45 @@ public class TitleState : GameState
         TransitionStateA = transitionStateA;
         TransitionStateB = transitionStateB;
 
-        LinearSampler = Sampler.Create(GraphicsDevice, SamplerCreateInfo.LinearClamp);
-        HiResSpriteBatch = new SpriteBatch("TitleState SpriteBatch Pipeline", GraphicsDevice, Game.RootTitleStorage, game.MainWindow.SwapchainFormat);
+        LinearSampler = Sampler.Create(
+            GraphicsDevice, 
+            SamplerCreateInfo.LinearClamp
+        );
+        HiResSpriteBatch = new SpriteBatch(
+            "TitleState SpriteBatch Pipeline", 
+            GraphicsDevice, 
+            Game.RootTitleStorage, 
+            game.MainWindow.SwapchainFormat
+        );
 
-        RenderTexture = Texture.Create2D(GraphicsDevice, Dimensions.GAME_W, Dimensions.GAME_H, game.MainWindow.SwapchainFormat, TextureUsageFlags.ColorTarget | TextureUsageFlags.Sampler);
+        RenderTexture = Texture.Create2D(
+            GraphicsDevice, 
+            Dimensions.GAME_W, 
+            Dimensions.GAME_H, 
+            game.MainWindow.SwapchainFormat, 
+            TextureUsageFlags.ColorTarget | TextureUsageFlags.Sampler
+        );
     }
 
     public override void Start()
     {
         if (MusicVoice == null)
         {
-            Music = StreamingAudio.Lookup(StreamingAudio.roll_n_cash_grocery_lords);
+            Music = StreamingAudio.Lookup(
+                StreamingAudio.roll_n_cash_grocery_lords
+            );
             Music.Loop = true;
             MusicVoice = AudioDevice.Obtain<PersistentVoice>(Music.Format);
         }
 
-        Music.Seek(0);
+        Music!.Seek(0);
         Music.SendTo(MusicVoice);
         //MusicVoice.Play();
 
         var announcerSound = StaticAudio.Lookup(StaticAudio.RollAndCash);
-        var announcerVoice = AudioDevice.Obtain<TransientVoice>(announcerSound.Format);
+        var announcerVoice = AudioDevice.Obtain<TransientVoice>(
+            announcerSound.Format
+        );
         announcerVoice.Submit(announcerSound);
         announcerVoice.SetVolume(1.8f);
         //announcerVoice.Play();
@@ -118,7 +139,7 @@ public class TitleState : GameState
 
     public override void End()
     {
-        Music.Disconnect();
+        Music?.Disconnect();
     }
 
     private Matrix4x4 GetHiResProjectionMatrix()

@@ -66,7 +66,7 @@ public class LiveLevel
     {
         public LevelRoomID ID;
         public readonly LiveLevel Level;
-        public string Name;
+        public string? Name;
         public Position2D Position; // top-left corner
         public int Width = Dimensions.GAME_W;
         public int Height = Dimensions.GAME_H;
@@ -138,19 +138,23 @@ public class LiveLevel
             name = testName;
         }
 
-        public void DeleteLayerCleanup(ref LiveLevel.EditorLayer layerToRemove, World world)
+        public void DeleteLayerCleanup(
+            ref LiveLevel.EditorLayer? layerToRemove, 
+            World world
+        )
         {
             // FIXME: Undo support!
             // FIXME: If undone, need to re-apply relationship data too.
             // Ex: DebugEntiy DontDraw relation, if the layer was made invisible.
 
             // Deleting a layer deletes all entities in it.
-            foreach (var entity in layerToRemove.CachedEntities)
+            foreach (var entity in layerToRemove!.CachedEntities)
             {
                 world.Destroy(entity);
             }
 
-            // Preserve the ID in the lookup, in case we want to undo this change.
+            // Preserve the ID in the lookup, 
+            // in case we want to undo this change.
             // May as well preserve the Layer here too...?
             //Layers[LayerID.ID] = null;
 
@@ -184,7 +188,7 @@ public class LiveLevel
         // b) prefab type.
         // The visual set is expected to contain prefab types.
         // FIXME: Use discriminated union here when it's available!!
-        public VisualSet MaybeVisualSet;
+        public VisualSet? MaybeVisualSet;
         public VisualSetVariantID? MaybeVisualSetVariantID;
         public PrefabTypes? MaybePrefabType;
 
@@ -205,7 +209,7 @@ public class LiveLevel
         public EditorLayer(
             LevelLayerTypes layerType,
             LiveLevel.Room room,
-            string name = null,
+            string? name = null,
             float depth = (float)DepthLayer.PlaceholderDepth
             )
         {
@@ -421,7 +425,9 @@ public class LiveLevel
             {
                 var filedLayer = new FiledLevel.Layer(liveLayer);
 
-                var filedEntities = new List<FiledEntity>(liveLayer.CachedEntities.Count);
+                var filedEntities = new List<FiledEntity>(
+                    liveLayer.CachedEntities.Count
+                );
                 foreach (var liveEntity in liveLayer.CachedEntities)
                 {
                     if (!world.Has<PrefabID>(liveEntity))
@@ -466,7 +472,7 @@ public class LiveLevel
             File.ReadAllText(jsonPath),
             typeof(FiledLevel),
             JsonLevelContext
-        );
+        )!;
 
         // 'SerializedVersion' can be used here, if needed
 
@@ -497,15 +503,19 @@ public class LiveLevel
 
                 if (filedLayer.TypeID == LevelLayerTypes.TileSet)
                 {
-                    if (!TileSets.NameToTileSet.ContainsKey(filedLayer.MaybeVisualSet.Value.NameID))
+                    if (!TileSets.NameToTileSet.ContainsKey(
+                        filedLayer.MaybeVisualSet!.Value.NameID))
                     {
                         logSetNotFoundError(filedLayer.MaybeVisualSet.Value.NameID);
                         continue;
                     }
-                    var tileSet = TileSets.NameToTileSet[filedLayer.MaybeVisualSet.Value.NameID];
+                    var tileSet = TileSets.NameToTileSet[
+                        filedLayer.MaybeVisualSet.Value.NameID
+                    ];
 
                     // Reminder that a variantID of 0 is valid; it means the default tileset.
-                    if (tileSet.VariantSets.Count > filedLayer.MaybeVisualSet.Value.VariantID)
+                    if (tileSet.VariantSets.Count 
+                        > filedLayer.MaybeVisualSet.Value.VariantID)
                     {
                         logVariantNotFoundError(filedLayer.MaybeVisualSet.Value.VariantID);
                     }
@@ -516,7 +526,10 @@ public class LiveLevel
                     // FIXME: Implement!
                 }
 
-                for (int nthEntity = 0; nthEntity < filedLayer.Entities.Length; ++nthEntity)
+                for (int nthEntity = 0; 
+                    nthEntity < filedLayer.Entities.Length; 
+                    ++nthEntity
+                )
                 {
                     var filedEntity = filedLayer.Entities[nthEntity];
                     _ = filedEntity.ToLiveEntity(

@@ -227,7 +227,7 @@ public class EditorSystem : MoonTools.ECS.System
             }
             var room = LevelEditor.ActiveLevel.GetRoomFromID(Get<LevelRoomID>(entity));
 
-            LiveLevel.EditorLayer maybeLayer = null;
+            LiveLevel.EditorLayer? maybeLayer = null;
             if (Has<Editor_LevelLayerID>(entity))
             {
                 // FIXME: might be null, if the layer has been deleted this session, then undone.
@@ -270,7 +270,7 @@ public class EditorSystem : MoonTools.ECS.System
                 }
             }
 
-            maybeLayer.CachedEntities.Add(entity);
+            maybeLayer!.CachedEntities.Add(entity);
             Set(entity, maybeLayer.LayerID);
         }
 
@@ -349,7 +349,7 @@ public class EditorSystem : MoonTools.ECS.System
 
         if (ActiveTool.CurrentMode == ToolMode.EntitySelection)
         {
-            UnrelateAll<Editor_SelectedEntity>(DebugEntity.Value);
+            UnrelateAll<Editor_SelectedEntity>(DebugEntity!.Value);
             if (mouseHoveringOverAnyWindow)
             {
                 return;
@@ -449,7 +449,7 @@ public class EditorSystem : MoonTools.ECS.System
 
                     if (unselect)
                     {
-                        UnrelateAll<Editor_SelectedEntity>(DebugEntity.Value);
+                        UnrelateAll<Editor_SelectedEntity>(DebugEntity!.Value);
                     }
                 }
             }

@@ -33,7 +33,7 @@ public class RenderingManipulator : MoonTools.ECS.Manipulator
         Vector2 sliceSize,
         UV UV
 #if DEBUG
-        , EditorSystem EditorSystem = null
+        , EditorSystem? EditorSystem = null
 #endif
         )
     {
@@ -114,7 +114,7 @@ public class RenderingManipulator : MoonTools.ECS.Manipulator
         Sprite sprite,
         Vector2 spriteOrigin
 #if DEBUG
-        , EditorSystem EditorSystem = null
+        , EditorSystem? EditorSystem = null
 #endif
         )
     {
@@ -135,7 +135,7 @@ public class RenderingManipulator : MoonTools.ECS.Manipulator
         Rectangle rectangle,
         SpriteAnimation pixelAnim
 #if DEBUG
-        , EditorSystem EditorSystem = null
+        , EditorSystem? EditorSystem = null
 #endif
         )
     {
@@ -156,7 +156,7 @@ public class RenderingManipulator : MoonTools.ECS.Manipulator
         Entity entity,
         TileSprite tileSprite
 #if DEBUG
-        , EditorSystem EditorSystem = null
+        , EditorSystem? EditorSystem = null
 #endif
         )
     {
@@ -176,9 +176,10 @@ public class RenderingManipulator : MoonTools.ECS.Manipulator
 
 #if DEBUG
     // Returns a null texture in case of an error.
-    public (SpriteInstanceData, Texture) Editor_GetSpriteInstanceDataAndTexture(
+    public (SpriteInstanceData, Texture?) 
+     Editor_GetSpriteInstanceDataAndTexture(
         Entity entity, 
-        EditorSystem editorSystem = null
+        EditorSystem? editorSystem = null
         )
     {
         SpriteAnimation? maybeSpriteAnim = null;
@@ -218,7 +219,7 @@ public class RenderingManipulator : MoonTools.ECS.Manipulator
     public Color GetColorBlend(
         Entity e
 #if DEBUG
-        , EditorSystem EditorSystem = null
+        , EditorSystem? EditorSystem = null
 #endif
         )
 	{

@@ -16,11 +16,7 @@ namespace RollAndCash
 		GameplayState GameplayState;
 		TitleState TitleState;
 
-		GameState CurrentState;
-
-#if UseDebugGUI
-		ImGuiBackend ImGuiBackend;
-#endif
+		GameState? CurrentState;
 
 		public RollAndCashGame(
 			AppInfo appInfo,
@@ -31,7 +27,6 @@ namespace RollAndCash
 		) : base(appInfo, windowCreateInfo, framePacingSettings, shaderFormats, debugMode)
 		{
 #if UseDebugGUI
-			ImGuiBackend = new ImGuiBackend(this);
 			Systems.EditorSystem.StaticInit();
 #else
 			Inputs.Mouse.Hide();
@@ -57,7 +52,7 @@ namespace RollAndCash
 		protected override void Update(System.TimeSpan dt)
 		{
 #if UseDebugGUI
-			ImGuiBackend.NewFrame(dt);
+			//ImGuiBackend.NewFrame(dt);
 #endif
 
 			if (Inputs.Keyboard.IsPressed(MoonWorks.Input.KeyCode.F11))
@@ -69,10 +64,10 @@ namespace RollAndCash
 
 			}
 
-			CurrentState.Update(dt);
+			CurrentState?.Update(dt);
 
 #if UseDebugGUI
-			ImGuiBackend.EndFrame();
+			//ImGuiBackend.EndFrame();
 #endif
 		}
 
@@ -87,16 +82,21 @@ namespace RollAndCash
 			var swapchainTexture = commandBuffer.AcquireSwapchainTexture(MainWindow);
 			if (swapchainTexture != null)
 			{
-				CurrentState.Draw(commandBuffer, swapchainTexture, MainWindow, alpha);
+				CurrentState?.Draw(
+					commandBuffer, 
+					swapchainTexture, 
+					MainWindow, 
+					alpha
+				);
 
 #if UseDebugGUI
-				ImGuiBackend.UploadBuffers(commandBuffer);
+				//ImGuiBackend.UploadBuffers(commandBuffer);
 
 				var guiRenderPass = commandBuffer.BeginRenderPass(
 					new ColorTargetInfo(swapchainTexture, LoadOp.Load)
 				);
 
-				ImGuiBackend.Render(guiRenderPass);
+				//ImGuiBackend.Render(guiRenderPass);
 				commandBuffer.EndRenderPass(guiRenderPass);
 #endif
 			}
@@ -108,18 +108,21 @@ namespace RollAndCash
 		protected override void Destroy()
 		{
 #if UseDebugGUI
-			ImGuiBackend.Dispose();
+			//ImGuiBackend.Dispose();
 #endif
 		}
 
-		public void SetState(GameState gameState)
+		public void SetState(GameState? gameState)
 		{
 			if (CurrentState != null)
 			{
 				CurrentState.End();
 			}
 
-			gameState.Start();
+			if (gameState != null)
+			{
+				gameState.Start();
+			}
 			CurrentState = gameState;
 		}
     }

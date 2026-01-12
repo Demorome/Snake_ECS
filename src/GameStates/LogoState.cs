@@ -14,11 +14,11 @@ public class LogoState : GameState
     RollAndCashGame Game;
     GraphicsDevice GraphicsDevice;
     AudioDevice AudioDevice;
-    GameState TransitionState;
+    GameState? TransitionState;
 
     SpriteBatch HiResSpriteBatch;
     Sampler LinearSampler;
-    PersistentVoice Voice;
+    PersistentVoice? Voice;
 
     float Fade = 0;
     float FadeTimer = 0;
@@ -29,7 +29,7 @@ public class LogoState : GameState
 
     bool SoundPlayed = false;
 
-    public LogoState(RollAndCashGame game, GameState transitionState)
+    public LogoState(RollAndCashGame game, GameState? transitionState)
     {
         Game = game;
         GraphicsDevice = game.GraphicsDevice;
@@ -70,8 +70,8 @@ public class LogoState : GameState
         if (!SoundPlayed && Fade == 1)
         {
 			var sound = StaticAudio.Lookup(StaticAudio.MoonWorksChime);
-        	Voice.Submit(sound);
-            Voice.Play();
+        	Voice!.Submit(sound);
+            Voice!.Play();
 
             SoundPlayed = true;
         }

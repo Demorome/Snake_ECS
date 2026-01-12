@@ -16,7 +16,7 @@ public static class EditorHelpActions
     {
         public EditorAction(string name, Action<World> action,
             bool opensWindow = false,
-            Func<bool> isDisabledFunc = null)
+            Func<bool>? isDisabledFunc = null)
         {
             Name = name;
             WorldAction = action;
@@ -27,7 +27,7 @@ public static class EditorHelpActions
             string name, 
             Action toggleAction, 
             Func<bool> getFunc,
-            Func<bool> isDisabledFunc = null
+            Func<bool>? isDisabledFunc = null
             )
         {
             Name = name;
@@ -37,10 +37,10 @@ public static class EditorHelpActions
         }
 
         public string Name;
-        public Action<World> WorldAction = null;
-        public Action MaybeToggleAction = null;
-        public Func<bool> MaybeGetFunc = null;
-        public Func<bool> MaybeIsDisabledFunc = null;
+        public Action<World>? WorldAction = null;
+        public Action? MaybeToggleAction = null;
+        public Func<bool>? MaybeGetFunc = null;
+        public Func<bool>? MaybeIsDisabledFunc = null;
         public bool OpensWindow = false;
         public bool ShowInEditWindow = false;
 
@@ -62,7 +62,7 @@ public static class EditorHelpActions
 
             if (WorldAction == null)
             {
-                MaybeToggleAction();
+                MaybeToggleAction!();
             }
             else
             {

@@ -421,8 +421,16 @@ public class Renderer : MoonTools.ECS.Renderer
 			if (selectedEntity.HasValue)
 			{
 				var entity = selectedEntity.Value;
-				var rectangle = EditorSystem.GetEntityVisualRect(entity).Value;
-				DrawDebugRectangle(entity, rectangle, Color.LimeGreen, outlineDepth, DebugLineThickness * 2);
+				var rectangle = 
+					EditorSystem.GetEntityVisualRect(entity)
+					!.Value;
+				
+				DrawDebugRectangle(
+					entity, 
+					rectangle, 
+					Color.LimeGreen, 
+					outlineDepth, DebugLineThickness * 2
+				);
 			}
 
 			// FIXME: Scale color intensity by depth?
@@ -432,7 +440,8 @@ public class Renderer : MoonTools.ECS.Renderer
 			{
 				foreach (var entity in SpriteAnimationFilter.Entities)
 				{
-					if (selectedEntity.HasValue && entity == selectedEntity.Value)
+					if (selectedEntity.HasValue 
+						&& entity == selectedEntity.Value)
 					{
 						continue;
 					}
@@ -441,13 +450,23 @@ public class Renderer : MoonTools.ECS.Renderer
                         continue;
                     }
 					var spriteAnim = Get<SpriteAnimation>(entity);
-					var rectangle = EditorSystem.GetEntityVisualRect(entity).Value;
-					DrawDebugRectangle(entity, rectangle, selectionColor, outlineDepth, DebugLineThickness);
+					var rectangle = 
+						EditorSystem.GetEntityVisualRect(entity)
+						!.Value;
+						
+					DrawDebugRectangle(
+						entity, 
+						rectangle, 
+						selectionColor, 
+						outlineDepth, 
+						DebugLineThickness
+					);
 				}
 
 				foreach (var entity in DrawRectFilter.Entities)
 				{
-					if (selectedEntity.HasValue && entity == selectedEntity.Value)
+					if (selectedEntity.HasValue 
+						&& entity == selectedEntity.Value)
 					{
 						continue;
 					}
@@ -457,7 +476,13 @@ public class Renderer : MoonTools.ECS.Renderer
                     }
 
 					var rect = Get<Rectangle>(entity);
-					DrawDebugRectangle(entity, rect, selectionColor, outlineDepth, DebugLineThickness);
+					DrawDebugRectangle(
+						entity, 
+						rect, 
+						selectionColor, 
+						outlineDepth, 
+						DebugLineThickness
+					);
 				}
 			}
 		}

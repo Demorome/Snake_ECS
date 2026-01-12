@@ -38,7 +38,7 @@ public struct UV : IEquatable<UV>
 		Rect = new Vector4(Left, Top, Right, Bottom);
 	}
 
-	public override bool Equals(object obj)
+	public override bool Equals(object? obj)
 	{
 		return obj is UV && Equals((UV)obj);
 	}
