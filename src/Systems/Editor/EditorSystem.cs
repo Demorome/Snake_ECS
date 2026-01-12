@@ -462,7 +462,10 @@ public class EditorSystem : MoonTools.ECS.System
             {
                 if (ImGui.IsMouseClicked(ImGuiMouseButton.Right))
                 {
-                    DetachedWindows.TryAdd(EntityToString(selectedEntity), selectedEntity);
+                    DetachedWindows.TryAdd(
+                        EntityToString(selectedEntity), 
+                        selectedEntity
+                    );
                 }
 
                 if (ImGui.IsKeyDown(ImGuiKey.Delete))
