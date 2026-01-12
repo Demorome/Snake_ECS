@@ -7,7 +7,13 @@ namespace RollAndCash
 	class Program
 	{
 		public static string UserDataDirectory = 
-			$"{Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData), "ROLLANDCASH")}";
+			$"{Path.Combine(
+					System.Environment.GetFolderPath(
+						System.Environment.SpecialFolder.LocalApplicationData
+					), 
+					"ROLLANDCASH"
+				)
+			}";
 
 		static void Main(string[] args)
 		{
@@ -62,7 +68,8 @@ namespace RollAndCash
 			game.Run();
 		}
 
-		static void HandleUnhandledException(object sender, UnhandledExceptionEventArgs args)
+		static void HandleUnhandledException(
+			object sender, UnhandledExceptionEventArgs args)
 		{
 			Exception e = (Exception)args.ExceptionObject;
 			Logger.LogError("Unhandled exception caught!");
@@ -70,7 +77,10 @@ namespace RollAndCash
 
 			Game.ShowRuntimeError("FLAGRANT SYSTEM ERROR", e.ToString());
 
-			StreamWriter streamWriter = new StreamWriter(Path.Combine(UserDataDirectory, "log.txt"));
+			StreamWriter streamWriter = new StreamWriter(
+				Path.Combine(UserDataDirectory, 
+				"log.txt"
+			));
 
 			streamWriter.WriteLine(e.ToString());
 			streamWriter.Flush();
