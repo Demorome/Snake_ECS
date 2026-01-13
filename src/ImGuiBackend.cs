@@ -243,7 +243,7 @@ public class ImGuiBackend : IDisposable
 
             if (noPlatformViewports || noRendererViewports)
             {
-                Logger.LogError($"Multi-viewports not supported by backend! Platform?: {noPlatformViewports}, Renderer?: {noRendererViewports}");
+                Logger.LogError($"Multi-viewports not supported by backend! Platform support?: {!noPlatformViewports}, Renderer support?: {!noRendererViewports}");
             }
             else
             {
