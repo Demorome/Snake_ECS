@@ -8,119 +8,41 @@ using MoonWorks.Graphics;
 using MoonWorks.Input;
 using SDL3;
 using Buffer = MoonWorks.Graphics.Buffer;
-using Hexa.NET.ImGui;
 using System.Diagnostics;
 
+using Hexa.NET.ImGui;
+using Hexa.NET.ImGui.Backends.SDL3;
+using ImSDLEvent = Hexa.NET.ImGui.Backends.SDL3.SDLEvent;
+using ImSDLWindow = Hexa.NET.ImGui.Backends.SDL3.SDLWindow;
+using ImSDLGPUDevice = Hexa.NET.ImGui.Backends.SDL3.SDLGPUDevice;
+using ImSDLGPUCommandBuffer = Hexa.NET.ImGui.Backends.SDL3.SDLGPUCommandBuffer;
+using ImSDLGPURenderPass = Hexa.NET.ImGui.Backends.SDL3.SDLGPURenderPass;
+
+
+public enum ImGuiSamplerType
+{
+    LinearClamp = 0,
+    LinearWrap = 1,
+    PointClamp = 2,
+    PointWrap = 3,
+}
+
 // Credits to @darkerbit: https://gist.github.com/darkerbit/6bfb661d7ce9263ddd7dcc7b475460e0
+// It's been almost completely changed to use Hexa's SDL_GPU ImGui backend.
 public class ImGuiBackend : IDisposable
 {
-    [StructLayout(LayoutKind.Sequential)]
-    private struct Vertex : IVertexType
-    {
-        public Vector2 Position;
-        public Vector2 TexCoord;
-        public Color Color;
-
-        public static VertexElementFormat[] Formats { get; } =
-        [
-            VertexElementFormat.Float2,
-            VertexElementFormat.Float2,
-            VertexElementFormat.Ubyte4Norm,
-        ];
-
-        public static uint[] Offsets { get; } =
-        [
-            0,
-            8,
-            16,
-        ];
-    }
-
-    public enum SamplerType
-    {
-        LinearClamp = 0,
-        LinearWrap = 1,
-        PointClamp = 2,
-        PointWrap = 3,
-    }
-
-    public static ImGuiBackend Instance { get; private set; }
-
-    public bool WantCaptureMouse { get; private set; }
-    public bool WantCaptureKeyboard { get; private set; }
-    public bool WantTextInput { get; private set; }
+    public static ImGuiBackend? Instance { get; private set; }
 
     private Game Game { get; }
 
-    private Shader VertexShader { get; }
-    private Shader FragmentShader { get; }
+    private Sampler[] Samplers;
 
-    //private Texture fontAtlasTex;
-
-    private Sampler[] samplers;
-
-    private Dictionary<IntPtr, TextureSamplerBinding> boundTextures;
-
-    private struct ImGuiTextureSampler
-    {
-        public Texture Texture;
-        public Sampler Sampler;
-
-        public ImGuiTextureSampler(Texture texture, Sampler sampler)
-        {
-            Texture = texture;
-            Sampler = sampler;
-        }
-    }
-
-    // A separate dictionary that won't be cleared each frame.
-    // Also need to store the textures directly, so that we can destroy them later.
-    private Dictionary<IntPtr, ImGuiTextureSampler> imGuiBoundTextures;
-
-    private GraphicsPipeline pipeline;
-
-    private uint vertexCount, indexCount;
-    private Buffer vertexBuf, indexBuf;
-    private TransferBuffer vertexTransBuf, indexTransBuf, textureTransferBuffer;
-
-    // stops clipboard delegates from being gc'd
-    // ReSharper disable once CollectionNeverQueried.Local
-    private Dictionary<Delegate, IntPtr> pinnedDelegates = new Dictionary<Delegate, IntPtr>();
-
-    private IntPtr PinDelegate<T>(T func) where T : Delegate
-    {
-        IntPtr ptr = Marshal.GetFunctionPointerForDelegate(func);
-        pinnedDelegates.Add(func, ptr);
-        return ptr;
-    }
-
-    private static unsafe string GetClipboard(void* userdata)
-    {
-        return SDL.SDL_GetClipboardText();
-    }
-
-    private static unsafe void SetClipboard(void* userdata, string text)
-    {
-        SDL.SDL_SetClipboardText(text);
-    }
-
-    public unsafe ImGuiBackend(Game game, string shaderContentPath = "Content/Shaders")
+    public ImGuiBackend(Game game)
     {
         Instance = this;
         Game = game;
 
-        var vertShader = ShaderCross.Create(Game.GraphicsDevice, Game.RootTitleStorage,
-            $"{shaderContentPath}/ImGui.vert.hlsl.spv", "main", ShaderCross.ShaderFormat.SPIRV, ShaderStage.Vertex);
-
-        var fragShader = ShaderCross.Create(Game.GraphicsDevice, Game.RootTitleStorage,
-            $"{shaderContentPath}/ImGui.frag.hlsl.spv", "main", ShaderCross.ShaderFormat.SPIRV, ShaderStage.Fragment);
-
-        RebuildPipeline(vertShader, fragShader);
-
-        vertShader.Dispose();
-        fragShader.Dispose();
-
-        samplers =
+        Samplers =
         [
             Sampler.Create(Game.GraphicsDevice, "Dear ImGui Linear Clamp Sampler", SamplerCreateInfo.LinearClamp),
             Sampler.Create(Game.GraphicsDevice, "Dear ImGui Linear Wrap Sampler", SamplerCreateInfo.LinearWrap),
@@ -128,187 +50,22 @@ public class ImGuiBackend : IDisposable
             Sampler.Create(Game.GraphicsDevice, "Dear ImGui Point Wrap Sampler", SamplerCreateInfo.PointWrap),
         ];
 
-        boundTextures = new();
-        imGuiBoundTextures = new();
+        InitImGuiRenderingDetails();
 
-        var imGuiContext = ImGui.CreateContext(null);
-        ImGui.SetCurrentContext(imGuiContext);
-
-        var io = ImGui.GetIO();
-        io.ConfigFlags |= ImGuiConfigFlags.NavEnableKeyboard | ImGuiConfigFlags.NavEnableGamepad;
-
-        // We can honor ImGuiPlatformIO::Textures[] requests during render.
-        io.BackendFlags |= ImGuiBackendFlags.RendererHasTextures;  
-
-        // Credits to @JunaMeinhold's SDL3 GPU example: https://github.com/HexaEngine/Hexa.NET.ImGui/blob/d32178601353430ef9c1df507dc72e34712d5e45/Examples/ExampleSDL3GPU/Program.cs#L63
-        var style = ImGui.GetStyle();
-        var mainScale =  SDL.SDL_GetDisplayContentScale(SDL.SDL_GetPrimaryDisplay());
-        style.ScaleAllSizes(mainScale);
-        style.FontScaleDpi = mainScale;
-        io.ConfigDpiScaleFonts = true;
-        io.ConfigDpiScaleViewports = true;
-
-        //ReuploadFontAtlas(); // FIXME: Enable if using an older ImGui version?
-
-        Inputs.TextInput += OnTextInput;
-
-        ImGuiPlatformIOPtr pio = ImGui.GetPlatformIO();
-
-        pio.PlatformGetClipboardTextFn = (void*)PinDelegate(GetClipboard);
-        pio.PlatformSetClipboardTextFn = (void*)PinDelegate(SetClipboard);
+        game.OnProcessEvent += ProcessEvents;
     }
-
-    public void RebuildPipeline(Shader vertexShader, Shader fragmentShader)
-    {
-        pipeline?.Dispose();
-
-        pipeline = GraphicsPipeline.Create(
-            Game.GraphicsDevice,
-            new GraphicsPipelineCreateInfo
-            {
-                Name = "Dear ImGui Graphics Pipeline",
-                PrimitiveType = PrimitiveType.TriangleList,
-                RasterizerState = RasterizerState.CCW_CullNone,
-                DepthStencilState = DepthStencilState.Disable,
-                MultisampleState = MultisampleState.None,
-                VertexInputState = VertexInputState.CreateSingleBinding<Vertex>(),
-                VertexShader = vertexShader,
-                FragmentShader = fragmentShader,
-                TargetInfo = new GraphicsPipelineTargetInfo
-                {
-                    ColorTargetDescriptions =
-                    [
-                        new ColorTargetDescription
-                        {
-                            Format = Game.MainWindow.SwapchainFormat,
-                            BlendState = ColorTargetBlendState.NonPremultipliedAlphaBlend,
-                        },
-                    ],
-                    HasDepthStencilTarget = false,
-                },
-            }
-        );
-    }
-
-    /*public unsafe void ReuploadFontAtlas()
-    {
-        ImGuiIOPtr io = ImGui.GetIO();
-        io.Fonts.GetTexDataAsRGBA32(out byte* data, out int width, out int height, out int bytesPerPixel);
-
-        fontAtlasTex?.Dispose();
-
-        using (ResourceUploader uploader = new ResourceUploader(Game.GraphicsDevice))
-        {
-            fontAtlasTex = uploader.CreateTexture2D(
-                "Dear ImGui Font Atlas Texture",
-                new ReadOnlySpan<byte>(data, width * height * bytesPerPixel),
-                TextureFormat.R8G8B8A8Unorm,
-                TextureUsageFlags.Sampler,
-                (uint)width,
-                (uint)height
-            );
-            uploader.Upload();
-        }
-
-        io.Fonts.SetTexID(IntPtr.Zero);
-        io.Fonts.ClearTexData();
-    }*/
 
     public void NewFrame(TimeSpan delta)
     {
         ImGuiIOPtr io = ImGui.GetIO();
 
+        // FIXME: Might not need these anymore!
         io.DeltaTime = (float)delta.TotalSeconds;
         io.DisplaySize = new Vector2(Game.MainWindow.Width, Game.MainWindow.Height);
 
-        WantCaptureMouse = io.WantCaptureMouse;
-        WantCaptureKeyboard = io.WantCaptureKeyboard;
-
-        if (io.WantTextInput && !WantTextInput)
-        {
-            Game.MainWindow.StartTextInput();
-            WantTextInput = true;
-        }
-        else if (!io.WantTextInput && WantTextInput)
-        {
-            Game.MainWindow.StopTextInput();
-            WantTextInput = false;
-        }
-
-        UpdateMouse(io);
-        UpdateKeyboard(io);
-
+        ImGuiImplSDL3.SDLGPU3NewFrame();
+        ImGuiImplSDL3.NewFrame();
         ImGui.NewFrame();
-
-        boundTextures.Clear();
-    }
-
-    private void UpdateMouse(ImGuiIOPtr io)
-    {
-        io.AddMousePosEvent(Game.Inputs.Mouse.X, Game.Inputs.Mouse.Y);
-        io.AddMouseWheelEvent(0.0f, Game.Inputs.Mouse.Wheel);
-
-        if (Game.Inputs.Mouse.LeftButton.IsPressed || Game.Inputs.Mouse.LeftButton.IsReleased)
-        {
-            io.AddMouseButtonEvent(0, Game.Inputs.Mouse.LeftButton.IsDown);
-        }
-
-        if (Game.Inputs.Mouse.RightButton.IsPressed || Game.Inputs.Mouse.RightButton.IsReleased)
-        {
-            io.AddMouseButtonEvent(1, Game.Inputs.Mouse.RightButton.IsDown);
-        }
-
-        if (Game.Inputs.Mouse.MiddleButton.IsPressed || Game.Inputs.Mouse.MiddleButton.IsReleased)
-        {
-            io.AddMouseButtonEvent(2, Game.Inputs.Mouse.MiddleButton.IsDown);
-        }
-
-        if (Game.Inputs.Mouse.X1Button.IsPressed || Game.Inputs.Mouse.X1Button.IsReleased)
-        {
-            io.AddMouseButtonEvent(3, Game.Inputs.Mouse.X1Button.IsDown);
-        }
-
-        if (Game.Inputs.Mouse.X2Button.IsPressed || Game.Inputs.Mouse.X2Button.IsReleased)
-        {
-            io.AddMouseButtonEvent(4, Game.Inputs.Mouse.X2Button.IsDown);
-        }
-    }
-
-    private void OnTextInput(char c)
-    {
-        ImGuiIOPtr io = ImGui.GetIO();
-        io.AddInputCharacter(c);
-    }
-
-    private void UpdateKeyboard(ImGuiIOPtr io)
-    {
-        io.AddKeyEvent(
-            ImGuiKey.ModCtrl,
-            Game.Inputs.Keyboard.IsDown(KeyCode.LeftControl) || Game.Inputs.Keyboard.IsDown(KeyCode.RightControl)
-        );
-
-        io.AddKeyEvent(
-            ImGuiKey.ModAlt,
-            Game.Inputs.Keyboard.IsDown(KeyCode.LeftAlt) || Game.Inputs.Keyboard.IsDown(KeyCode.RightAlt)
-        );
-
-        io.AddKeyEvent(
-            ImGuiKey.ModShift,
-            Game.Inputs.Keyboard.IsDown(KeyCode.LeftShift) || Game.Inputs.Keyboard.IsDown(KeyCode.RightShift)
-        );
-
-        io.AddKeyEvent(
-            ImGuiKey.ModSuper,
-            Game.Inputs.Keyboard.IsDown(KeyCode.LeftMeta) || Game.Inputs.Keyboard.IsDown(KeyCode.RightMeta)
-        );
-
-        foreach (KeyCode key in keyCodes)
-        {
-            if (Game.Inputs.Keyboard.IsPressed(key) || Game.Inputs.Keyboard.IsReleased(key))
-            {
-                io.AddKeyEvent(KeyCodeToImGui(key), Game.Inputs.Keyboard.IsDown(key));
-            }
-        }
     }
 
     public void EndFrame()
@@ -316,406 +73,100 @@ public class ImGuiBackend : IDisposable
         ImGui.EndFrame();
     }
 
-    // Based on ImGui's ImGui_ImplSDLGPU3_DestroyTexture: https://github.com/ocornut/imgui/blob/87d7f7744efe63e77f4d0e00ccb5f6affd12aca7/backends/imgui_impl_sdlgpu3.cpp#L295
-    unsafe private void DestroyImGuiTexture(ImTextureData* tex)
+    /// <summary>
+    /// Will perform the render pass using ColorTargetInfo.
+    /// </summary>
+    public static void UploadAndRenderBuffers(
+        CommandBuffer commandBuffer,
+        ColorTargetInfo colorTargetInfo
+        )
     {
-        var texID = tex->GetTexID();
-        if (texID == IntPtr.Zero)
-        {
-            return;
-        }
-        else if (!imGuiBoundTextures.ContainsKey(texID))
-        {
-            throw new Exception("ImGui wants us to clear one of our game's textures?? Why?!");
-        }
-
-        var imGuiTextureBinding = imGuiBoundTextures[texID];
-        imGuiTextureBinding.Texture.Dispose();
-        imGuiBoundTextures.Remove(texID);
-
-        // Clear identifiers and mark as destroyed (in order to allow e.g. calling InvalidateDeviceObjects while running)
-        tex->SetTexID(ImTextureID.Null);
-        tex->SetStatus(ImTextureStatus.Destroyed);
-        //tex->BackendUserData = null;
-    }
-    
-    // Based on ImGui's ImGui_ImplSDLGPU3_UpdateTexture: https://github.com/ocornut/imgui/blob/87d7f7744efe63e77f4d0e00ccb5f6affd12aca7/backends/imgui_impl_sdlgpu3.cpp#L312C6-L312C37
-    unsafe private void UpdateTexture(ImTextureData* tex, CommandBuffer cb)
-    {
-        if (tex->Status == ImTextureStatus.WantCreate)
-        {
-            // Create and upload new texture to graphics system
-            Debug.Assert(tex->TexID.IsNull && tex->BackendUserData == null);
-            Debug.Assert(tex->Format == ImTextureFormat.Rgba32);
-
-            // Create texture
-            var texture = Texture.Create2D(
-                cb.Device,
-                "ImGui (Font?) Texture",
-                (uint)tex->Width,
-                (uint)tex->Height,
-                TextureFormat.R8G8B8A8Unorm,
-                TextureUsageFlags.Sampler,
-                1,
-                SampleCount.One
-            );
-
-            var texID = BindNewImGuiTexture(texture, SamplerType.LinearClamp);
-            Debug.Assert(texture != null, "Failed to create font texture, call SDL_GetError() for more info");
-
-            // Store identifier
-            tex->SetTexID(texID);
-        }
-
-        if (tex->Status == ImTextureStatus.WantCreate || tex->Status == ImTextureStatus.WantUpdates)
-        {
-            var textureBinding = imGuiBoundTextures[tex->GetTexID()];
-
-            Debug.Assert(tex->Format == ImTextureFormat.Rgba32);
-            Debug.Assert(tex->BytesPerPixel == sizeof(UInt32));
-            const int BytesPerPixel = sizeof(UInt32);
-
-            // Update full texture or selected blocks. We only ever write to textures regions which have never been used before!
-            // This backend chose to use tex->UpdateRect but you can use tex->Updates[] to upload individual regions.
-            // We could use the smaller rect on _WantCreate but using the full rect allows us to clear the texture.
-            int upload_x = (tex->Status == ImTextureStatus.WantCreate) ? 0 : tex->UpdateRect.X;
-            int upload_y = (tex->Status == ImTextureStatus.WantCreate) ? 0 : tex->UpdateRect.Y;
-            int upload_w = (tex->Status == ImTextureStatus.WantCreate) ? tex->Width : tex->UpdateRect.W;
-            int upload_h = (tex->Status == ImTextureStatus.WantCreate) ? tex->Height : tex->UpdateRect.H;
-            int upload_pitch = upload_w * BytesPerPixel;
-            uint upload_size = (uint)(upload_w * upload_h * BytesPerPixel);
-
-            // Create transfer buffer
-            if (textureTransferBuffer == null || textureTransferBuffer.Size < upload_size)
-            {
-                textureTransferBuffer?.Dispose();
-
-                textureTransferBuffer = TransferBuffer.Create<Vertex>(
-                    Game.GraphicsDevice,
-                    "Dear ImGui Texture Transfer Buffer",
-                    TransferBufferUsage.Upload,
-                    upload_size + 1024
-                );
-
-                Debug.Assert(textureTransferBuffer != null, "Failed to create font transfer buffer, call SDL_GetError() for more information");
-            }
-
-            // Copy to transfer buffer
-            {
-                textureTransferBuffer.Map(true);
-                for (int y = 0; y < upload_h; y++)
-                {
-                    // Since pixel format is RGBA 32, it should be 32 bits per pixel, thus a span of uint(32)s.
-                    var textureSpan = new Span<UInt32>(tex->GetPixelsAt(upload_x, upload_y + y), upload_pitch);
-                    textureSpan.CopyTo(textureTransferBuffer.MappedSpan<UInt32>((UInt32)(y * upload_pitch)));
-
-                    // Above is equivalent to this C code:
-                    //memcpy((void*)((uintptr_t)texture_ptr + y * upload_pitch), tex->GetPixelsAt(upload_x, upload_y + y), upload_pitch);
-                }
-                textureTransferBuffer.Unmap();
-            }
-
-            var textureRegion = new TextureRegion
-            {
-                Texture = textureBinding.Texture.Handle,
-                X = (uint)upload_x,
-                Y = (uint)upload_y,
-                W = (uint)upload_w,
-                H = (uint)upload_h,
-                D = 1
-            };
-
-            // Upload
-            {
-                cb.PushDebugGroup("Dear ImGui Image Upload");
-
-                CopyPass copyPass = cb.BeginCopyPass();
-                var transferInfo = new TextureTransferInfo
-                {
-                    TransferBuffer = textureTransferBuffer.Handle,
-                    Offset = 0
-                };
-                copyPass.UploadToTexture(transferInfo, textureRegion, false);
-                cb.EndCopyPass(copyPass);
-
-                cb.PopDebugGroup();
-            }
-
-            tex->SetStatus(ImTextureStatus.Ok);
-        }
-
-        if (tex->Status == ImTextureStatus.WantDestroy && tex->UnusedFrames > 0)
-        {
-            DestroyImGuiTexture(tex);
-        }
-    }
-
-    // Can mirror this code: https://github.com/ocornut/imgui/blob/87d7f7744efe63e77f4d0e00ccb5f6affd12aca7/backends/imgui_impl_sdlgpu3.cpp#L155
-    public unsafe void UploadBuffers(CommandBuffer cb)
-    {
+        // Prepare and upload buffers.
         ImGui.Render();
+        var drawData = ImGui.GetDrawData();
+        bool isMinimized = drawData.DisplaySize.X <= 0 
+            || drawData.DisplaySize.Y <= 0;
 
-        ImDrawDataPtr drawData = ImGui.GetDrawData();
-
-        // Avoid rendering when minimized, scale coordinates for retina displays (screen coordinates != framebuffer coordinates)
-        int fb_width = (int)(drawData.DisplaySize.X * drawData.FramebufferScale.X);
-        int fb_height = (int)(drawData.DisplaySize.Y * drawData.FramebufferScale.Y);
-        if (fb_width <= 0 || fb_height <= 0 || drawData.TotalVtxCount <= 0)
+        if (!isMinimized)
         {
-            return;
-        }
-
-        // Catch up with texture updates. Most of the times, the list will have 1 element with an OK status, aka nothing to do.
-        // (This almost always points to ImGui::GetPlatformIO().Textures[] but is part of ImDrawData to allow overriding or disabling texture updates).
-        //if (drawData.Textures != null)
-        //{
-        for (int i = 0; i < drawData.Textures.Size; ++i)
-        {
-            var tex = drawData.Textures[i];
-            if (tex.Status != ImTextureStatus.Ok)
-            {
-                UpdateTexture(tex, cb);
-            }
-        }
-        //}
-
-
-        if (drawData.TotalVtxCount > vertexCount)
-        {
-            vertexBuf?.Dispose();
-            vertexTransBuf?.Dispose();
-
-            vertexCount = (uint)drawData.TotalVtxCount * 2;
-
-            vertexBuf = Buffer.Create<Vertex>(
-                Game.GraphicsDevice,
-                "Dear ImGui Vertex Buffer",
-                BufferUsageFlags.Vertex,
-                vertexCount
+            // Does a copy pass
+            UploadImGuiBuffers(
+                drawData,
+                commandBuffer
             );
 
-            vertexTransBuf = TransferBuffer.Create<Vertex>(
-                Game.GraphicsDevice,
-                "Dear ImGui Vertex Transfer Buffer",
-                TransferBufferUsage.Upload,
-                vertexCount
-            );
-        }
-
-        if (drawData.TotalIdxCount > indexCount)
-        {
-            indexBuf?.Dispose();
-            indexTransBuf?.Dispose();
-
-            indexCount = (uint)drawData.TotalIdxCount * 2;
-
-            indexBuf = Buffer.Create<ushort>(
-                Game.GraphicsDevice,
-                "Dear ImGui Index Buffer",
-                BufferUsageFlags.Index,
-                indexCount
+            var guiRenderPass = commandBuffer.BeginRenderPass(
+                colorTargetInfo
             );
 
-            indexTransBuf = TransferBuffer.Create<ushort>(
-                Game.GraphicsDevice,
-                "Dear ImGui Index Transfer Buffer",
-                TransferBufferUsage.Upload,
-                indexCount
+            RenderImGuiBuffers(
+                drawData, 
+                commandBuffer, 
+                guiRenderPass
             );
+            
+            commandBuffer.EndRenderPass(guiRenderPass);
         }
-
-        vertexTransBuf.Map(true);
-        indexTransBuf.Map(true);
-
-        uint vertexOffset = 0;
-        uint indexOffset = 0;
-
-        for (int i = 0; i < drawData.CmdListsCount; i++)
-        {
-            ImDrawListPtr cmdList = drawData.CmdLists[i];
-
-            Span<Vertex> vertexSpan = new Span<Vertex>(cmdList.VtxBuffer.Data, cmdList.VtxBuffer.Size);
-            Span<ushort> indexSpan = new Span<ushort>(cmdList.IdxBuffer.Data, cmdList.IdxBuffer.Size);
-
-            vertexSpan.CopyTo(vertexTransBuf.MappedSpan<Vertex>((uint)(vertexOffset * sizeof(Vertex))));
-            indexSpan.CopyTo(indexTransBuf.MappedSpan<ushort>((uint)(indexOffset * sizeof(ushort))));
-
-            vertexOffset += (uint)cmdList.VtxBuffer.Size;
-            indexOffset += (uint)cmdList.IdxBuffer.Size;
-        }
-
-        vertexTransBuf.Unmap();
-        indexTransBuf.Unmap();
-
-        cb.PushDebugGroup("Dear ImGui Buffer Uploads");
-
-        CopyPass copyPass = cb.BeginCopyPass();
-        copyPass.UploadToBuffer(vertexTransBuf, vertexBuf, true);
-        copyPass.UploadToBuffer(indexTransBuf, indexBuf, true);
-        cb.EndCopyPass(copyPass);
-
-        cb.PopDebugGroup();
     }
 
-    public void Render(RenderPass pass)
+    /// <summary>
+    /// Add in your main loop, after rendering your main viewport.
+    /// </summary>
+    public static void RenderOtherPlatformWindows()
     {
-        ImDrawDataPtr drawData = ImGui.GetDrawData();
-
-        if (drawData.TotalVtxCount == 0)
+        // Update and Render additional Platform Windows.
+        // https://github.com/ocornut/imgui/wiki/Multi-Viewports#how-can-i-enable-multi-viewports-
+        if ((ImGui.GetIO().ConfigFlags 
+            & ImGuiConfigFlags.ViewportsEnable) != 0)
         {
-            return;
+            ImGui.UpdatePlatformWindows();
+            ImGui.RenderPlatformWindowsDefault();
         }
+    }
 
-        pass.CommandBuffer.PushDebugGroup("Dear ImGui Render");
-
-        pass.CommandBuffer.PushVertexUniformData(
-            Matrix4x4.CreateOrthographicOffCenter(
-                0.0f, 
-                Game.MainWindow.Width, 
-                Game.MainWindow.Height, 
-                0.0f, 
-                -1.0f, 
-                1.0f
-            )
+    private static unsafe void UploadImGuiBuffers(
+        ImDrawDataPtr drawData,
+        CommandBuffer commandBuffer
+    )
+    {
+        ImGuiImplSDL3.SDLGPU3PrepareDrawData(
+            drawData, 
+            (ImSDLGPUCommandBuffer*)commandBuffer.Handle
         );
-
-        pass.BindGraphicsPipeline(pipeline);
-        pass.BindVertexBuffers(vertexBuf);
-        pass.BindIndexBuffer(indexBuf, IndexElementSize.Sixteen);
-
-        uint vertexOffset = 0;
-        uint indexOffset = 0;
-
-        for (int j = 0; j < drawData.CmdListsCount; j++)
-        {
-            ImDrawListPtr cmdList = drawData.CmdLists[j];
-
-            for (int i = 0; i < cmdList.CmdBuffer.Size; i++)
-            {
-                var drawCmd = cmdList.CmdBuffer[i];
-
-                Vector2 clipMin = new Vector2(
-                    Math.Max(0.0f, drawCmd.ClipRect.X),
-                    Math.Max(0.0f, drawCmd.ClipRect.Y)
-                );
-
-                Vector2 clipMax = new Vector2(
-                    Math.Min(drawCmd.ClipRect.Z, Game.MainWindow.Width),
-                    Math.Min(drawCmd.ClipRect.W, Game.MainWindow.Height)
-                );
-
-                if (clipMax.X <= clipMin.X || clipMax.Y <= clipMin.Y)
-                {
-                    continue;
-                }
-
-                pass.SetScissor(new Rect(
-                    (int)clipMin.X,
-                    (int)clipMin.Y,
-                    (int)(clipMax.X - clipMin.X),
-                    (int)(clipMax.Y - clipMin.Y)
-                ));
-
-                pass.BindFragmentSamplers(GetTextureBinding(drawCmd.GetTexID()));
-
-                pass.DrawIndexedPrimitives(
-                    drawCmd.ElemCount,
-                    1,
-                    indexOffset + drawCmd.IdxOffset,
-                    (int)vertexOffset + (int)drawCmd.VtxOffset,
-                    0
-                );
-            }
-
-            vertexOffset += (uint)cmdList.VtxBuffer.Size;
-            indexOffset += (uint)cmdList.IdxBuffer.Size;
-        }
-
-        pass.CommandBuffer.PopDebugGroup();
     }
 
-    public IntPtr BindNewImGuiTexture(Texture texture, SamplerType samplerType = SamplerType.LinearClamp)
+    private static unsafe void RenderImGuiBuffers(
+        ImDrawDataPtr drawData,
+        CommandBuffer commandBuffer,
+        RenderPass guiRenderPass)
     {
-        Sampler sampler = samplers[(int)samplerType];
-
-        if (imGuiBoundTextures.TryGetValue(texture.Handle, out ImGuiTextureSampler binding))
-        {
-            if (binding.Sampler != sampler.Handle)
-            {
-                throw new Exception("BAD WRONG tried to bind same texture multiple times with different samplers!");
-            }
-        }
-        else
-        {
-            imGuiBoundTextures.Add(texture.Handle, new ImGuiTextureSampler(texture, sampler));
-        }
-
-        return texture.Handle;
+        ImGuiImplSDL3.SDLGPU3RenderDrawData(
+            drawData, 
+            (ImSDLGPUCommandBuffer*)commandBuffer.Handle, 
+            (ImSDLGPURenderPass*)guiRenderPass.Handle, 
+            null
+        );
     }
 
-    public IntPtr BindPreExistingTexture(Texture texture, SamplerType samplerType = SamplerType.LinearClamp)
+    private unsafe void ProcessEvents(SDL.SDL_Event e)
     {
-        Sampler sampler = samplers[(int)samplerType];
-
-        if (boundTextures.TryGetValue(texture.Handle, out TextureSamplerBinding binding))
-        {
-            if (binding.Sampler != sampler.Handle)
-            {
-                throw new Exception("BAD WRONG tried to bind same texture multiple times with different samplers!");
-            }
-        }
-        else
-        {
-            boundTextures.Add(texture.Handle, new TextureSamplerBinding(texture, sampler));
-        }
-
-        return texture.Handle;
-    }
-
-    private TextureSamplerBinding GetTextureBinding(IntPtr id)
-    {
-        if (boundTextures.ContainsKey(id))
-        {
-            return boundTextures[id];
-        }
-        else if (imGuiBoundTextures.ContainsKey(id))
-        {
-            var imguiTextureSamplerBinding = imGuiBoundTextures[id];
-            return new TextureSamplerBinding(imguiTextureSamplerBinding.Texture, imguiTextureSamplerBinding.Sampler);
-        }
-        throw new Exception("Invalid ImGui texture handle/ID!");
+        ImGuiImplSDL3.ProcessEvent((ImSDLEvent*)&e);
     }
 
     protected virtual void Dispose(bool disposing)
     {
         if (disposing)
         {
-            foreach (Sampler sampler in samplers)
+            foreach (Sampler sampler in Samplers)
             {
                 sampler.Dispose();
             }
-
-            pipeline.Dispose();
-
-            vertexBuf?.Dispose();
-            vertexTransBuf?.Dispose();
-
-            indexBuf?.Dispose();
-            indexTransBuf?.Dispose();
-
-            foreach (var (textureHandle, imguiTextureSamplerBinding) in imGuiBoundTextures)
-            {
-                imguiTextureSamplerBinding.Texture.Dispose();
-            }
-            imGuiBoundTextures.Clear();
-
-            textureTransferBuffer?.Dispose();
-
-            Instance = null;
-
-            Inputs.TextInput -= OnTextInput;
         }
 
+        ImGuiImplSDL3.Shutdown();
+        ImGuiImplSDL3.SDLGPU3Shutdown();
+
+        ImGui.SetCurrentContext(null);
         ImGui.DestroyContext();
     }
 
@@ -730,7 +181,12 @@ public class ImGuiBackend : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    private static KeyCode[] keyCodes = Enum.GetValues<KeyCode>();
+    public Sampler SamplerForType(ImGuiSamplerType samplerType)
+    {
+        return Samplers[(int)samplerType];
+    }
+
+    private static KeyCode[] _KeyCodes = Enum.GetValues<KeyCode>();
 
     private static ImGuiKey KeyCodeToImGui(KeyCode key)
     {
@@ -843,187 +299,82 @@ public class ImGuiBackend : IDisposable
             _ => ImGuiKey.None,
         };
     }
-}
 
-public static partial class ImGuiExtensions
-{
-    public static unsafe ImTextureRef GetTextureRef(nint texID)
+    /// <summary>
+    /// Temporary fix for Hexa's binding being out-of-date:
+    /// https://discord.com/channels/882227476166758410/1436449375445323968/1436449375445323968
+    /// </summary>
+    private unsafe struct Fixed_ImGuiImplSDLGPU3InitInfo
     {
-        return new ImTextureRef(null, texID);
+        public SDLGPUDevice* Device;
+        public int ColorTargetFormat;
+        public int MSAASamples;
+        // Only used in multi-viewports mode.
+        public SwapchainComposition SwapchainComposition;
+        // Only used in multi-viewports mode.
+        public PresentMode PresentMode;
     }
 
-    public static void Image(
-        Texture texture,
-        Vector2 imageSize,
-        ImGuiBackend.SamplerType samplerType = ImGuiBackend.SamplerType.LinearClamp
-    )
+    private void InitImGuiRenderingDetails()
     {
-        ImGui.Image(
-            GetTextureRef(ImGuiBackend.Instance.BindPreExistingTexture(texture, samplerType)),
-            imageSize
-        );
+        var mainWindow = Game.MainWindow!;
+        var graphicsDevice = Game.GraphicsDevice;
+
+        var ctx = ImGui.CreateContext();
+        ImGui.SetCurrentContext(ctx);
+        ImGuiIOPtr io = ImGui.GetIO();
+        io.ConfigFlags |= ImGuiConfigFlags.NavEnableKeyboard
+                        | ImGuiConfigFlags.NavEnableGamepad
+                        | ImGuiConfigFlags.DockingEnable
+                        | ImGuiConfigFlags.ViewportsEnable;
+
+        ImGui.StyleColorsDark();
+        var style = ImGui.GetStyle();
+        var mainScale = mainWindow.DisplayScale;
+        style.ScaleAllSizes(mainScale);
+        style.FontScaleDpi = mainScale;
+        io.ConfigDpiScaleFonts = true;
+        io.ConfigDpiScaleViewports = true;
+
+        if ((io.ConfigFlags & ImGuiConfigFlags.ViewportsEnable) != 0)
+        {
+            style.WindowRounding = 0.0f;
+            style.Colors[(int)ImGuiCol.WindowBg].W = 1.0f;
+        }
+
+        ImGuiImplSDL3.SetCurrentContext(ctx);
+        unsafe
+        {
+            ImGuiImplSDL3.InitForSDLGPU((ImSDLWindow*)mainWindow.Handle);
+
+            Fixed_ImGuiImplSDLGPU3InitInfo initInfo = new()
+            {
+                Device = (ImSDLGPUDevice*)graphicsDevice.Handle,
+                ColorTargetFormat = GetSwapchainColorTargetFormat(),
+                MSAASamples = (int)SDL.SDL_GPUSampleCount.SDL_GPU_SAMPLECOUNT_1,
+                SwapchainComposition = mainWindow.SwapchainComposition,
+                PresentMode = mainWindow.PresentMode
+            };
+
+            var initInfoPtr = &initInfo;
+            ImGuiImplSDL3.SDLGPU3Init((ImGuiImplSDLGPU3InitInfo*)initInfoPtr);
+        }
     }
 
-    public static void Image(
-        Texture texture,
-        Vector2 imageSize,
-        Vector2 uv0,
-        ImGuiBackend.SamplerType samplerType = ImGuiBackend.SamplerType.LinearClamp
-    )
+    // Re-implements MoonWork's private 
+    // `GraphicsDevice.GetSwapchainFormat` method.
+    private int GetSwapchainColorTargetFormat()
     {
-        ImGui.Image(
-            GetTextureRef(ImGuiBackend.Instance.BindPreExistingTexture(texture, samplerType)),
-            imageSize,
-            uv0
-        );
-    }
+        if (!Game.MainWindow!.Claimed)
+        {
+            throw new System.ArgumentException(
+                "Cannot get swapchain format of unclaimed window!"
+            );
+        }
 
-    public static void Image(
-        Texture texture,
-        Vector2 imageSize,
-        Vector2 uv0,
-        Vector2 uv1,
-        ImGuiBackend.SamplerType samplerType = ImGuiBackend.SamplerType.LinearClamp
-    )
-    {
-        ImGui.Image(
-            GetTextureRef(ImGuiBackend.Instance.BindPreExistingTexture(texture, samplerType)),
-            imageSize,
-            uv0,
-            uv1
-        );
-    }
-
-    // Q: Why aren't there 'tintColor' and 'borderColor' overloads for Image() anymore?
-    // A: Dear ImGui update: "removed 'tint_col', 'border_col' parameters from Image()"
-    // Recommended instead to use ImGuiCol_Border color + style.ImageBorderSize / ImGuiStyleVar_ImageBorderSize.
-    // Added ImageWithBg() function which has both 'bg_col' (which was missing) and 'tint_col'.
-    // https://github.com/ocornut/imgui/commit/494ea57b65325f00165da10e6b57b4f295a65bca
-    public static void ImageWithBg(
-        Texture texture,
-        Vector2 imageSize,
-        Vector2 uv0,
-        Vector2 uv1,
-        Vector4 bgCol,
-        ImGuiBackend.SamplerType samplerType = ImGuiBackend.SamplerType.LinearClamp
-    )
-    {
-        ImGui.ImageWithBg(
-            GetTextureRef(ImGuiBackend.Instance.BindPreExistingTexture(texture, samplerType)),
-            imageSize,
-            uv0,
-            uv1,
-            bgCol
-        );
-    }
-
-    public static void ImageWithBg(
-        Texture texture,
-        Vector2 imageSize,
-        Vector2 uv0,
-        Vector2 uv1,
-        Vector4 bgCol,
-        Vector4 tintCol,
-        ImGuiBackend.SamplerType samplerType = ImGuiBackend.SamplerType.LinearClamp
-    )
-    {
-        ImGui.ImageWithBg(
-            GetTextureRef(ImGuiBackend.Instance.BindPreExistingTexture(texture, samplerType)),
-            imageSize,
-            uv0,
-            uv1,
-            bgCol,
-            tintCol
-        );
-    }
-
-    public static bool ImageButton(
-        string id,
-        Texture texture,
-        Vector2 imageSize,
-        ImGuiBackend.SamplerType samplerType = ImGuiBackend.SamplerType.LinearClamp
-    )
-    {
-        return ImGui.ImageButton(
-            id,
-            GetTextureRef(ImGuiBackend.Instance.BindPreExistingTexture(texture, samplerType)),
-            imageSize
-        );
-    }
-
-    public static bool ImageButton(
-        string id,
-        Texture texture,
-        Vector2 imageSize,
-        Vector2 uv0,
-        ImGuiBackend.SamplerType samplerType = ImGuiBackend.SamplerType.LinearClamp
-    )
-    {
-        return ImGui.ImageButton(
-            id,
-            GetTextureRef(ImGuiBackend.Instance.BindPreExistingTexture(texture, samplerType)),
-            imageSize,
-            uv0
-        );
-    }
-
-    public static bool ImageButton(
-        string id,
-        Texture texture,
-        Vector2 imageSize,
-        Vector2 uv0,
-        Vector2 uv1,
-        ImGuiBackend.SamplerType samplerType = ImGuiBackend.SamplerType.LinearClamp
-    )
-    {
-        return ImGui.ImageButton(
-            id,
-            GetTextureRef(ImGuiBackend.Instance.BindPreExistingTexture(texture, samplerType)),
-            imageSize,
-            uv0,
-            uv1
-        );
-    }
-
-    public static bool ImageButton(
-        string id,
-        Texture texture,
-        Vector2 imageSize,
-        Vector2 uv0,
-        Vector2 uv1,
-        Vector4 bgCol,
-        ImGuiBackend.SamplerType samplerType = ImGuiBackend.SamplerType.LinearClamp
-    )
-    {
-        return ImGui.ImageButton(
-            id,
-            GetTextureRef(ImGuiBackend.Instance.BindPreExistingTexture(texture, samplerType)),
-            imageSize,
-            uv0,
-            uv1,
-            bgCol
-        );
-    }
-
-    public static bool ImageButton(
-        string id,
-        Texture texture,
-        Vector2 imageSize,
-        Vector2 uv0,
-        Vector2 uv1,
-        Vector4 bgCol,
-        Vector4 tintCol,
-        ImGuiBackend.SamplerType samplerType = ImGuiBackend.SamplerType.LinearClamp
-    )
-    {
-        return ImGui.ImageButton(
-            id,
-            GetTextureRef(ImGuiBackend.Instance.BindPreExistingTexture(texture, samplerType)),
-            imageSize,
-            uv0,
-            uv1,
-            bgCol,
-            tintCol
+        return (int)SDL.SDL_GetGPUSwapchainTextureFormat(
+            Game.GraphicsDevice.Handle, 
+            Game.MainWindow.Handle
         );
     }
 }

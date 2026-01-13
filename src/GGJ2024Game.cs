@@ -18,15 +18,25 @@ namespace RollAndCash
 
 		GameState? CurrentState;
 
+#if UseDebugGUI
+		ImGuiBackend ImGuiBackend;
+#endif
+
 		public RollAndCashGame(
 			AppInfo appInfo,
 			WindowCreateInfo windowCreateInfo,
 			FramePacingSettings framePacingSettings,
 			ShaderFormat shaderFormats,
 			bool debugMode
-		) : base(appInfo, windowCreateInfo, framePacingSettings, shaderFormats, debugMode)
+		) : base(appInfo, 
+				windowCreateInfo, 
+				framePacingSettings, 
+				shaderFormats, 
+				debugMode
+			)
 		{
 #if UseDebugGUI
+			ImGuiBackend = new(this);
 			Systems.EditorSystem.StaticInit();
 #else
 			Inputs.Mouse.Hide();
@@ -52,7 +62,7 @@ namespace RollAndCash
 		protected override void Update(System.TimeSpan dt)
 		{
 #if UseDebugGUI
-			//ImGuiBackend.NewFrame(dt);
+			ImGuiBackend.NewFrame(dt);
 #endif
 
 			if (Inputs.Keyboard.IsPressed(MoonWorks.Input.KeyCode.F11))
@@ -67,7 +77,7 @@ namespace RollAndCash
 			CurrentState?.Update(dt);
 
 #if UseDebugGUI
-			//ImGuiBackend.EndFrame();
+			ImGuiBackend.EndFrame();
 #endif
 		}
 
@@ -90,16 +100,20 @@ namespace RollAndCash
 				);
 
 #if UseDebugGUI
-				//ImGuiBackend.UploadBuffers(commandBuffer);
-
-				var guiRenderPass = commandBuffer.BeginRenderPass(
-					new ColorTargetInfo(swapchainTexture, LoadOp.Load)
+				ImGuiBackend.UploadAndRenderBuffers(
+					commandBuffer,
+					new ColorTargetInfo(
+						swapchainTexture, 
+						LoadOp.Load, 
+						false
+					)
 				);
-
-				//ImGuiBackend.Render(guiRenderPass);
-				commandBuffer.EndRenderPass(guiRenderPass);
 #endif
 			}
+
+#if UseDebugGUI
+			ImGuiBackend.RenderOtherPlatformWindows();
+#endif
 
 			// You must always submit the command buffer.
 			GraphicsDevice.Submit(commandBuffer);
@@ -108,7 +122,7 @@ namespace RollAndCash
 		protected override void Destroy()
 		{
 #if UseDebugGUI
-			//ImGuiBackend.Dispose();
+			ImGuiBackend.Dispose();
 #endif
 		}
 

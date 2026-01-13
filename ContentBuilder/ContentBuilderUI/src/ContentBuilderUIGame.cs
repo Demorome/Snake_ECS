@@ -297,14 +297,10 @@ namespace ContentBuilderUI
 			var swapchainTexture = commandBuffer.AcquireSwapchainTexture(MainWindow);
 			if (swapchainTexture != null)
 			{
-				ImGuiBackend.UploadBuffers(commandBuffer);
-
-				var renderPass = commandBuffer.BeginRenderPass(
+				ImGuiBackend.UploadAndRenderBuffers(
+					commandBuffer,
 					new ColorTargetInfo(swapchainTexture, Color.White)
 				);
-
-				ImGuiBackend.Render(renderPass);
-				commandBuffer.EndRenderPass(renderPass);
 			}
 
 			// You must always submit the command buffer.
