@@ -231,6 +231,24 @@ public class ImGuiBackend : IDisposable
         // Scale Dear ImGui and Platform Windows when Monitor DPI changes.
         io.ConfigDpiScaleViewports = true;
 
+        ImGuiImplSDL3.SetCurrentContext(ctx);
+        unsafe
+        {
+            ImGuiImplSDL3.InitForSDLGPU((ImSDLWindow*)mainWindow.Handle);
+
+            Fixed_ImGuiImplSDLGPU3InitInfo initInfo = new()
+            {
+                Device = (ImSDLGPUDevice*)graphicsDevice.Handle,
+                ColorTargetFormat = GetSwapchainColorTargetFormat(),
+                MSAASamples = (int)SDL.SDL_GPUSampleCount.SDL_GPU_SAMPLECOUNT_1,
+                SwapchainComposition = mainWindow.SwapchainComposition,
+                PresentMode = mainWindow.PresentMode
+            };
+
+            var initInfoPtr = &initInfo;
+            ImGuiImplSDL3.SDLGPU3Init((ImGuiImplSDLGPU3InitInfo*)initInfoPtr);
+        }
+
         // If multi-viewports are enabled, see this FAQ about coordinate system:
         // https://github.com/ocornut/imgui/wiki/Multi-Viewports#faq
         if ((io.ConfigFlags & ImGuiConfigFlags.ViewportsEnable) != 0)
@@ -250,24 +268,6 @@ public class ImGuiBackend : IDisposable
                 style.WindowRounding = 0.0f;
                 style.Colors[(int)ImGuiCol.WindowBg].W = 1.0f;
             }
-        }
-
-        ImGuiImplSDL3.SetCurrentContext(ctx);
-        unsafe
-        {
-            ImGuiImplSDL3.InitForSDLGPU((ImSDLWindow*)mainWindow.Handle);
-
-            Fixed_ImGuiImplSDLGPU3InitInfo initInfo = new()
-            {
-                Device = (ImSDLGPUDevice*)graphicsDevice.Handle,
-                ColorTargetFormat = GetSwapchainColorTargetFormat(),
-                MSAASamples = (int)SDL.SDL_GPUSampleCount.SDL_GPU_SAMPLECOUNT_1,
-                SwapchainComposition = mainWindow.SwapchainComposition,
-                PresentMode = mainWindow.PresentMode
-            };
-
-            var initInfoPtr = &initInfo;
-            ImGuiImplSDL3.SDLGPU3Init((ImGuiImplSDLGPU3InitInfo*)initInfoPtr);
         }
     }
 
