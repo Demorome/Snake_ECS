@@ -79,7 +79,7 @@ namespace ContentBuilderUI
 
 		protected override void Update(System.TimeSpan dt)
 		{
-			ImGuiBackend.NewFrame(dt);
+			ImGuiBackend.NewFrame(/*dt*/);
 
 			// Style
 			var hover = UIColors.RGB255(73, 46, 46);

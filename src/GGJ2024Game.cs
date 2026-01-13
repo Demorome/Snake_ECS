@@ -61,10 +61,6 @@ namespace RollAndCash
 
 		protected override void Update(System.TimeSpan dt)
 		{
-#if UseDebugGUI
-			ImGuiBackend.NewFrame(dt);
-#endif
-
 			if (Inputs.Keyboard.IsPressed(MoonWorks.Input.KeyCode.F11))
 			{
 				if (MainWindow.ScreenMode == ScreenMode.Fullscreen)
@@ -73,6 +69,10 @@ namespace RollAndCash
 					MainWindow.SetScreenMode(ScreenMode.Fullscreen);
 
 			}
+
+#if UseDebugGUI
+			ImGuiBackend.NewFrame();
+#endif
 
 			CurrentState?.Update(dt);
 

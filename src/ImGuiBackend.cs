@@ -55,26 +55,35 @@ public class ImGuiBackend : IDisposable
         game.OnProcessEvent += ProcessEvents;
     }
 
-    public void NewFrame(TimeSpan delta)
+    /// <summary>
+    /// Call only during draw step. <br/>
+    /// To finish the frame, either call <see cref="UploadAndRenderBuffers"/>,
+    /// or <see cref="EndFrame"/>.
+    /// </summary>
+    public static void NewFrame(/*TimeSpan delta*/)
     {
-        ImGuiIOPtr io = ImGui.GetIO();
+        //ImGuiIOPtr io = ImGui.GetIO();
 
         // FIXME: Might not need these anymore!
-        io.DeltaTime = (float)delta.TotalSeconds;
-        io.DisplaySize = new Vector2(Game.MainWindow.Width, Game.MainWindow.Height);
+        //io.DeltaTime = (float)delta.TotalSeconds;
+        //io.DisplaySize = new Vector2(Game.MainWindow.Width, Game.MainWindow.Height);
 
         ImGuiImplSDL3.SDLGPU3NewFrame();
         ImGuiImplSDL3.NewFrame();
         ImGui.NewFrame();
     }
 
-    public void EndFrame()
+    /// <summary>
+    /// Use when you need to prepare draw info to live-debug Systems.
+    /// </summary>
+    public static void EndFrame()
     {
         ImGui.EndFrame();
     }
 
     /// <summary>
-    /// Will perform the render pass using ColorTargetInfo.
+    /// Will perform the render pass using ColorTargetInfo. </br>
+    /// Implicitly ends the frame.
     /// </summary>
     public static void UploadAndRenderBuffers(
         CommandBuffer commandBuffer,
