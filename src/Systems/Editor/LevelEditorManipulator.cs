@@ -33,7 +33,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
     public static bool IsInLevelEditor = true;
 
     public LiveLevel ActiveLevel = new();
-    public LiveLevel.Room ActiveRoom = null;
+    public LiveLevel.Room? ActiveRoom = null;
     //static bool SnapToGrid = true;
     public Vector2? HoveredOverTilePosition = null;
 
