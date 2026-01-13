@@ -253,6 +253,8 @@ public class ImGuiBackend : IDisposable
         // https://github.com/ocornut/imgui/wiki/Multi-Viewports#faq
         if ((io.ConfigFlags & ImGuiConfigFlags.ViewportsEnable) != 0)
         {
+            // Platform viewports aren't supported for Wayland:
+            // https://github.com/ocornut/imgui/blob/84a9d532b6f635a6017b90e65b627c36fd1afd20/backends/imgui_impl_sdl3.cpp#L587
             var noPlatformViewports 
                 = (io.BackendFlags & ImGuiBackendFlags.PlatformHasViewports) == 0;
 
