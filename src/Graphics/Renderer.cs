@@ -117,7 +117,7 @@ public class Renderer : MoonTools.ECS.Renderer
 			TextureUsageFlags.DepthStencilTarget
 		);
 
-		SpriteAtlasTexture = TextureAtlases.TP_Sprites.Texture;
+		SpriteAtlasTexture = TextureAtlases.TP_Sprites.Texture!;
 
 		TextPipeline = GraphicsPipeline.Create(
 			GraphicsDevice,
@@ -184,9 +184,9 @@ public class Renderer : MoonTools.ECS.Renderer
 		foreach (var (_, tileSet) in TileSets.NameToTileSet)
         {
 			TileSpriteBatches.Add(
-				new (tileSet.DefaultTexture, 
+				new (tileSet.DefaultTexture!, 
 					new SpriteBatch(
-						$"TileSet SpriteBatch Pipeline for texture {tileSet.DefaultTexture}",
+						$"TileSet SpriteBatch Pipeline for texture {tileSet.DefaultTexture!}",
 						GraphicsDevice, 
 						titleStorage, 
 						swapchainFormat, 
@@ -197,12 +197,12 @@ public class Renderer : MoonTools.ECS.Renderer
             
 			foreach (TileSetVariant variantTileSet in tileSet.VariantSets)
             {
-                if (variantTileSet.Texture != tileSet.DefaultTexture)
+                if (variantTileSet.Texture! != tileSet.DefaultTexture!)
                 {
                     TileSpriteBatches.Add(
-						new (variantTileSet.Texture, 
+						new (variantTileSet.Texture!, 
 							new SpriteBatch(
-								$"TileSet variant SpriteBatch Pipeline for texture {variantTileSet.Texture.Name}",
+								$"TileSet variant SpriteBatch Pipeline for texture {variantTileSet.Texture!.Name}",
 								GraphicsDevice, 
 								titleStorage, 
 								swapchainFormat, 
@@ -453,7 +453,7 @@ public class Renderer : MoonTools.ECS.Renderer
 					var rectangle = 
 						EditorSystem.GetEntityVisualRect(entity)
 						!.Value;
-						
+
 					DrawDebugRectangle(
 						entity, 
 						rectangle, 
