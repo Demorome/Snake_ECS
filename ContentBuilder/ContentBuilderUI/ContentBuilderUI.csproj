@@ -27,6 +27,7 @@
 		<ProjectReference Include="..\ContentProcessor\ContentProcessor.csproj" />
 		<ProjectReference Include="..\..\lib\MoonWorks\MoonWorks.csproj" />
 		<ProjectReference Include="..\..\lib\Hexa.NET.ImGui\Hexa.NET.ImGui\Hexa.NET.ImGui.csproj" />
+		<ProjectReference Include="..\..\lib\Hexa.NET.ImGui\Hexa.NET.ImGui.Backends.SDL3\Hexa.NET.ImGui.Backends.SDL3.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

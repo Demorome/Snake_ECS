@@ -59,7 +59,7 @@ public class ImGuiBackend : IDisposable
     /// To finish the frame, either call <see cref="UploadAndRenderBuffers"/>,
     /// or <see cref="EndFrame"/>.
     /// </summary>
-    public static void NewFrame(/*TimeSpan delta*/)
+    public static void NewFrame()
     {
         // According to this, we don't need to update `io.DeltaTime`, etc.:
         // https://github.com/ocornut/imgui/blob/master/docs%2FBACKENDS.md

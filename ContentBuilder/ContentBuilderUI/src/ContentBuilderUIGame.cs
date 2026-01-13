@@ -79,7 +79,7 @@ namespace ContentBuilderUI
 
 		protected override void Update(System.TimeSpan dt)
 		{
-			ImGuiBackend.NewFrame(/*dt*/);
+			ImGuiBackend.NewFrame();
 
 			// Style
 			var hover = UIColors.RGB255(73, 46, 46);
@@ -303,13 +303,15 @@ namespace ContentBuilderUI
 				);
 			}
 
+			ImGuiBackend.RenderOtherPlatformWindows();
+
 			// You must always submit the command buffer.
 			GraphicsDevice.Submit(commandBuffer);
 		}
 
 		protected override void Destroy()
 		{
-
+			ImGuiBackend.Dispose();
 		}
 
 		public class DebugTextureStorage
