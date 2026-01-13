@@ -146,7 +146,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
     Entity Debug_ShowRay(Position2D rayOrigin, float rayAngle, float length)
     {
         var entity = CreateEntity("Raycast Visual");
-        Set(entity, new Timer(-1)); // lasts 1 frame
+        Set(entity, new Timed(-1)); // lasts 1 frame
         Set(entity, rayOrigin);
         Set(entity, new SpriteAnimation(SpriteAnimations.Pixel));
         Set(entity, new ColorBlend(Color.Red with { A = 100 }));
@@ -161,7 +161,7 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
     Entity Debug_ShowCollisionPos(Position2D pos)
     {
         var entity = CreateEntity("Raycast Collision Pos Visual");
-        Set(entity, new Timer(-1)); // lasts 1 frame
+        Set(entity, new Timed(-1)); // lasts 1 frame
         Set(entity, new SpriteAnimation(SpriteAnimations.Pixel));
         {
             // Center position according to scale.
@@ -178,14 +178,14 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
     void Debug_ShowEntityHasBeenCollided(Entity collided)
     {
         var timer = CreateEntity();
-        Set(timer, new Timer(-1)); // lasts 1 frame
+        Set(timer, new Timed(-1)); // lasts 1 frame
         Relate(collided, timer, new ColorBlendOverride(Color.Brown));
     }
 
     void Debug_ShowHashCellCollision(Rectangle worldRect)
     {
         var entity = CreateEntity();
-        Set(entity, new Timer(-1)); // lasts 1 frame
+        Set(entity, new Timed(-1)); // lasts 1 frame
         Set(entity, new Position2D(worldRect.Left, worldRect.Top));
         Set(entity, new SpriteAnimation(SpriteAnimations.Pixel));
         Set(entity, new ColorBlend(Color.LightGreen with { A = 100 }));

@@ -73,7 +73,7 @@ public class EnemySystem : MoonTools.ECS.System
 
                     // Start attack timer
                     var targetingVisual = VFXManipulator.CreateTargetingVisual(entity, other);
-                    Set(targetingVisual, new Timer(1f));
+                    Set(targetingVisual, new Timed(1f));
                     Relate(entity, targetingVisual, new ChargingUpAttackTimer());
 
                     Set(entity, new ChargingUpAttack());

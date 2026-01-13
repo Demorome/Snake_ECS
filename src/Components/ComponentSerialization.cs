@@ -70,8 +70,8 @@ public class SpriteAnimationJsonConverter : JsonConverter<SpriteAnimation>
         Type typeToConvert,
         JsonSerializerOptions options)
     {
-        var spriteAnimName = reader.GetString();
-        SpriteAnimationInfo spriteAnimInfo;
+        var spriteAnimName = reader.GetString()!;
+        SpriteAnimationInfo? spriteAnimInfo;
         if (SpriteAnimations.NameToInfoMap
             .TryGetValue(spriteAnimName, out spriteAnimInfo))
         {

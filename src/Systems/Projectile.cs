@@ -16,7 +16,7 @@ using Filter = MoonTools.ECS.Filter;
 public class Projectile : MoonTools.ECS.System
 {
     VFXManipulator VFXManipulator;
-    ProjectileManipulator ProjectileManipulator;
+    //ProjectileManipulator ProjectileManipulator;
     public Filter ProjectileFilter;
 
     public Projectile(World world) : base(world)

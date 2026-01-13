@@ -21,7 +21,7 @@ public class FlickeringManipulator : MoonTools.ECS.Manipulator
         }
 
         var timer = CreateEntity("Flicker Timer");
-        Set(timer, new Timer(totalTime, repeats));
+        Set(timer, new Timed(totalTime, repeats));
         Relate(target, timer, new WillFlicker(flickerTime));
     }
 }

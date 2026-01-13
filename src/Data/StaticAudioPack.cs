@@ -15,12 +15,12 @@ namespace RollAndCash.Data
 
 	public class StaticAudioPack : IDisposable
 	{
-		public FileInfo AudioFile { get; private set; }
+		public FileInfo? AudioFile { get; private set; }
 
-		public AudioBuffer MainBuffer { get; private set; }
+		public AudioBuffer? MainBuffer { get; private set; }
 		private bool IsDisposed;
 
-		private Dictionary<string, StaticAudioPackDataEntry> Entries;
+		private Dictionary<string, StaticAudioPackDataEntry>? Entries;
 		private Dictionary<string, AudioBuffer> AudioBuffers = new Dictionary<string, AudioBuffer>();
 
 		private static JsonSerializerOptions serializerOptions = new JsonSerializerOptions
@@ -42,7 +42,7 @@ namespace RollAndCash.Data
 
 		public void LoadAsync(AsyncFileLoader loader)
 		{
-			loader.EnqueueWavLoad(AudioFile.FullName, MainBuffer);
+			loader.EnqueueWavLoad(AudioFile!.FullName, MainBuffer);
 		}
 
 		/// <summary>
@@ -50,9 +50,9 @@ namespace RollAndCash.Data
 		/// </summary>
 		public void SliceBuffers()
 		{
-			foreach (var (name, dataEntry) in Entries)
+			foreach (var (name, dataEntry) in Entries!)
 			{
-				AudioBuffers[name] = MainBuffer.Slice(dataEntry.Start, (uint)dataEntry.Length);
+				AudioBuffers[name] = MainBuffer!.Slice(dataEntry.Start, (uint)dataEntry.Length);
 			}
 		}
 
@@ -72,7 +72,7 @@ namespace RollAndCash.Data
 						sound.Dispose();
 					}
 
-					MainBuffer.Dispose();
+					MainBuffer?.Dispose();
 				}
 
 				IsDisposed = true;

@@ -107,7 +107,7 @@ public class VFXManipulator : MoonTools.ECS.Manipulator
         if (maxTimeToLive > 0.0f)
         {
             var lifeTime = Rando.Range(minTimeToLive, maxTimeToLive);
-            Set(vfx, new Timer(lifeTime));
+            Set(vfx, new Timed(lifeTime));
         }
 
         return vfx;

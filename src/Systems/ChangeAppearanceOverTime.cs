@@ -21,7 +21,7 @@ public class ChangeAppearanceOverTime : MoonTools.ECS.System
         foreach (var (entity, timerEntity) in Relations<ChangeSpriteScaleOverTime>())
         {
             var change = GetRelationData<ChangeSpriteScaleOverTime>(entity, timerEntity);
-            var timer = Get<Timer>(timerEntity);
+            var timer = Get<Timed>(timerEntity);
             //var time = 1.0f - timer.RemainingPercentage
 
             var newScale = new Vector2(
@@ -34,7 +34,7 @@ public class ChangeAppearanceOverTime : MoonTools.ECS.System
         foreach (var (entity, timerEntity) in Relations<ChangeAlphaOverTime>())
         {
             var change = GetRelationData<ChangeAlphaOverTime>(entity, timerEntity);
-            var timer = Get<Timer>(timerEntity);
+            var timer = Get<Timed>(timerEntity);
             //var time = 1.0f - timer.RemainingPercentage
 
             var newAlpha = (byte)Easing.Interp(change.StartAlpha, change.EndAlpha, timer.Time, timer.Max, change.EasingMethod);
@@ -44,7 +44,7 @@ public class ChangeAppearanceOverTime : MoonTools.ECS.System
         foreach (var (entity, timerEntity) in Relations<ChangeAngleOverTime>())
         {
             var change = GetRelationData<ChangeAngleOverTime>(entity, timerEntity);
-            var timer = Get<Timer>(timerEntity);
+            var timer = Get<Timed>(timerEntity);
             //var time = 1.0f - timer.RemainingPercentage
 
             var newAngle = Easing.Interp(change.StartAngle, change.EndAngle, timer.Time, timer.Max, change.EasingMethod);

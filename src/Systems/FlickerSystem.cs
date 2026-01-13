@@ -29,7 +29,7 @@ public class FlickerSystem : MoonTools.ECS.System
 
         foreach (var (entity, flickeringTimerEntity) in Relations<Relations.WillFlicker>())
         {
-            var flickeringTimer = Get<Timer>(flickeringTimerEntity);
+            var flickeringTimer = Get<Timed>(flickeringTimerEntity);
             var flickeringData = GetRelationData<WillFlicker>(entity, flickeringTimerEntity);
 
             if (TimeUtilities.OnTime(

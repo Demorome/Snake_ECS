@@ -2,8 +2,8 @@
 
 namespace RollAndCash.Components;
 
-public readonly record struct Timer(float Time, float Max, bool Repeats)
+public readonly record struct Timed(float Time, float Max, bool Repeats)
 {
     public float RemainingPercentage => Time / Max;
-    public Timer(float time, bool repeats = false) : this(time, time, repeats) { }
+    public Timed(float time, bool repeats = false) : this(time, time, repeats) { }
 }

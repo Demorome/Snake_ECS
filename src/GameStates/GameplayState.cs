@@ -12,6 +12,8 @@ using RollAndCash.Systems;
 
 namespace RollAndCash.GameStates;
 
+#nullable disable
+
 public class GameplayState : GameState
 {
     RollAndCashGame Game;
@@ -45,7 +47,7 @@ public class GameplayState : GameState
     ActorManipulator ActorManipulator;
 
 #if DEBUG
-    EditorSystem ImGuiEditor;
+    EditorSystem EditorSystem;
 
     public static bool FreezeTimeForAll = false;
     public static bool LockingCursorPosition  = false;
@@ -99,7 +101,7 @@ public class GameplayState : GameState
         ActorManipulator = new(World);
 
 #if DEBUG
-        ImGuiEditor = new(World);
+        EditorSystem = new(World);
 #endif
         Renderer = new Renderer(
             World,
@@ -109,7 +111,7 @@ public class GameplayState : GameState
             Game.MainWindow.SwapchainFormat,
             camera
 #if DEBUG
-            , ImGuiEditor
+            , EditorSystem
 #endif
         );
 
@@ -181,7 +183,7 @@ public class GameplayState : GameState
             CameraSystem.Update(dt);
         }
 
-        ImGuiEditor.Update(dt);
+        EditorSystem.Update(dt);
 #endif
 
         Audio.Update(dt);

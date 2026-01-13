@@ -73,7 +73,7 @@ public class DetectionSystem : MoonTools.ECS.System
                 Set(pointEntity, new Editor_DontAddToLevel()); // just in case
 #endif
                 Set(pointEntity, stopPos); // change position
-                Set(pointEntity, new Timer(-1)); // destroy next frame
+                Set(pointEntity, new Timed(-1)); // destroy next frame
             }
         }
     }

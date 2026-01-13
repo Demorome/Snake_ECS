@@ -4,6 +4,7 @@ using RollAndCash.Components;
 using RollAndCash.Messages;
 using RollAndCash.Relations;
 using RollAndCash.Utility;
+using Timed = RollAndCash.Components.Timed;
 
 namespace RollAndCash.Systems;
 
@@ -22,7 +23,7 @@ public class FlipAnimationSystem : MoonTools.ECS.System
 
         foreach (var (entity, flipTimerEntity) in Relations<Relations.WillFlipHorizontally>())
         {
-            var flipTimer = Get<Timer>(flipTimerEntity);
+            var flipTimer = Get<Timed>(flipTimerEntity);
             var flipData = GetRelationData<Relations.WillFlipHorizontally>(entity, flipTimerEntity);
 
             if (TimeUtilities.OnTime(
@@ -42,7 +43,7 @@ public class FlipAnimationSystem : MoonTools.ECS.System
 
         foreach (var (entity, flipTimerEntity) in Relations<Relations.WillFlipVertically>())
         {
-            var flipTimer = Get<Timer>(flipTimerEntity);
+            var flipTimer = Get<Timed>(flipTimerEntity);
             var flipData = GetRelationData<Relations.WillFlipVertically>(entity, flipTimerEntity);
 
             if (TimeUtilities.OnTime(
@@ -62,7 +63,7 @@ public class FlipAnimationSystem : MoonTools.ECS.System
 
         foreach (var (entity, rotationTimerEntity) in Relations<Relations.WillRotate>())
         {
-            var rotateTimer = Get<Timer>(rotationTimerEntity);
+            var rotateTimer = Get<Timed>(rotationTimerEntity);
             var rotateData = GetRelationData<Relations.WillRotate>(entity, rotationTimerEntity);
 
             if (TimeUtilities.OnTime(

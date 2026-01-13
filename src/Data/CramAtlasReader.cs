@@ -22,7 +22,11 @@ public static class CramAtlasReader
 
 	public unsafe static void ReadTextureAtlas(GraphicsDevice graphicsDevice, TexturePage texturePage)
 	{
-        var data = (CramTextureAtlasData)JsonSerializer.Deserialize(File.ReadAllText(texturePage.JsonFilename), typeof(CramTextureAtlasData), context);
+        var data = (CramTextureAtlasData)JsonSerializer.Deserialize(
+			File.ReadAllText(texturePage.JsonFilename), 
+			typeof(CramTextureAtlasData), 
+			context
+		)!;
 		texturePage.Load(graphicsDevice, data);
 	}
 }

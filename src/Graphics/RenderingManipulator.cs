@@ -257,8 +257,8 @@ public class RenderingManipulator : MoonTools.ECS.Manipulator
 			{
 				var entityRoomID = Get<LevelRoomID>(e);
 				var entityLayerID = Get<Editor_LevelLayerID>(e);
-				if (entityRoomID == EditorSystem.LevelEditor.ActiveRoom.ID
-					&& entityLayerID == EditorSystem.LevelEditor.SelectedLayerInList.LayerID)
+				if (entityRoomID == EditorSystem.LevelEditor.ActiveRoom!.ID
+					&& entityLayerID == EditorSystem.LevelEditor.SelectedLayerInList!.LayerID)
 				{
 					return color;
 				}

@@ -14,7 +14,7 @@ public class LoadState : GameState
 {
     RollAndCashGame Game;
     GraphicsDevice GraphicsDevice;
-    AsyncFileLoader AsyncFileLoader;
+    AsyncFileLoader? AsyncFileLoader;
     GameState TransitionState;
 
     GraphicsPipeline TextPipeline;
@@ -60,17 +60,17 @@ public class LoadState : GameState
     public override void Start()
     {
         LoadTimer.Start();
-        TextureAtlases.EnqueueLoadAllImages(AsyncFileLoader);
-        TileSetAtlases.EnqueueLoadAllImages(AsyncFileLoader);
-        StaticAudioPacks.LoadAsync(AsyncFileLoader);
-        StreamingAudio.LoadAsync(AsyncFileLoader);
-        AsyncFileLoader.Submit();
+        TextureAtlases.EnqueueLoadAllImages(AsyncFileLoader!);
+        TileSetAtlases.EnqueueLoadAllImages(AsyncFileLoader!);
+        StaticAudioPacks.LoadAsync(AsyncFileLoader!);
+        StreamingAudio.LoadAsync(AsyncFileLoader!);
+        AsyncFileLoader!.Submit();
         Timer.Start();
     }
 
     public override void Update(TimeSpan delta)
     {
-        if (AsyncFileLoader.Status == AsyncFileLoaderStatus.Failed)
+        if (AsyncFileLoader!.Status == AsyncFileLoaderStatus.Failed)
         {
             // Uh oh, time to bail!
             throw new ApplicationException("Game assets could not be loaded!");
@@ -114,7 +114,7 @@ public class LoadState : GameState
 
     public override void End()
     {
-        AsyncFileLoader.Dispose();
+        AsyncFileLoader?.Dispose();
         AsyncFileLoader = null;
         StaticAudioPacks.pack_0.SliceBuffers();
         StaticAudio.LoadAll();

@@ -35,7 +35,7 @@ public static class TileSetAtlasReader
 	{
         var data = (TileSetAtlasData)JsonSerializer.Deserialize(
             File.ReadAllText(tileSet.FullJsonFilePath), typeof(TileSetAtlasData), context
-        );
+        )!;
 		tileSet.Load(graphicsDevice, data);
 	}
 }

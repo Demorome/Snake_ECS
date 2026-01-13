@@ -136,7 +136,7 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
     public bool IsDefaultSprite(SpriteAnimation spriteToCheck, PrefabTypes prefabType)
     {
         bool result;
-        var dummyPrefab = TrySpawnPrefab(prefabType, Input.WorldMousePosition).Value;
+        var dummyPrefab = TrySpawnPrefab(prefabType, Input.WorldMousePosition)!.Value;
         if (!Has<SpriteAnimation>(dummyPrefab))
         {
             result = false;
@@ -151,7 +151,7 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
     public bool IsDefaultColorBlend(Color colorBlend, PrefabTypes prefabType)
     {
         bool result;
-        var dummyPrefab = TrySpawnPrefab(prefabType, Input.WorldMousePosition).Value;
+        var dummyPrefab = TrySpawnPrefab(prefabType, Input.WorldMousePosition)!.Value;
         if (!Has<ColorBlend>(dummyPrefab))
         {
             result = false;
@@ -174,7 +174,7 @@ public class PrefabManipulator : MoonTools.ECS.Manipulator
             // Spawn a copy of the prefab, then extract its visual info.
             var dummyPrefab = TrySpawnPrefab(
                 prefabToSpawn, Input.WorldMousePosition, true
-            ).Value;
+            )!.Value;
 
             Set(debugEntity, Get<Position2D>(dummyPrefab));
             if (Has<VisualScale>(dummyPrefab))

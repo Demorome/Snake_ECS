@@ -41,7 +41,7 @@ public class Health : MoonTools.ECS.System
                 {
                     var invicibleData = Get<BecomeInvincibleOnDamage>(entity);
                     var timer = CreateEntity("Invincible Timer");
-                    Set(timer, new Timer(invicibleData.Time));
+                    Set(timer, new Timed(invicibleData.Time));
                     Relate(timer, entity, new Invincible());
                     Send(new StartFlickering(entity, invicibleData.Time, 0.09f));
                 }

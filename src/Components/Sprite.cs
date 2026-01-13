@@ -13,7 +13,7 @@ public struct Sprite
 	public UV UV { get; }
 
 	public TexturePage TexturePage => TexturePage.FromID(TexturePageID);
-	public Texture Texture => TexturePage.Texture;
+	public Texture Texture => TexturePage.Texture!;
 	public Vector2 SliceSize => new Vector2(SliceRect.W, SliceRect.H);
 
 	public Sprite(

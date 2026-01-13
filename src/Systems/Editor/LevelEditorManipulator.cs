@@ -30,7 +30,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         PrefabManipulator = new(World);
     }
 
-    public static bool IsInLevelEditor = true;
+    public static bool IsInLevelEditor = false;
 
     public LiveLevel ActiveLevel = new();
     public LiveLevel.Room? ActiveRoom = null;
@@ -267,7 +267,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         }
 
         // A VisualSet-type layer has only 1 constant VisualSet variant it can draw from. 
-        var activeVisualMenu = VisualSetMenu.ActiveVisualSetMenu;
+        var activeVisualMenu = VisualSetMenu.ActiveVisualSetMenu!;
         if (activeVisualMenu.VisualSet.ID != MenuOpenedLayer.MaybeVisualSet.ID
             || activeVisualMenu.CurrentVariantID != MenuOpenedLayer.MaybeVisualSetVariantID.Value)
         {

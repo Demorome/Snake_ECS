@@ -16,7 +16,7 @@ public class Audio : MoonTools.ECS.System
 
 	PersistentVoice MusicVoice;
 	PersistentVoice DroneVoice;
-	AudioDataQoa Music;
+	AudioDataQoa? Music;
 
 	public Audio(World world, AudioDevice audioDevice) : base(world)
 	{
@@ -61,7 +61,7 @@ public class Audio : MoonTools.ECS.System
 
 	public void Cleanup()
 	{
-		Music.Disconnect();
+		Music?.Disconnect();
 		MusicVoice.Dispose();
 
 		DroneVoice.Stop();

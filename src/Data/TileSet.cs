@@ -28,9 +28,9 @@ public class TileSet : VisualSet
     public string FullJsonFilePath { get; private set; }
     public int TileSize = Dimensions.TILE_SIZE;
     public int PixelHeight, PixelWidth;
-    public Texture DefaultTexture { get; private set; } = null;
+    public Texture? DefaultTexture { get; private set; } = null;
 
-    private TileSprite[,] TileSprites = null;
+    private TileSprite[,]? TileSprites = null;
 
     public TileSet(string fileName, string fullFilePath) 
         : base(fileName)
@@ -46,7 +46,7 @@ public class TileSet : VisualSet
     public static TileSprite GetTileSprite(TileID TileID)
     {
         var tileSet = (TileSet)IDLookup[TileID.TileSetID.ID];
-        var tileSprite = tileSet.TileSprites[TileID.PosInSet.X, TileID.PosInSet.Y];
+        var tileSprite = tileSet.TileSprites![TileID.PosInSet.X, TileID.PosInSet.Y];
         tileSprite.TileSetVariantID = TileID.VariantID;
         return tileSprite;
     }
@@ -73,11 +73,11 @@ public class TileSet : VisualSet
     {
         if (TileSetVariantID.ID == 0)
         {
-            return DefaultTexture;
+            return DefaultTexture!;
         }
         else
         {
-            return (VariantSets[TileSetVariantID.ID - 1] as TileSetVariant).Texture;
+            return (VariantSets[TileSetVariantID.ID - 1] as TileSetVariant)!.Texture!;
         }
     }
 
@@ -127,7 +127,7 @@ public class TileSet : VisualSet
             variant.UnloadUnlessDefaultTexture(DefaultTexture);
         }
 
-		DefaultTexture.Dispose();
+		DefaultTexture?.Dispose();
 		DefaultTexture = null;
 	}
 
@@ -168,16 +168,18 @@ public class TileSetVariant : VisualSetVariant
     // Might be the same as the default TileSet, if we just want to create some tile color variants in-editor.
     // Or if we just want to have other different metadata per tile, 
     // such as as version of a tile that isn't solid for secret walls.
-    public Texture Texture { get; private set; } = null;
+    public Texture? Texture { get; private set; } = null;
 
     public TileSetVariant(Texture texture, TileSet parent) : base(parent)
     {
         Texture = texture;
     }
 
-    public void UnloadUnlessDefaultTexture(Texture DefaultTexture)
+    public void UnloadUnlessDefaultTexture(Texture? DefaultTexture)
     {
-        if (Texture.Handle != DefaultTexture.Handle)
+        if (Texture != null && 
+            DefaultTexture != null && 
+            Texture.Handle != DefaultTexture.Handle)
         {
             Texture.Dispose();
             Texture = null;

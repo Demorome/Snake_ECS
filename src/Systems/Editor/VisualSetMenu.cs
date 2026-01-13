@@ -24,7 +24,8 @@ public class VisualSetMenu
 
     // Only a single VisualSet can make paint selections at any given time.
     // If another becomes active, then it overrides the previous selections.
-    public static VisualSetMenu ActiveVisualSetMenu { get; private set; } = null;
+    public static VisualSetMenu? ActiveVisualSetMenu 
+        { get; private set; } = null;
 
     //== Constants
     public readonly VisualSet VisualSet;
@@ -255,7 +256,7 @@ public class VisualSetMenu
                     spriteRenderData,
                     Color.Transparent.ToVector4(),
                     gridOutlineColor.ToVector4(),
-                    ImGuiBackend.SamplerType.PointClamp
+                    ImGuiSamplerType.PointClamp
                 );
 
                 ImGui.SetCursorScreenPos(posToOverlap);

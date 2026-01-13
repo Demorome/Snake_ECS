@@ -108,7 +108,7 @@ public static class DrawComponents
     {
     };
 
-    static dynamic ComponentPriorToChange_Cached = null;
+    static dynamic? ComponentPriorToChange_Cached = null;
 
     // Credits to @cosmonaut: https://discord.com/channels/571020752904519693/591369371369209871/1298383364813881385
     public static void DrawComponentInspector(World world, Entity entity, Type type)
@@ -118,7 +118,7 @@ public static class DrawComponents
             var expanded = ImGui.CollapsingHeader(type.Name);
             if (expanded)
             {
-                var dummyComponent = (dynamic)Activator.CreateInstance(type);
+                var dummyComponent = (dynamic)Activator.CreateInstance(type)!;
                 var componentPriorToChange = DynamicComponentManip.Get(world, entity, dummyComponent);
                 // FIXME: Destroy dummyComponent? Profile if it leaks mem.
 

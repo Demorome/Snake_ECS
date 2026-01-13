@@ -101,7 +101,7 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
         if (delayTime > 0.0f)
         {
             var attackDelayTimer = CreateEntity("Attack Delay Timer");
-            Set(attackDelayTimer, new Timer(delayTime));
+            Set(attackDelayTimer, new Timed(delayTime));
             Relate(projectile, attackDelayTimer, new SpeedMult(0.0f));
             //Relate(projectile, attackDelayTimer, new DelayedAttack()); // TODO: Send ProjectileAttack message
         }
@@ -132,7 +132,7 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
                     var targetingTime = delayTime * 0.75f;
                     FlickeringManipulator.StartFlickering(targetingVisual, targetingTime, 0.2f);
 
-                    Set(targetingVisual, new Timer(targetingTime));
+                    Set(targetingVisual, new Timed(targetingTime));
                     Relate(projectile, targetingVisual, new DontFollowTarget());
                 }
             }
@@ -169,7 +169,7 @@ public class ProjectileManipulator : MoonTools.ECS.Manipulator
 
         // Manual spinning animation.
         var flipTimer = CreateEntity("Flip Timer");
-        Set(flipTimer, new Timer(1f, true));
+        Set(flipTimer, new Timed(1f, true));
         Relate(proj, flipTimer, new WillRotate(0.1f, float.DegreesToRadians(90)));
 
         return proj;

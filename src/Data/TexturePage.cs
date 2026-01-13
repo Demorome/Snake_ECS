@@ -17,7 +17,7 @@ public class TexturePage
 	public string JsonFilename { get; private set; }
 	public readonly TexturePageID ID;
 	public CramTextureAtlasData AtlasData { get; private set;}
-	public Texture Texture { get; private set; } = null;
+	public Texture? Texture { get; private set; } = null;
 	public uint Width => (uint)AtlasData.Width;
 	public uint Height => (uint)AtlasData.Height;
 
@@ -87,7 +87,7 @@ public class TexturePage
 
 	private void Unload()
 	{
-		Texture.Dispose();
+		Texture?.Dispose();
 		Texture = null;
 	}
 

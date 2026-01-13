@@ -241,7 +241,7 @@ public class LiveLevel
             Room = room;
             Depth = filedLayer.Depth;
             // NOTE: Assumes the layer's name's uniqueness was preserved.
-            Name = filedLayer.EditorName;
+            Name = filedLayer.EditorName!;
             MaybeColor = filedLayer.MaybeColorBlend;
             ColorBlendFactor = filedLayer.ColorBlendFactor;
 
@@ -486,7 +486,7 @@ public class LiveLevel
             foreach (var filedLayer in filedRoom.Layers)
             {
 #if DEBUG
-                if (liveRoom.LayersByName.ContainsKey(filedLayer.EditorName))
+                if (liveRoom.LayersByName.ContainsKey(filedLayer.EditorName!))
                 {
                     Logger.LogError($"Unable to load layer {filedLayer.EditorName}: Name is no longer unique w/ other layers in this room!");
                     continue;

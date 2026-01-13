@@ -125,10 +125,10 @@ public struct FiledLevel
         [JsonPropertyName("TypeForEntities")]
         public PrefabTypes? MaybePrefabTypeForEntities; // only used if layer type is Prefabs
 
-        public FiledEntity[] Entities;
+        public FiledEntity[] Entities = [];
 
 #if DEBUG
-        public string EditorName;
+        public string? EditorName;
 #endif
 
         public Layer()
@@ -145,8 +145,8 @@ public struct FiledLevel
             if (TypeID == LevelLayerTypes.TileSet)
             {
                 var visualSet = new UsedVisualSet();
-                visualSet.NameID = liveLayer.MaybeVisualSet.Name;
-                visualSet.VariantID = liveLayer.MaybeVisualSetVariantID.Value.ID;
+                visualSet.NameID = liveLayer.MaybeVisualSet!.Name;
+                visualSet.VariantID = liveLayer.MaybeVisualSetVariantID!.Value.ID;
                 MaybeVisualSet = visualSet;
             }
             else if (TypeID == LevelLayerTypes.ImageSet)
@@ -157,7 +157,7 @@ public struct FiledLevel
             }
             else if (TypeID == LevelLayerTypes.Prefabs)
             {
-                MaybePrefabTypeForEntities = liveLayer.MaybePrefabType.Value;
+                MaybePrefabTypeForEntities = liveLayer.MaybePrefabType!.Value;
             }
 
             EditorName = liveLayer.Name;
@@ -225,9 +225,9 @@ public struct FiledEntity
         if (LevelLayerTypesFuncs.IsVisualSet(filedLayer.TypeID))
         {
             var visualFromSetID = new VisualFromSetID_ForSpawning(
-                MaybeSpawnInfo.Value.PosInVisualSet.Value, 
-                maybeTileSetID.Value, 
-                new VisualSetVariantID(filedLayer.MaybeVisualSet.Value.VariantID)
+                MaybeSpawnInfo!.Value.PosInVisualSet!.Value, 
+                maybeTileSetID!.Value, 
+                new VisualSetVariantID(filedLayer.MaybeVisualSet!.Value.VariantID)
             );
 
             var (prefabID, maybeSpawnFlags, maybeExtraSpawnInfo_FromVisualSet) 
@@ -248,7 +248,7 @@ public struct FiledEntity
         }
         else if (filedLayer.TypeID == LevelLayerTypes.Prefabs)
         {
-            prefabType = filedLayer.MaybePrefabTypeForEntities.Value;
+            prefabType = filedLayer.MaybePrefabTypeForEntities!.Value;
         }
         else
         {
@@ -342,7 +342,7 @@ public struct FiledEntity
             world.Get<Position2D>(liveEntity),
             false,
             spawnInfoForDummy
-        ).Value;
+        )!.Value;
         
         // Set spawn flags
         {

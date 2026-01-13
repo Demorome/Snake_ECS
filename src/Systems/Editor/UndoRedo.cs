@@ -179,7 +179,7 @@ public static class UndoRedo
         {
             var baseGetComponentMethod = typeof(World).GetMethod(nameof(World.Get), BindingFlags.Public | BindingFlags.Instance)!;
             var genericGetComponentStorageMethod = baseGetComponentMethod.MakeGenericMethod(componentType);
-            var component = (dynamic)genericGetComponentStorageMethod.Invoke(world, [entity]);
+            var component = (dynamic)genericGetComponentStorageMethod.Invoke(world, [entity])!;
             components.Add(component);
         }
 
@@ -260,8 +260,8 @@ public static class UndoRedo
                 {
                     // Recreate it along with all of its components
                     var componentList = componentChanges as List<dynamic>;
-                    var oldTag = componentList[componentList.Count - 1] as string;
-                    entity = world.CreateEntity(oldTag);
+                    var oldTag = componentList![componentList.Count - 1] as string;
+                    entity = world.CreateEntity(oldTag!);
                     componentList.RemoveAt(componentList.Count - 1);
 
                     foreach (var component in componentList)
