@@ -32,12 +32,14 @@ public static partial class ImGuiExtensions
 
     /// <summary>
     /// For SDL_GPU backend: Callback to modify current sampler.
+    /// FIXME: Re-enable when this is fixed upstream in Hexa.ImGui!
     /// </summary>
     private static unsafe void ImDrawCallback_SetSampler(
         ImDrawList* parent_list, 
         ImDrawCmd* cmd
         )
     {
+        /*
         var state = (ImGui_ImplSDLGPU3_RenderState*)
             ImGui.GetPlatformIO()
             .RendererRenderState;
@@ -46,7 +48,7 @@ public static partial class ImGuiExtensions
             ? cmd->UserCallbackData 
             : state->SamplerDefault;
 
-        state->SamplerCurrent = sampler;
+        state->SamplerCurrent = sampler;*/
     }
 
     private static unsafe void SetCustomImGuiSampler(

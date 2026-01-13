@@ -62,12 +62,8 @@ public class ImGuiBackend : IDisposable
     /// </summary>
     public static void NewFrame(/*TimeSpan delta*/)
     {
-        //ImGuiIOPtr io = ImGui.GetIO();
-
-        // FIXME: Might not need these anymore!
-        //io.DeltaTime = (float)delta.TotalSeconds;
-        //io.DisplaySize = new Vector2(Game.MainWindow.Width, Game.MainWindow.Height);
-
+        // According to this, we don't need to update `io.DeltaTime`, etc.:
+        // https://github.com/ocornut/imgui/blob/master/docs%2FBACKENDS.md
         ImGuiImplSDL3.SDLGPU3NewFrame();
         ImGuiImplSDL3.NewFrame();
         ImGui.NewFrame();
@@ -123,10 +119,11 @@ public class ImGuiBackend : IDisposable
     /// </summary>
     public static void RenderOtherPlatformWindows()
     {
+        var configFlags = ImGui.GetIO().ConfigFlags;
+
         // Update and Render additional Platform Windows.
         // https://github.com/ocornut/imgui/wiki/Multi-Viewports#how-can-i-enable-multi-viewports-
-        if ((ImGui.GetIO().ConfigFlags 
-            & ImGuiConfigFlags.ViewportsEnable) != 0)
+        if ((configFlags & ImGuiConfigFlags.ViewportsEnable) != 0)
         {
             ImGui.UpdatePlatformWindows();
             ImGui.RenderPlatformWindowsDefault();
@@ -213,7 +210,7 @@ public class ImGuiBackend : IDisposable
     private void InitImGuiRenderingDetails()
     {
         var mainWindow = Game.MainWindow!;
-        var graphicsDevice = Game.GraphicsDevice;
+        var graphicsDevice = Game.GraphicsDevice!;
 
         var ctx = ImGui.CreateContext();
         ImGui.SetCurrentContext(ctx);
@@ -228,13 +225,31 @@ public class ImGuiBackend : IDisposable
         var mainScale = mainWindow.DisplayScale;
         style.ScaleAllSizes(mainScale);
         style.FontScaleDpi = mainScale;
+
+        // Automatically overwrite style.FontScaleDpi in Begin() when Monitor DPI changes. This will scale fonts but _NOT_ scale sizes/padding for now.
         io.ConfigDpiScaleFonts = true;
+        // Scale Dear ImGui and Platform Windows when Monitor DPI changes.
         io.ConfigDpiScaleViewports = true;
 
+        // If multi-viewports are enabled, see this FAQ about coordinate system:
+        // https://github.com/ocornut/imgui/wiki/Multi-Viewports#faq
         if ((io.ConfigFlags & ImGuiConfigFlags.ViewportsEnable) != 0)
         {
-            style.WindowRounding = 0.0f;
-            style.Colors[(int)ImGuiCol.WindowBg].W = 1.0f;
+            var noPlatformViewports 
+                = (io.BackendFlags & ImGuiBackendFlags.PlatformHasViewports) == 0;
+
+            var noRendererViewports
+                = (io.BackendFlags & ImGuiBackendFlags.RendererHasViewports) == 0;
+
+            if (noPlatformViewports || noRendererViewports)
+            {
+                Logger.LogError($"Multi-viewports not supported by backend! Platform?: {noPlatformViewports}, Renderer?: {noRendererViewports}");
+            }
+            else
+            {
+                style.WindowRounding = 0.0f;
+                style.Colors[(int)ImGuiCol.WindowBg].W = 1.0f;
+            }
         }
 
         ImGuiImplSDL3.SetCurrentContext(ctx);
