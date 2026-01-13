@@ -157,7 +157,7 @@ public class ImGuiBackend : IDisposable
     {
         ImGuiImplSDL3.ProcessEvent((ImSDLEvent*)&e);
 
-        // Prevent editor-captured inputs from leaking over into game.
+        // Prevent editor-captured inputs from leaking over into the game.
         var io = ImGui.GetIO();
         Game.PreventKeyboardInputs = io.WantCaptureKeyboard;
         Game.PreventMouseInputs = io.WantCaptureMouse;
