@@ -52,7 +52,7 @@ public class ImGuiBackend : IDisposable
 
         InitImGuiRenderingDetails();
 
-        game.OnProcessEvent += ProcessEvents;
+        game.OnReceiveEvent += ProcessEvents;
     }
 
     /// <summary>
@@ -157,6 +157,11 @@ public class ImGuiBackend : IDisposable
     private unsafe void ProcessEvents(SDL.SDL_Event e)
     {
         ImGuiImplSDL3.ProcessEvent((ImSDLEvent*)&e);
+
+        // Prevent editor-captured inputs from leaking over into game.
+        var io = ImGui.GetIO();
+        Game.PreventKeyboardInputs = io.WantCaptureKeyboard;
+        Game.PreventMouseInputs = io.WantCaptureMouse;
     }
 
     protected virtual void Dispose(bool disposing)
