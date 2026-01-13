@@ -227,7 +227,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 
                 foreach (var entity in MenuOpenedLayer.CachedEntities)
                 {
-                    var rect = EditorSystem.GetEntityVisualRect(entity);
+                    var rect = EditorSystem.GetEntityVisualRect(entity)!;
                     var worldRect = rect.Value.GetWorldRect(Get<Position2D>(entity));
 
                     if (worldRect.Intersects(mouseWorldPosRect))
@@ -240,9 +240,9 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         }
     }
 
-    public LiveLevel.EditorLayer MenuOpenedLayer = null;
-    public LiveLevel.EditorLayer SelectedLayerInList = null;
-    public LiveLevel.EditorLayer HoveredOverLayer = null;
+    public LiveLevel.EditorLayer? MenuOpenedLayer = null;
+    public LiveLevel.EditorLayer? SelectedLayerInList = null;
+    public LiveLevel.EditorLayer? HoveredOverLayer = null;
 
     public bool HasSelectedVisualsToPaint => 
         VisualSetMenu.SelectedToPaint.Selected.Count != 0;
@@ -364,7 +364,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         List<Entity> paintedEntities = new();
         List<Entity> deletedEntities = new();
 
-        switch (MenuOpenedLayer.LayerType)
+        switch (MenuOpenedLayer!.LayerType)
         {
             case LevelLayerTypes.TileSet:
                 if (visualsToPaint.Count == 1 || ImGui.IsMouseClicked(ImGuiMouseButton.Left))
@@ -476,7 +476,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 
         if (ImGui.Begin("Room Layers"u8))
         {
-            foreach (var layer in ActiveRoom.Layers)
+            foreach (var layer in ActiveRoom!.Layers)
             {
                 var isVisible = layer.IsVisible;
                 if (ImGui.Checkbox("##" + layer.Name + "Visibility", ref isVisible))
@@ -577,7 +577,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                 {
                     var layerTypeStr = LiveLevel.EditorLayer.LayerTypeToString(NewLayerType);
                     var newLayer = new LiveLevel.EditorLayer(NewLayerType, ActiveRoom, layerTypeStr);
-                    newLayer.MaybeVisualSet = VisualSetMenu.ActiveVisualSetMenu.VisualSet;
+                    newLayer.MaybeVisualSet = VisualSetMenu.ActiveVisualSetMenu!.VisualSet;
                     newLayer.MaybeVisualSetVariantID = VisualSetMenu.ActiveVisualSetMenu.CurrentVariantID;
                 }
                 if (VisualSetMenu.ActiveVisualSetMenu != null)
@@ -612,7 +612,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             ImGui.SameLine();
             if (ImGui.Button("Rename"u8))
             {
-                ImGui.OpenPopup($"RenameLayer{SelectedLayerInList.Name}");
+                ImGui.OpenPopup($"RenameLayer{SelectedLayerInList!.Name}");
             }
 
             ImGui.SameLine();
@@ -623,9 +623,9 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             }
             if (ImGui.Button("Change Depth"u8))
             {
-                ImGui.OpenPopup($"ChangeLayerDepth{SelectedLayerInList.Name}");
+                ImGui.OpenPopup($"ChangeLayerDepth{SelectedLayerInList!.Name}");
             }
-            if (ImGui.BeginPopup($"ChangeLayerDepth{SelectedLayerInList.Name}"))
+            if (ImGui.BeginPopup($"ChangeLayerDepth{SelectedLayerInList!.Name}"))
             {
                 var selectedLayer = SelectedLayerInList;
                 var newDepth = selectedLayer.Depth;
@@ -655,11 +655,11 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 
                 if (layer.LayerType == LevelLayerTypes.Prefabs)
                 {
-                    ImGui.Text($"Prefab type: {layer.MaybePrefabType.Value}");
+                    ImGui.Text($"Prefab type: {layer.MaybePrefabType!.Value}");
                 }
                 else 
                 {
-                    ImGui.Text($"Visual set: {layer.MaybeVisualSet.Name}. VariantID: {layer.MaybeVisualSetVariantID.Value}");
+                    ImGui.Text($"Visual set: {layer.MaybeVisualSet!.Name}. VariantID: {layer.MaybeVisualSetVariantID!.Value}");
                 }
                 ImGui.Text("Hint: create a new layer if you want to change the above, or manually edit the saved file.");
 
