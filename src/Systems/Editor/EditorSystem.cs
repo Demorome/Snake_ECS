@@ -77,6 +77,10 @@ public class EditorSystem : MoonTools.ECS.System
         UpdateCachedLevelLayerEntities();
 
         DrawWindowMenuBar(World);
+        if (IsShowingImGuiDemoWindow)
+        {
+            ImGui.ShowDemoWindow();
+        }
         DrawVisualSetMenus();
 
         EditorHelpActions.DrawHelpWindow(World);
@@ -111,6 +115,7 @@ public class EditorSystem : MoonTools.ECS.System
     }
 
     //MARK: Window Menu Bar
+    public static bool IsShowingImGuiDemoWindow = false;
     public static bool IsShowingGrid = true;
     public static Vector4 GridLineColor = (Color.DarkTurquoise * 0.5f).ToVector4();
     private static void DrawWindowMenuBar(World world)
@@ -192,6 +197,8 @@ public class EditorSystem : MoonTools.ECS.System
 
                     ImGui.EndMenu();
                 }
+
+                ImGui.Checkbox("ImGui Demo Window"u8, ref IsShowingImGuiDemoWindow);
 
                 ImGui.PopItemFlag();
                 ImGui.EndMenu();
