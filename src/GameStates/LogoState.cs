@@ -111,7 +111,7 @@ public class LogoState : GameState
 
         HiResSpriteBatch.Render(
             renderPass,
-            TextureAtlases.TP_HiRes.Texture,
+            TextureAtlases.TP_HiRes.Texture!,
             LinearSampler,
             hiResViewProjectionMatrices
         );
