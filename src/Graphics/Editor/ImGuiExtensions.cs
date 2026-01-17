@@ -7,17 +7,168 @@ using RollAndCash.Utility;
 using Hexa.NET.ImGui;
 using Hexa.NET.ImGui.Backends.SDL3;
 
-// Credits to @darkerbit: https://gist.github.com/darkerbit/6bfb661d7ce9263ddd7dcc7b475460e0
+public enum ImGuiSnapPosition
+{
+    Custom = -1,
+    Center = -2,
+
+    Top_Left = 0,
+    Top_Right,
+    Bottom_Left,
+    Bottom_Right
+}
+
+// Credits to @darkerbit for Image-drawing extension methods: 
+// https://gist.github.com/darkerbit/6bfb661d7ce9263ddd7dcc7b475460e0
 // Tweaked to use the Hexa.NET SDL3 backend.
 /// <summary>
 /// ImGui extension methods.
 /// </summary>
 public static partial class ImGuiExt
 {
-    public static ImGuiWindowFlags DoOverlayWindowSetup()
+    public const float TransparentWindowBgAlpha = 0.35f;
+
+    public static string SnapPosToString(ImGuiSnapPosition s)
+        => s switch
+    {
+        ImGuiSnapPosition.Custom => "Custom",
+        ImGuiSnapPosition.Center => "Center",
+
+        ImGuiSnapPosition.Bottom_Left => "Bottom-Left",
+        ImGuiSnapPosition.Bottom_Right => "Bottom-Right",
+        ImGuiSnapPosition.Top_Left => "Top-Left",
+        ImGuiSnapPosition.Top_Right => "Top-Right",
+
+        _ => throw new ArgumentException("Bad input!")
+    };
+
+    // Code taken from imgui_demo's ShowExampleAppSimpleOverlay.
+    /// <summary>
+    /// </summary>
+    /// <returns>True if window is snapped (can't move), false otherwise.</returns>
+    private static bool MaybeSetWindowSnapPos(ImGuiSnapPosition location)
+    {
+        var snappedLocked = false;
+        if (location >= 0)
+        {
+            const float PAD = 10.0f;
+            ImGuiViewportPtr viewport = ImGui.GetMainViewport();
+            Vector2 work_pos = viewport.WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
+            Vector2 work_size = viewport.WorkSize;
+
+            Vector2 window_pos;
+            window_pos.X 
+                = (((int)location & 1) != 0) 
+                ? (work_pos.X + work_size.X - PAD) 
+                : (work_pos.X + PAD);
+            window_pos.Y 
+                = (((int)location & 2) != 0) 
+                ? (work_pos.Y + work_size.Y - PAD) 
+                : (work_pos.Y + PAD);
+
+            Vector2 window_pos_pivot;
+            window_pos_pivot.X 
+                = (((int)location & 1) != 0) 
+                ? 1.0f
+                : 0.0f;
+            window_pos_pivot.Y = 
+                (((int)location & 2) != 0) 
+                ? 1.0f
+                : 0.0f;
+
+            ImGui.SetNextWindowPos(
+                window_pos, 
+                ImGuiCond.Always, 
+                window_pos_pivot
+            );
+            ImGui.SetNextWindowViewport(viewport.ID);
+            snappedLocked = true;
+        }
+        else if (location == ImGuiSnapPosition.Center)
+        {
+            // Center window
+            ImGui.SetNextWindowPos(
+                ImGui.GetMainViewport().Size / 2, 
+                ImGuiCond.Always, 
+                new Vector2(0.5f, 0.5f)
+            );
+            snappedLocked = true;
+        }
+        return snappedLocked;
+    }
+
+    public static ImGuiWindowFlags DoLocationSnappedOverlayWindowSetup(
+        ImGuiSnapPosition snapPosition
+    )
     {
         // Transparent background.
-        ImGui.SetNextWindowBgAlpha(0.35f);
+        ImGui.SetNextWindowBgAlpha(TransparentWindowBgAlpha);
+
+        var windowFlags 
+            = ImGuiWindowFlags.NoDecoration
+            | ImGuiWindowFlags.NoDocking
+            | ImGuiWindowFlags.AlwaysAutoResize
+            | ImGuiWindowFlags.NoFocusOnAppearing
+            | ImGuiWindowFlags.NoNav
+            | ImGuiWindowFlags.NoSavedSettings;
+
+        if (MaybeSetWindowSnapPos(snapPosition))
+        {
+            windowFlags |= ImGuiWindowFlags.NoMove;
+        }
+
+        return windowFlags;
+    }
+
+    public static void ShowCloseOrCollapseWindowPopup(ref bool pOpen)
+    {
+        if (ImGui.BeginPopupContextWindow())
+        {
+            if (pOpen && ImGui.MenuItem("Close"u8))
+            {
+                pOpen = false;
+            }
+
+            var isCollapsed = ImGui.IsWindowCollapsed();
+            if (ImGui.MenuItem("Collapse"u8, isCollapsed))
+            {
+                ImGui.SetWindowCollapsed(!isCollapsed);
+            }
+
+            ImGui.EndPopup();
+        }
+    }
+
+    public static void ShowChangePositionPopup(
+        ref bool pOpen,
+        ref ImGuiSnapPosition location
+        )
+    {
+        if (ImGui.BeginPopupContextWindow())
+        {
+            foreach (var nthLocation in Enum.GetValues<ImGuiSnapPosition>())
+            {
+                if (ImGui.MenuItem(
+                    SnapPosToString(nthLocation),
+                    location == nthLocation)) 
+                {
+                    location = nthLocation;
+                }
+            }
+
+            if (pOpen && ImGui.MenuItem("Close"))
+            {
+                pOpen = false;
+            }
+
+            ImGui.EndPopup();
+        }
+    }
+
+    public static ImGuiWindowFlags DoMoveableOverlayWindowSetup()
+    {
+        // Transparent background.
+        ImGui.SetNextWindowBgAlpha(TransparentWindowBgAlpha);
 
         return ImGuiWindowFlags.NoDecoration
                 | ImGuiWindowFlags.NoDocking

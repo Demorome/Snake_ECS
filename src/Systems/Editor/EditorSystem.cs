@@ -81,6 +81,7 @@ public class EditorSystem : MoonTools.ECS.System
         {
             ImGui.ShowDemoWindow();
         }
+        ShowFPSCounter();
         DrawVisualSetMenus();
 
         EditorHelpActions.DrawHelpWindow(World);
@@ -92,6 +93,36 @@ public class EditorSystem : MoonTools.ECS.System
 
         LevelEditor.HandleLevelEditor(DebugEntity.Value);
         HandleEntitySelectionMode();
+    }
+
+    static bool IsShowingFPSCounter = true;
+    static ImGuiSnapPosition FPSCounterSnapPos = ImGuiSnapPosition.Top_Right;
+    void ShowFPSCounter()
+    {
+        if (!IsShowingFPSCounter)
+        {
+            return;
+        }
+
+        var windowFlags = ImGuiExt.DoLocationSnappedOverlayWindowSetup(
+            FPSCounterSnapPos
+        );
+        if (ImGui.Begin(
+            "FPS Counter"u8, 
+            ref IsShowingFPSCounter,
+            windowFlags))
+        {
+            var io = ImGui.GetIO();
+            ImGui.Text($"Average FPS: {io.Framerate:F2}");
+            ImGui.Text($"Current Delta: {io.DeltaTime:F4}");
+            ImGui.Text($"1 / Delta = {1 / io.DeltaTime:F2}");
+
+            ImGuiExt.ShowChangePositionPopup(
+                ref IsShowingFPSCounter,
+                ref FPSCounterSnapPos
+            );
+        }
+        ImGui.End();
     }
 
     //MARK: VisualSet Menus
@@ -142,6 +173,7 @@ public class EditorSystem : MoonTools.ECS.System
                 // So that these submenus don't auto-close when an option is pressed.
                 // They'll still auto-close when clicking outside the menus.
                 ImGui.PushItemFlag(ImGuiItemFlags.AutoClosePopups, false);
+
                 if (ImGui.BeginMenu("Grid"u8))
                 {
                     ImGui.MenuItem("Toggle Grid"u8, "", ref IsShowingGrid);
@@ -199,6 +231,7 @@ public class EditorSystem : MoonTools.ECS.System
                 }
 
                 ImGui.Checkbox("ImGui Demo Window"u8, ref IsShowingImGuiDemoWindow);
+                ImGui.Checkbox("FPS Counter"u8, ref IsShowingFPSCounter);
 
                 ImGui.PopItemFlag();
                 ImGui.EndMenu();
@@ -294,9 +327,16 @@ public class EditorSystem : MoonTools.ECS.System
             return;
         }
 
-        var windowFlags = ImGuiExt.DoOverlayWindowSetup();
-        if (ImGui.Begin("Position Info"u8, ref IsShowingPositionInfo, windowFlags))
+        var windowFlags = ImGuiExt.DoMoveableOverlayWindowSetup();
+        if (ImGui.Begin(
+            "Position Info"u8, 
+            ref IsShowingPositionInfo, 
+            windowFlags))
         {
+            ImGuiExt.ShowCloseOrCollapseWindowPopup(
+                ref IsShowingPositionInfo
+            );
+
             ImGui.Text($"Mouse world position: {Input.WorldMousePosition}");
             ImGui.Text($"Mouse screen position: {ImGui.GetMousePos()}");
             ImGui.Text($"Tile position: {TileManipulator.GetTilePos(Input.WorldMousePosition)}");
