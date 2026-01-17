@@ -15,7 +15,7 @@ using ImSDLGPURenderPass = Hexa.NET.ImGui.Backends.SDL3.SDLGPURenderPass;
 
 // Using partial here, because we need to use Rendering.SpriteInstanceData,
 // which may not be part of every ImGui-using app we make.
-public static partial class ImGuiExtensions
+public static partial class ImGuiExt
 {
     /// <summary>
     /// Only the sprite is rotated, not the background.

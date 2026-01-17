@@ -90,7 +90,8 @@ public class EditorTools
     // FIXME: Use icons instead!
     public void ShowCurrentTool()
     {
-        if (ImGui.Begin("Tool Mode"u8))
+        var windowFlags = ImGuiExt.DoOverlayWindowSetup();
+        if (ImGui.Begin("Tool Mode"u8, windowFlags))
         {
             ImGui.Text(CurrentMode.ToString());
         }

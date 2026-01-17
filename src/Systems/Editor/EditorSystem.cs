@@ -294,7 +294,8 @@ public class EditorSystem : MoonTools.ECS.System
             return;
         }
 
-        if (ImGui.Begin("Position Info"u8, ref IsShowingPositionInfo))
+        var windowFlags = ImGuiExt.DoOverlayWindowSetup();
+        if (ImGui.Begin("Position Info"u8, ref IsShowingPositionInfo, windowFlags))
         {
             ImGui.Text($"Mouse world position: {Input.WorldMousePosition}");
             ImGui.Text($"Mouse screen position: {ImGui.GetMousePos()}");

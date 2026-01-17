@@ -251,7 +251,7 @@ public class VisualSetMenu
                 //ImGui.SetNextItemAllowOverlap(); // FIXME: Do we even need this still?
 
                 // Draw sprite
-                ImGuiExtensions.SpriteWithBgAndOutline(
+                ImGuiExt.SpriteWithBgAndOutline(
                     texture,
                     spriteRenderData,
                     Color.Transparent.ToVector4(),

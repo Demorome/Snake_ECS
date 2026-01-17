@@ -9,15 +9,23 @@ using Hexa.NET.ImGui.Backends.SDL3;
 
 // Credits to @darkerbit: https://gist.github.com/darkerbit/6bfb661d7ce9263ddd7dcc7b475460e0
 // Tweaked to use the Hexa.NET SDL3 backend.
-// According to this, we can no longer set sampler bindings per-texture:
-// https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples#example-for-sdl_gpu-users
-// https://github.com/ocornut/imgui/blob/f64c7c37efd9b0cead78e84f9378398b68ae5f61/backends/imgui_impl_sdlgpu3.cpp#L28
-// "If you need to change the current sampler,
-// you can access the ImGui_ImplSDLGPU3_RenderState struct."
-// Modifying Render State:
-// https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples/8682f7ad59f260e8f8d7ca02c164a24403225111#modifying-render-state
-public static partial class ImGuiExtensions
+/// <summary>
+/// ImGui extension methods.
+/// </summary>
+public static partial class ImGuiExt
 {
+    public static ImGuiWindowFlags DoOverlayWindowSetup()
+    {
+        // Transparent background.
+        ImGui.SetNextWindowBgAlpha(0.35f);
+
+        return ImGuiWindowFlags.NoDecoration
+                | ImGuiWindowFlags.NoDocking
+                | ImGuiWindowFlags.AlwaysAutoResize
+                | ImGuiWindowFlags.NoFocusOnAppearing
+                | ImGuiWindowFlags.NoNav;
+    }
+
     // FIXME: Replace when Hexa ImGui includes this struct in an update!
     unsafe struct ImGui_ImplSDLGPU3_RenderState
     {
@@ -30,6 +38,13 @@ public static partial class ImGuiExtensions
         public void*     SamplerCurrent;
     };
 
+    // According to this, we can no longer set sampler bindings per-texture:
+    // https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples#example-for-sdl_gpu-users
+    // https://github.com/ocornut/imgui/blob/f64c7c37efd9b0cead78e84f9378398b68ae5f61/backends/imgui_impl_sdlgpu3.cpp#L28
+    // "If you need to change the current sampler,
+    // you can access the ImGui_ImplSDLGPU3_RenderState struct."
+    // Modifying Render State:
+    // https://github.com/ocornut/imgui/wiki/Image-Loading-and-Displaying-Examples/8682f7ad59f260e8f8d7ca02c164a24403225111#modifying-render-state
     /// <summary>
     /// For SDL_GPU backend: Callback to modify current sampler.
     /// FIXME: Re-enable when this is fixed upstream in Hexa.ImGui!

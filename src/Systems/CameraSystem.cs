@@ -61,7 +61,11 @@ public class CameraSystem : MoonTools.ECS.System
 #if DEBUG
         if (EditorSystem.IsShowingCameraInfo)
         {
-            if (ImGui.Begin("Camera Info"u8, ref EditorSystem.IsShowingCameraInfo))
+            var windowFlags = ImGuiExt.DoOverlayWindowSetup();
+            if (ImGui.Begin(
+                "Camera Info"u8, 
+                ref EditorSystem.IsShowingCameraInfo,
+                windowFlags))
             {
                 ImGui.Text($"Position: {Camera.Position}");
                 ImGui.Text($"Center (world coords): {Camera.Center}");
