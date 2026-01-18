@@ -62,7 +62,7 @@ public static class LevelSerialization
                 {
                     if (!world.Has<Editor_PrefabID>(liveEntity))
                     {
-                        Logger.LogError($"{Systems.EditorSystem.EntityToString(world, liveEntity)} in layer {liveLayer.Name} has no PrefabID. We won't save it!");
+                        Logger.LogError($"{EntityExt.EntityToString(world, liveEntity)} in layer {liveLayer.Name} has no PrefabID. We won't save it!");
                         continue;
                     }
                     var filedEntity = Editor_SaveEntity(

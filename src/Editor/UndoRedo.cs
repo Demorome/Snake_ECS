@@ -43,7 +43,7 @@ public static class UndoRedo
                 entity, component, ChangeType.Entity_Component_Modify
             )
         );
-        Logger.LogInfo($"Stored prior state for {EditorSystem.EntityToString(world, entity)}'s {component.GetType()}: {component}");
+        Logger.LogInfo($"Stored prior state for {EntityExt.EntityToString(world, entity)}'s {component.GetType()}: {component}");
     }
 
     public static void BeginGroupedChange(
@@ -186,7 +186,7 @@ public static class UndoRedo
         // Also store the tag
         components.Add(world.GetTag(entity));
 
-        Logger.LogInfo((willBeDestroyed ? "Destroyed" : "Created") + $" {EditorSystem.EntityToString(world, entity)}");
+        Logger.LogInfo((willBeDestroyed ? "Destroyed" : "Created") + $" {EntityExt.EntityToString(world, entity)}");
 
         var changeToUndo = willBeDestroyed ? ChangeType.Entity_Deletion : ChangeType.Entity_Creation;
         PushChange(ToAllowUndo, entity, components, changeToUndo);
@@ -273,12 +273,12 @@ public static class UndoRedo
 
                     PushChange(ToUndoUndo, entity, componentList, ChangeType.Entity_Creation);
 
-                    entityString = EditorSystem.EntityToString(world, entity);
+                    entityString = EntityExt.EntityToString(world, entity);
                 }
                 else if (changeToUndo == ChangeType.Entity_Creation)
                 {
                     // Undo the creation by deleting it.
-                    entityString = EditorSystem.EntityToString(world, entity);
+                    entityString = EntityExt.EntityToString(world, entity);
                     StoreEntityComponents(entity, world, ToUndoUndo, true);
                     world.Destroy(entity);
                 }
@@ -293,7 +293,7 @@ public static class UndoRedo
             }
             // Else, handle single component change case.
 
-            Logger.LogInfo($"{(!isUndoOrRedo ? "Undid" : "Redid")} change to {EditorSystem.EntityToString(world, entity)} for {componentChanges.GetType().Name} : Reset to {componentChanges.ToString()}");
+            Logger.LogInfo($"{(!isUndoOrRedo ? "Undid" : "Redid")} change to {EntityExt.EntityToString(world, entity)} for {componentChanges.GetType().Name} : Reset to {componentChanges.ToString()}");
 
             // Store current state so we can potentially 'Redo' this 'Undo' change, and vice-versa.
             if (changeToUndo == ChangeType.Entity_Component_Remove)

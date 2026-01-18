@@ -17,8 +17,8 @@ namespace RollAndCash.Editor;
 
 public static class DrawComponents
 {
-    public static List<Type> ComponentTypes = new();
-    public static void ReInitComponentTypesList()
+    private static List<Type> ComponentTypes = new();
+    internal static void ReInitComponentTypesList()
     {
         ComponentTypes.Clear();
 
