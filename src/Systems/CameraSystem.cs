@@ -136,8 +136,10 @@ public class CameraSystem : MoonTools.ECS.System
         }
 #endif
 
+#if DEBUG
         if (!LevelEditorManipulator.IsInLevelEditor)
         {
+#endif
             // We're in game-mode.
 
             // FIXME: Add Some(CameraLock) check for small rooms with a locked camera!
@@ -197,6 +199,7 @@ public class CameraSystem : MoonTools.ECS.System
 
             // Set camera target position.
             TargetPosition = new Position2D(cameraRect.Center);
+#if DEBUG
         }
         else
         {
@@ -206,6 +209,7 @@ public class CameraSystem : MoonTools.ECS.System
             // FIXME: Ignore all CameraFocus game entities:
             // FIXME: focus on the editor's specific camera focus value.
         }
+#endif
 
         // Smoothen translation camera motion.
         if (CurrentPosition != TargetPosition)
