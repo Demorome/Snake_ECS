@@ -642,7 +642,6 @@ public class Renderer : MoonTools.ECS.Renderer
 		if (viewportAdapter.Window.Height != destination.Height
 			|| viewportAdapter.Window.Width != destination.Width)
 		{
-			Logger.LogError("Window and swapchain size mismatch!");
 			viewportAdapter.OnWindowResize_UpdateViewport(
 				destination.Width,
 				destination.Height
