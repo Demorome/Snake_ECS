@@ -338,7 +338,15 @@ public class EditorSystem : MoonTools.ECS.System
             );
 
             ImGui.Text($"Mouse world position: {Input.WorldMousePosition}");
-            ImGui.Text($"Mouse screen position: {ImGui.GetMousePos()}");
+            //ImGui.Text($"Mouse world w/ ImGui: {FIXME: Use Camera!}");
+            if (ImGui.IsMousePosValid())
+            {
+                ImGui.Text($"Mouse screen position: {ImGui.GetMousePos()}");
+            }
+            else
+            {
+                ImGui.Text("Mouse screen position: <INVALID>"u8);
+            }
             ImGui.Text($"Tile position: {TileManipulator.GetTilePos(Input.WorldMousePosition)}");
             ImGui.Text($"TileGrid size: {Dimensions.TILEGRID_SIZE}");
         }
