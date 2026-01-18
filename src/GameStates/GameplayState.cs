@@ -139,7 +139,10 @@ public class GameplayState : GameState
         World.Set(scoreOne, new Text(Fonts.KosugiID, FontSizes.SCORE, "0"));
         */
 
-        var pos = new Position2D(Dimensions.VIRTUAL_SCREEN_W / 2, Dimensions.VIRTUAL_SCREEN_H / 2);
+        var pos = new Position2D(
+            Dimensions.VIRTUAL_SCREEN_W / 2, 
+            Dimensions.VIRTUAL_SCREEN_H / 2
+        );
         var playerOne = ActorManipulator.SpawnPlayer(pos, 0);
 
         var gameInProgressEntity = World.CreateEntity();
