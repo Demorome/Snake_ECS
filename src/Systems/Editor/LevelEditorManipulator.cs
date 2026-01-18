@@ -66,7 +66,12 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             {
                 // TODO: Create backups of previous level file if possible!
 
-                ActiveLevel.SaveToFile(EditorLevelContentPath, World, PrefabManipulator);
+                LevelSerialization.SaveToFile(
+                    ActiveLevel, 
+                    EditorLevelContentPath, 
+                    World, 
+                    PrefabManipulator
+                );
             }
             if (ActiveLevel.Name == null || ActiveLevel.Name.Length == 0)
             {
@@ -93,7 +98,11 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                     if (ImGui.Button(levelPathStr))
                     {
                         // FIXME: Unload everything from the current level first!!!
-                        ActiveLevel = LiveLevel.LoadFromFile(levelPathStr, World, PrefabManipulator);
+                        ActiveLevel = LevelSerialization.LoadFromFile(
+                            levelPathStr, 
+                            World, 
+                            PrefabManipulator
+                        );
                     }
                 }
                 ImGui.EndPopup();
