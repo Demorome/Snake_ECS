@@ -357,7 +357,13 @@ public class EditorSystem : MoonTools.ECS.System
 
     //MARK: Selection Mode
     static SpatialHash<Entity> VisualEntitiesSpatialHash =
-        new SpatialHash<Entity>(0, 0, Dimensions.GAME_W, Dimensions.GAME_H, 32);
+        new SpatialHash<Entity>(
+            0, 
+            0, 
+            Dimensions.VIRTUAL_SCREEN_W, 
+            Dimensions.VIRTUAL_SCREEN_H, 
+            32
+        );
 
     public bool CanEntityBeSelected(Entity e)
     {

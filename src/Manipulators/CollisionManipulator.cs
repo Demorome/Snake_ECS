@@ -19,7 +19,13 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
 {
     //SpatialHash<Entity> InteractSpatialHash = new SpatialHash<Entity>(0, 0, Dimensions.GAME_W, Dimensions.GAME_H, 32);
     public static SpatialHash<Entity> CollidersSpatialHash =
-        new SpatialHash<Entity>(0, 0, Dimensions.GAME_W, Dimensions.GAME_H, 32);
+        new SpatialHash<Entity>(
+            0, 
+            0, 
+            Dimensions.VIRTUAL_SCREEN_W, 
+            Dimensions.VIRTUAL_SCREEN_H, 
+            32
+        );
 
     public static HashSet<Entity> HitEntities = new HashSet<Entity>();
     public static Dictionary<Entity, Position2D> RaycastHits = new();

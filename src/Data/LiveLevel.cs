@@ -68,8 +68,8 @@ public class LiveLevel
         public readonly LiveLevel Level;
         public string? Name;
         public Position2D Position; // top-left corner
-        public int Width = Dimensions.GAME_W;
-        public int Height = Dimensions.GAME_H;
+        public int Width = Dimensions.VIRTUAL_SCREEN_W;
+        public int Height = Dimensions.VIRTUAL_SCREEN_H;
 
 #if DEBUG
         public readonly Dictionary<string, EditorLayer> LayersByName;

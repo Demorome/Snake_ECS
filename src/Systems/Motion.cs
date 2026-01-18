@@ -386,7 +386,7 @@ public class Motion : MoonTools.ECS.System
                 Set(entity, new Direction2D(MathUtilities.SafeNormalize(baseVel)));
             }
 
-            if (Has<DestroyAtScreenBottom>(entity) && pos.Y > Dimensions.GAME_H - 32)
+            if (Has<DestroyAtScreenBottom>(entity) && pos.Y > Dimensions.VIRTUAL_SCREEN_H - 32)
             {
                 /*
                 if (HasOutRelation<UpdateDisplayScoreOnDestroy>(entity))
@@ -417,7 +417,8 @@ public class Motion : MoonTools.ECS.System
 
             if (Has<DestroyWhenOutOfBounds>(entity))
             {
-                if (pos.X < -100 || pos.X > Dimensions.GAME_W + 100 || pos.Y < -100 || pos.Y > Dimensions.GAME_H + 100)
+                if (pos.X < -100 || pos.X > Dimensions.VIRTUAL_SCREEN_W + 100 
+                    || pos.Y < -100 || pos.Y > Dimensions.VIRTUAL_SCREEN_H + 100)
                 {
                     /*
                     foreach (var heldEntity in OutRelations<Holding>(entity))

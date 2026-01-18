@@ -101,8 +101,8 @@ public class Renderer : MoonTools.ECS.Renderer
 		RenderTexture = Texture.Create2D(
 			GraphicsDevice, 
 			"Render Texture", 
-			Dimensions.GAME_W, 
-			Dimensions.GAME_H,
+			Dimensions.VIRTUAL_SCREEN_W, 
+			Dimensions.VIRTUAL_SCREEN_H,
 			swapchainFormat,
 			// Sampler state is needed for blitting
 			TextureUsageFlags.ColorTarget | TextureUsageFlags.Sampler
@@ -111,8 +111,8 @@ public class Renderer : MoonTools.ECS.Renderer
 		DepthTexture = Texture.Create2D(
 			GraphicsDevice,
 			"Depth Texture",
-			Dimensions.GAME_W,
-			Dimensions.GAME_H,
+			Dimensions.VIRTUAL_SCREEN_W,
+			Dimensions.VIRTUAL_SCREEN_H,
 			TextureFormat.D16Unorm,
 			TextureUsageFlags.DepthStencilTarget
 		);

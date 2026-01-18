@@ -25,8 +25,8 @@ namespace MonoGame.Extended.ViewportAdapters
         public uint ViewportWidth => (uint)Viewport.W;
         public uint ViewportHeight => (uint)Viewport.H;
 
-        public uint GameWidth => Dimensions.GAME_W;
-        public uint GameHeight => Dimensions.GAME_H;
+        public uint GameWidth => Dimensions.VIRTUAL_SCREEN_W;
+        public uint GameHeight => Dimensions.VIRTUAL_SCREEN_H;
         public Rectangle GameRect => 
             new Rectangle(0, 0, (int)GameWidth, (int)GameHeight);
         public Vector2 GameCenter => new Vector2(GameWidth / 2, GameHeight / 2);

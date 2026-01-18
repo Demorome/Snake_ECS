@@ -5,33 +5,41 @@ namespace RollAndCash;
 public static class Dimensions
 {
 	/// <summary>
-	/// The width of the game-space. <br/>
+	/// The width of the game's virtual rendering resolution. <br/>
+	/// NOT the width of the game's world-space!
+	/// Check the currently loaded level/room for that. <br/>
 	/// May be smaller than the window, especially for pixel-art games,
 	/// which need upscaling to be visible on bigger monitors.
 	/// </summary>
-	public const int GAME_W = 640;
+	public const int VIRTUAL_SCREEN_W = 640;
 
 	/// <summary>
-	/// The height of the game-space. <br/>
+	/// The height of the game's virtual rendering resolution. <br/>
+	/// NOT the height of the game's world-space!
+	/// Check the currently loaded level/room for that. <br/>
 	/// May be smaller than the window, especially for pixel-art games,
 	/// which need upscaling to be visible on bigger monitors.
 	/// </summary>
-	public const int GAME_H = 360;
+	public const int VIRTUAL_SCREEN_H = 360;
 
-	public static Vector2 GAME_DIMENSIONS = new Vector2(GAME_W, GAME_H);
+	public static Vector2 VIRTUAL_SCREEN_RESOLUTION 
+		= new Vector2(VIRTUAL_SCREEN_W, VIRTUAL_SCREEN_H);
 
 	public const int TILE_SIZE = 16;
-	public static readonly Vector2 TILE_DIMENSIONS 
+	public static readonly Vector2 TILE_SIZE_VEC 
 		= new(TILE_SIZE, TILE_SIZE);
 
-    public const int TILEGRID_ROWS = GAME_H / TILE_SIZE;
-    public const int TILEGRID_COLUMNS = GAME_W / TILE_SIZE;
+	// FIXME: Make these based on currently loaded level/room instead!
+    public const int TILEGRID_ROWS = VIRTUAL_SCREEN_H / TILE_SIZE;
+    public const int TILEGRID_COLUMNS = VIRTUAL_SCREEN_W / TILE_SIZE;
 	public static readonly Vector2 TILEGRID_SIZE 
 		= new(TILEGRID_ROWS, TILEGRID_COLUMNS);
 
-	public const int BATTLE_AREA_W = GAME_W / 2;
-	public const int BATTLE_AREA_H = GAME_H / 2;
+#if DEBUG
+	public const int BATTLE_AREA_W = VIRTUAL_SCREEN_W / 2;
+	public const int BATTLE_AREA_H = VIRTUAL_SCREEN_H / 2;
 	public const int BATTLE_AREA_THICKNESS = 10;
+#endif
 }
 
 

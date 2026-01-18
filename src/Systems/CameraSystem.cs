@@ -142,7 +142,9 @@ public class CameraSystem : MoonTools.ECS.System
 #endif
             // We're in game-mode.
 
-            // FIXME: Add Some(CameraLock) check for small rooms with a locked camera!
+            // FIXME: default camera to center of current level bounds 
+            // if there's no camera target defined.
+            // TODO: Yell a warning if this default camera doesn't cover the level?
 
             if (CameraFocusFilter.Count == 0)
             {
@@ -180,11 +182,13 @@ public class CameraSystem : MoonTools.ECS.System
             // Set zoom level.
             if (cameraRect.Width > cameraRect.Height)
             {
-                TargetZoomOutScale = cameraRect.Width / (float)Dimensions.GAME_W;
+                TargetZoomOutScale 
+                    = cameraRect.Width / (float)Dimensions.VIRTUAL_SCREEN_W;
             }
 			else
             {
-                TargetZoomOutScale = cameraRect.Height / (float)Dimensions.GAME_H;
+                TargetZoomOutScale 
+                    = cameraRect.Height / (float)Dimensions.VIRTUAL_SCREEN_H;
             }
 
             if (TargetZoomOutScale < MIN_SCALE)

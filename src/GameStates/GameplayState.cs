@@ -139,7 +139,7 @@ public class GameplayState : GameState
         World.Set(scoreOne, new Text(Fonts.KosugiID, FontSizes.SCORE, "0"));
         */
 
-        var pos = new Position2D(Dimensions.GAME_W / 2, Dimensions.GAME_H / 2);
+        var pos = new Position2D(Dimensions.VIRTUAL_SCREEN_W / 2, Dimensions.VIRTUAL_SCREEN_H / 2);
         var playerOne = ActorManipulator.SpawnPlayer(pos, 0);
 
         var gameInProgressEntity = World.CreateEntity();
@@ -218,22 +218,22 @@ public class GameplayState : GameState
     {
         var topBorder = World.CreateEntity(LevelBoundsTag);
         World.Set(topBorder, new Position2D(0, 0));
-        World.Set(topBorder, new Rectangle(0, 0, Dimensions.GAME_W, 10));
+        World.Set(topBorder, new Rectangle(0, 0, Dimensions.VIRTUAL_SCREEN_W, 10));
         World.Set(topBorder, new Layer(CollisionLayer.LevelCollider_ExistsOn, CollisionLayer.StaticLevelCollider_CollidesWith));
 
         var leftBorder = World.CreateEntity(LevelBoundsTag);
         World.Set(leftBorder, new Position2D(0, 0));
-        World.Set(leftBorder, new Rectangle(0, 0, 10, Dimensions.GAME_H));
+        World.Set(leftBorder, new Rectangle(0, 0, 10, Dimensions.VIRTUAL_SCREEN_H));
         World.Set(leftBorder, new Layer(CollisionLayer.LevelCollider_ExistsOn, CollisionLayer.StaticLevelCollider_CollidesWith));
 
         var rightBorder = World.CreateEntity(LevelBoundsTag);
-        World.Set(rightBorder, new Position2D(Dimensions.GAME_W, 0));
-        World.Set(rightBorder, new Rectangle(0, 0, 10, Dimensions.GAME_H));
+        World.Set(rightBorder, new Position2D(Dimensions.VIRTUAL_SCREEN_W, 0));
+        World.Set(rightBorder, new Rectangle(0, 0, 10, Dimensions.VIRTUAL_SCREEN_H));
         World.Set(rightBorder, new Layer(CollisionLayer.LevelCollider_ExistsOn, CollisionLayer.StaticLevelCollider_CollidesWith));
 
         var bottomBorder = World.CreateEntity(LevelBoundsTag);
-        World.Set(bottomBorder, new Position2D(0, Dimensions.GAME_H));
-        World.Set(bottomBorder, new Rectangle(0, 0, Dimensions.GAME_W, 10));
+        World.Set(bottomBorder, new Position2D(0, Dimensions.VIRTUAL_SCREEN_H));
+        World.Set(bottomBorder, new Rectangle(0, 0, Dimensions.VIRTUAL_SCREEN_W, 10));
         World.Set(bottomBorder, new Layer(CollisionLayer.LevelCollider_ExistsOn, CollisionLayer.StaticLevelCollider_CollidesWith));
     }
 

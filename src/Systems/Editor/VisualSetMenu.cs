@@ -124,9 +124,10 @@ public class VisualSetMenu
         RenderingManipulator renderingManipulator
         )
     {
-        var scalingFactor = ImGui.GetWindowViewport().Size / Dimensions.GAME_DIMENSIONS 
-            * VisualSet.Editor_PreviewScaleMult
-        ;
+        var scalingFactor 
+            = ImGui.GetWindowViewport().Size 
+            / Dimensions.VIRTUAL_SCREEN_RESOLUTION 
+            * VisualSet.Editor_PreviewScaleMult;
 
         // Show every selected Visual from the VisualSet
         if (ImGui.BeginChild("##ViewVisualsFromSet"u8, new Vector2(-1, -menuBottomPortionWidth),

@@ -52,8 +52,8 @@ public class TitleState : GameState
 
         RenderTexture = Texture.Create2D(
             GraphicsDevice, 
-            Dimensions.GAME_W, 
-            Dimensions.GAME_H, 
+            Dimensions.VIRTUAL_SCREEN_W, 
+            Dimensions.VIRTUAL_SCREEN_H, 
             game.MainWindow.SwapchainFormat, 
             TextureUsageFlags.ColorTarget | TextureUsageFlags.Sampler
         );
@@ -146,8 +146,8 @@ public class TitleState : GameState
     {
         return Matrix4x4.CreateOrthographicOffCenter(
             0,
-            Dimensions.GAME_W,
-            Dimensions.GAME_H,
+            Dimensions.VIRTUAL_SCREEN_W,
+            Dimensions.VIRTUAL_SCREEN_H,
             0,
             0.01f,
             1000
