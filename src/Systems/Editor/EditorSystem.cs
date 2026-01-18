@@ -259,19 +259,25 @@ public class EditorSystem : MoonTools.ECS.System
 
         foreach (var entity in PositionFilter.Entities)
         {
-            var depth = Has<Depth>(entity) ? Get<Depth>(entity).Value : (float)DepthLayer.PlaceholderDepth;
+            var depth = Has<Depth>(entity) 
+                ? Get<Depth>(entity).Value 
+                : (float)DepthLayer.PlaceholderDepth;
 
             if (!Has<LevelRoomID>(entity))
             {
                 continue;
             }
-            var room = LevelEditor.ActiveLevel.GetRoomFromID(Get<LevelRoomID>(entity));
+            var room = LevelEditor.ActiveLevel.GetRoomFromID(
+                Get<LevelRoomID>(entity)
+            );
 
             LoadedLevel.EditorLayer? maybeLayer = null;
             if (Has<Editor_LevelLayerID>(entity))
             {
                 // FIXME: might be null, if the layer has been deleted this session, then undone.
-                maybeLayer = room.GetLayerFromID(Get<Editor_LevelLayerID>(entity));
+                maybeLayer = room.GetLayerFromID(
+                    Get<Editor_LevelLayerID>(entity)
+                );
 
                 if (depth != maybeLayer.Depth)
                 {
@@ -295,7 +301,9 @@ public class EditorSystem : MoonTools.ECS.System
                 }
                 else
                 {
-                    layerName = LoadedLevel.EditorLayer.LayerTypeToString(layerType);
+                    layerName = LoadedLevel.EditorLayer.LayerTypeToString(
+                        layerType
+                    );
                 }
 
                 // Try to find an existing layer to group this with.
@@ -306,7 +314,12 @@ public class EditorSystem : MoonTools.ECS.System
                 else
                 {
                     // If not, create one.
-                    maybeLayer = new LoadedLevel.EditorLayer(layerType, room, layerName, depth); // adds itself to lists
+                    maybeLayer = new LoadedLevel.EditorLayer(
+                        layerType, 
+                        room, 
+                        layerName, 
+                        depth
+                    ); // adds itself to lists
                 }
             }
 
@@ -367,7 +380,8 @@ public class EditorSystem : MoonTools.ECS.System
 
     public bool CanEntityBeSelected(Entity e)
     {
-        // Ignore entities that aren't in the Level Editor's currently active Room + Layer
+        // Ignore entities that aren't in 
+        // the Level Editor's currently active Room + Layer
         if (LevelEditor.ActiveLevel != null 
             && LevelEditor.ActiveRoom != null
             && LevelEditor.SelectedLayerInList != null
@@ -427,7 +441,9 @@ public class EditorSystem : MoonTools.ECS.System
                         continue;
                     }
 
-                    var worldRect = rect.Value.GetWorldRect(Get<Position2D>(entity));
+                    var worldRect = rect.Value.GetWorldRect(
+                        Get<Position2D>(entity)
+                    );
                     VisualEntitiesSpatialHash.Insert(entity, worldRect);
                 }
             }
@@ -435,7 +451,10 @@ public class EditorSystem : MoonTools.ECS.System
             // Check what entities the mouse is hovering over.
             List<Entity> hoveredOverEntities = new();
 
-            foreach (var (entity, rect) in VisualEntitiesSpatialHash.Retrieve(mouseWorldPosRect))
+            foreach (var (entity, rect) in 
+                VisualEntitiesSpatialHash.Retrieve(
+                    mouseWorldPosRect)
+                )
             {
                 if (mouseWorldPosRect.Intersects(rect))
                 {
@@ -480,7 +499,10 @@ public class EditorSystem : MoonTools.ECS.System
                 // FIXME:
             }
 
-            Relate(DebugEntity.Value, hoveredOverEntity, new Editor_SelectedEntity());
+            Relate(DebugEntity.Value, 
+                hoveredOverEntity, 
+                new Editor_SelectedEntity()
+            );
         }
         else
         {
@@ -490,18 +512,25 @@ public class EditorSystem : MoonTools.ECS.System
                 var selectedEntity = maybeSelectedEntity.Value;
 
                 // Check if user unselects the entity by clicking away from it.
-                if (ImGui.IsMouseClicked(ImGuiMouseButton.Left) && !mouseHoveringOverAnyWindow)
+                if (ImGui.IsMouseClicked(ImGuiMouseButton.Left) 
+                    && !mouseHoveringOverAnyWindow)
                 {
                     var selectedRect = GetEntityVisualRect(selectedEntity);
                     if (selectedRect.HasValue)
                     {
-                        var worldRect = selectedRect.Value.GetWorldRect(Get<Position2D>(selectedEntity));
-                        VisualEntitiesSpatialHash.Insert(selectedEntity, worldRect);
+                        var worldRect = selectedRect.Value.GetWorldRect(
+                            Get<Position2D>(selectedEntity)
+                        );
+                        VisualEntitiesSpatialHash.Insert(
+                            selectedEntity, 
+                            worldRect
+                        );
                     }
 
                     bool unselect = true;
 
-                    foreach (var (entity, rect) in VisualEntitiesSpatialHash.Retrieve(mouseWorldPosRect))
+                    foreach (var (entity, rect) in 
+                        VisualEntitiesSpatialHash.Retrieve(mouseWorldPosRect))
                     {
                         if (mouseWorldPosRect.Intersects(rect))
                         {
@@ -576,12 +605,22 @@ public class EditorSystem : MoonTools.ECS.System
 
             origin *= scale;
 
-            var offset = -origin - new Vector2(currentSprite.FrameRect.X, currentSprite.FrameRect.Y) * scale;
-            var visualSize = new Vector2(currentSprite.SliceRect.W, currentSprite.SliceRect.H) * scale;
+            var offset = -origin;
+            offset -= new Vector2(
+                currentSprite.FrameRect.X, 
+                currentSprite.FrameRect.Y
+            ) * scale;
+
+            var visualSize = new Vector2(
+                currentSprite.SliceRect.W, 
+                currentSprite.SliceRect.H
+            ) * scale;
 
             // FIXME: Account for orientation/angle!! 
             // Selection is AABB, so maybe draw an oversized rectangle to cover it all?
-            var orientation = Has<Angle>(entity) ? Get<Angle>(entity).ValueInRadians : 0.0f;
+            var orientation = Has<Angle>(entity) 
+                ? Get<Angle>(entity).ValueInRadians 
+                : 0.0f;
             if (orientation != 0.0f)
             {
                 // FIXME: Get highest & lowest points, somehow??
