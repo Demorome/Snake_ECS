@@ -37,7 +37,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
     //static bool SnapToGrid = true;
     public Vector2? HoveredOverTilePosition = null;
 
-    private PrefabTypes PrefabToSpawn = PrefabTypes.None;
+    private PrefabType PrefabToSpawn = PrefabType.None;
 
     // To write outside of bin/Debug, in order to get to .csproj location. For editor use only; never ship this!
     // FIXME: This may break on you if you have a different deployment structure!
@@ -66,7 +66,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             {
                 // TODO: Create backups of previous level file if possible!
 
-                LevelSerialization.SaveToFile(
+                LevelSerialization.Editor_SaveToFile(
                     ActiveLevel, 
                     EditorLevelContentPath, 
                     World, 
@@ -121,7 +121,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 
     private void SetOrRevertPaintingTool()
     {
-        var hasSelectedPrefab = PrefabToSpawn != PrefabTypes.None;
+        var hasSelectedPrefab = PrefabToSpawn != PrefabType.None;
         if (VisualSetMenu.SelectedToPaint.TrueSelections.Count != 0
             || hasSelectedPrefab)
         {
@@ -180,7 +180,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             ref PrefabToSpawn,
             debugEntity
         );
-        var hasSelectedPrefab = PrefabToSpawn != PrefabTypes.None;
+        var hasSelectedPrefab = PrefabToSpawn != PrefabType.None;
         // Update painting tool status w/ potential PrefabToSpawn change.
         SetOrRevertPaintingTool();
 

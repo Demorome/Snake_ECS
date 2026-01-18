@@ -2,7 +2,7 @@ using MoonWorks.Graphics;
 using RollAndCash.Components;
 using RollAndCash.Data;
 
-public enum PrefabTypes
+public enum PrefabType
 {
     None = 0,
     StaticLevelMirror,
@@ -19,18 +19,25 @@ public enum PrefabTypes
     VisualTile,
     Image
 }
-// FIXME: Should this be Debug-only? To discourage anti-patterns.
-public readonly record struct PrefabID(PrefabTypes ID);
 
-public static class PrefabsFuncs
+/// <summary>
+/// Should only be set on entities in editor/debug mode.
+/// Tells us what prefab an entity is based on, 
+/// so that we can save this entity with minimal information.
+/// </summary>
+public readonly record struct Editor_PrefabID(PrefabType ID);
+
+public static partial class EntityPrefabs
 {
-    public static bool IsTile(PrefabTypes t)
+    public static bool IsTile(PrefabType t)
     {
-        return t == PrefabTypes.RegularSolidTile || t == PrefabTypes.VisualTile;
+        return t == PrefabType.RegularSolidTile 
+            || t == PrefabType.VisualTile;
     }
-    public static bool IsPurelyVisual(PrefabTypes t)
+    public static bool IsPurelyVisual(PrefabType t)
     {
-        return t == PrefabTypes.Image || t == PrefabTypes.VisualTile;
+        return t == PrefabType.Image 
+            || t == PrefabType.VisualTile;
     }
 }
 

@@ -61,7 +61,11 @@ public class LiveLevel
         public LevelRoomID ID;
         public readonly LiveLevel Level;
         public string? Name;
-        public Position2D Position; // top-left corner
+        /// <summary>
+        /// Top-left corner to identify where the Room is, 
+        /// relative to other rooms in the same Level.
+        /// </summary>
+        public Position2D Position;
         public int Width = Dimensions.VIRTUAL_SCREEN_W;
         public int Height = Dimensions.VIRTUAL_SCREEN_H;
 
@@ -185,7 +189,7 @@ public class LiveLevel
         // FIXME: Use discriminated union here when it's available!!
         public VisualSet? MaybeVisualSet;
         public VisualSetVariantID? MaybeVisualSetVariantID;
-        public PrefabTypes? MaybePrefabType;
+        public PrefabType? MaybePrefabType;
 
         /// <summary>
         /// Applies a tint to all images/tiles in this layer.

@@ -46,7 +46,7 @@ public abstract class VisualSet
     // So that we can automatically assign a PrefabID, flags & extradata to certain visuals when we spawn them.
     // Visuals not contained here must automatically be purely visual with nothing special going on.
     public Dictionary<PositionInVisualSet, 
-        (PrefabID, FiledEntity.Flags, PrefabSpawnInfoOverride?)> 
+        (PrefabType, FiledEntity.Flags, PrefabSpawnInfoOverride?)> 
         Metadata = new();
 
     // The default VisualSet has a variant ID of 0, but isn't included here.
@@ -128,13 +128,13 @@ public abstract class VisualSet
     }
     public byte GetVariantCount() => (byte)VariantSets.Count;
 
-    public static (PrefabID, FiledEntity.Flags, PrefabSpawnInfoOverride?) 
+    public static (PrefabType, FiledEntity.Flags, PrefabSpawnInfoOverride?) 
         GetMetadata(VisualFromSetID_ForSpawning v)
     {
         return GetMetadata(v.PosInSet, v.VisualSetID, v.VariantID);
     }
 
-    public static (PrefabID, FiledEntity.Flags, PrefabSpawnInfoOverride?) 
+    public static (PrefabType, FiledEntity.Flags, PrefabSpawnInfoOverride?) 
         GetMetadata(
             PositionInVisualSet PosInSet, 
             VisualSetID TileSetID, 
@@ -143,14 +143,18 @@ public abstract class VisualSet
     {
         var tileSet = IDLookup[TileSetID.ID];
 
-        (PrefabID, FiledEntity.Flags, PrefabSpawnInfoOverride?) result;
+        (PrefabType, FiledEntity.Flags, PrefabSpawnInfoOverride?) result;
         if (tileSet.Metadata.ContainsKey(PosInSet))
         {
             result = tileSet.Metadata[PosInSet];
         }
         else
         {
-            result = (new PrefabID(PrefabTypes.VisualTile), FiledEntity.Flags.None, null);
+            result = (
+                PrefabType.VisualTile, 
+                FiledEntity.Flags.None, 
+                null
+            );
         }
 
         if (VariantID.ID != 0)
@@ -189,18 +193,17 @@ public abstract class VisualSet
         bool isDummyForPaintingPreview = false
     )
     {
-        var (prefabID, maybeSpawnFlags, maybeExtraSpawnInfo_FromVisualSet) 
+        var (prefabType, maybeSpawnFlags, maybeExtraSpawnInfo_FromVisualSet) 
             = GetMetadata(visualFromSetID);
 
-        var prefabType = prefabID.ID;
         if (isDummyVisual)
         {
-            if (PrefabsFuncs.IsTile(prefabType))
+            if (EntityPrefabs.IsTile(prefabType))
             {
-                prefabType = PrefabTypes.VisualTile;
+                prefabType = PrefabType.VisualTile;
             }
 
-            if (!PrefabsFuncs.IsPurelyVisual(prefabType))
+            if (!EntityPrefabs.IsPurelyVisual(prefabType))
             {
                 Logger.LogError($"Unrecognized prefab type for dummy visual: {prefabType}");
                 return null;
@@ -334,7 +337,7 @@ public class VisualSetVariant
 
     // NOTE: If any field is non-null, it completely overrides the base field of the TileSet.
     public Dictionary<PositionInVisualSet, 
-        (PrefabID?, FiledEntity.Flags?, PrefabSpawnInfoOverride?)>  
+        (PrefabType?, FiledEntity.Flags?, PrefabSpawnInfoOverride?)>  
         TileMetadataOverrides = new();
 
     public VisualSetVariant(VisualSet parent)
@@ -393,7 +396,7 @@ public class VisualSetVariant
     }
 #endif
 
-    public (PrefabID?, FiledEntity.Flags?, PrefabSpawnInfoOverride?)? 
+    public (PrefabType?, FiledEntity.Flags?, PrefabSpawnInfoOverride?)? 
         GetTileTileMetadataOverride(PositionInVisualSet tilePosInSet)
     {
         if (TileMetadataOverrides.ContainsKey(tilePosInSet))

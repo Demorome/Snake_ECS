@@ -154,10 +154,14 @@ public class TileSet : VisualSet
         return false;
     }
 
-    public static (PrefabID, FiledEntity.Flags, PrefabSpawnInfoOverride?) 
+    public static (PrefabType, FiledEntity.Flags, PrefabSpawnInfoOverride?) 
         GetMetadata(TileID tileID)
     {
-        return VisualSet.GetMetadata(tileID.PosInSet, tileID.TileSetID, tileID.VariantID);
+        return VisualSet.GetMetadata(
+            tileID.PosInSet, 
+            tileID.TileSetID, 
+            tileID.VariantID
+        );
     }
 #endif
 }
