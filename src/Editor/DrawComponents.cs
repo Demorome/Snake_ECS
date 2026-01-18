@@ -17,17 +17,43 @@ namespace RollAndCash.Editor;
 
 public static class DrawComponents
 {
+    public static List<Type> ComponentTypes = new();
+    public static void ReInitComponentTypesList()
+    {
+        ComponentTypes.Clear();
+
+        string namespaceFilter = nameof(RollAndCash) + '.' + nameof(Components);
+
+        foreach (var type in System.Reflection.Assembly.GetExecutingAssembly().GetTypes())
+        {
+            if (!type.IsValueType || type.Namespace != namespaceFilter)
+            {
+                continue;
+            }
+
+            ComponentTypes.Add(type);
+        }
+
+        ComponentTypes.Sort(
+            (Type A, Type B) 
+            => { 
+                return A.Name.CompareTo(B.Name); 
+            }
+        );
+    }
+
     static HashSet<Type> ComponentTypeWindows = new();
 
-    unsafe static ImGuiTextFilterPtr TypeSearchFilter = new(ImGui.ImGuiTextFilter("Position2D"u8));
+    unsafe static ImGuiTextFilterPtr TypeSearchFilter 
+        = new(ImGui.ImGuiTextFilter("Pos"u8));
 
     public static void DrawComponentTypeSearch(World world)
     {
-        TypeSearchFilter.Draw("Search");
+        TypeSearchFilter.Draw("Search"u8);
 
-        for (int i = 0; i < EditorSystem.ComponentTypes.Count; ++i)
+        for (int i = 0; i < ComponentTypes.Count; ++i)
         {
-            var type = EditorSystem.ComponentTypes[i];
+            var type = ComponentTypes[i];
 
             if (TypeSearchFilter.PassFilter(type.Name))
             {
@@ -54,7 +80,7 @@ public static class DrawComponents
                     continue;
                 }
 
-                var entityStr = EditorSystem.EntityToString(world, entity);
+                var entityStr = EntityExt.EntityToString(world, entity);
                 bool treeIsShown = ImGui.TreeNode(entityStr);
 
                 if (ImGui.IsItemClicked(ImGuiMouseButton.Right))

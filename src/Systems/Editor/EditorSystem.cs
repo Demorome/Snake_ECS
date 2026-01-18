@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Numerics;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.Marshalling;
 using System.Text.Unicode;
@@ -31,14 +30,6 @@ namespace RollAndCash.Systems;
 
 public class EditorSystem : MoonTools.ECS.System
 {
-    public static List<Type> ComponentTypes = new();
-
-    public static void StaticInit()
-    {
-        // FIXME: Update on hot-reload, if we add new component types?
-        ReInitComponentTypesList();
-    }
-
     MoonTools.ECS.Filter PositionFilter;
 
     public Entity? DebugEntity = null; // So we can stick Relations on this to safely track other entities.
@@ -638,55 +629,16 @@ public class EditorSystem : MoonTools.ECS.System
     }
 
     //MARK: Utilities
-    static void ReInitComponentTypesList()
-    {
-        ComponentTypes.Clear();
-
-        string namespaceFilter = nameof(RollAndCash) + '.' + nameof(Components);
-
-        foreach (var type in Assembly.GetExecutingAssembly().GetTypes())
-        {
-            if (!type.IsValueType || type.Namespace != namespaceFilter)
-            {
-                continue;
-            }
-
-            ComponentTypes.Add(type);
-        }
-
-        ComponentTypes.Sort((Type A, Type B) => { return A.Name.CompareTo(B.Name); });
-    }
-
-    public static string EntityToString(World world, Entity e)
-    {
-        var tag = world.GetTag(e);
-        if (tag.Length == 0)
-        {
-            return e.ToString();
-        }
-        return $"Entity {{ ID = {e.ID}, Tag = {tag} }}";
-    }
     public string EntityToString(Entity e)
     {
-        return EntityToString(World, e);
-    }
-
-    public static string EntityComponentsToString(World world, Entity e)
-    {
-        string result = new("");
-        foreach (var type in world.Debug_GetAllComponentTypes(e))
-        {
-            result += "\n*\t" + type.Name;
-        }
-        return result;
+        return EntityExt.EntityToString(World, e);
     }
     public string EntityComponentsToString(Entity e)
     {
-        return EntityComponentsToString(World, e);
+        return EntityExt.EntityComponentsToString(World, e);
     }
 
     public static Dictionary<string, object> DetachedWindows = new();
-
     static void DrawDetachedWindows(World world)
     {
         // Credits to @APurpleApple for this trick: https://discord.com/channels/571020752904519693/571020753479401483/1347847933709783102
