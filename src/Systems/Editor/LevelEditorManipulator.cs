@@ -50,6 +50,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 
     // Layout inspired by Elias Daler's tutorial series: 
     // https://edw.is/using-imgui-with-sfml-pt1/
+    // MARK: Main Window
     void DrawLevelEditorMainWindow()
     {
         bool stillOpened = IsInLevelEditor;
@@ -126,6 +127,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
     private bool IsDragDeleting = false;
     private bool IsDragCreating = false;
 
+    // MARK: Main Code
     public void HandleLevelEditor(Entity debugEntity)
     {
         void ShowWarningIfSelectedVisualsToPaintAndCannotPaint()
@@ -244,6 +246,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
     public LiveLevel.EditorLayer? SelectedLayerInList = null;
     public LiveLevel.EditorLayer? HoveredOverLayer = null;
 
+    // MARK: Get Entities To Paint
     public bool HasSelectedVisualsToPaint => 
         VisualSetMenu.SelectedToPaint.Selected.Count != 0;
 
@@ -346,12 +349,14 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         return result;
     }
 
+    //FIXME: This trick no longer works!
     static bool IsEmptyTile(SpriteAnimation sprite)
     {
         return sprite.SpriteAnimationInfoID == SpriteAnimations.EditorTile_EmptyTile.ID
             || sprite.CurrentSprite.UV == SpriteAnimations.EditorTile_EmptyTile.Frames[0].UV;
     }
 
+    // MARK: Paint Entities
     /// <summary>
     /// Assumes MenuOpenedLayer isn't null.
     /// </summary>
@@ -468,6 +473,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         return paintedEntities;
     }
 
+    // MARK: Show Layers
     LevelLayerTypes NewLayerType;
 
     void ShowActiveLayersForRoom_Menu(Entity debugEntity)
