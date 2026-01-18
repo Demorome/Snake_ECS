@@ -187,8 +187,8 @@ public abstract class VisualSet
         Position2D spawnPosition,
         World world,
         PrefabManipulator prefabManipulator,
-        LiveLevel.Room? maybeRoom = null,
-        LiveLevel.EditorLayer? maybeLayer = null,
+        LoadedLevel.Room? maybeRoom = null,
+        LoadedLevel.EditorLayer? maybeLayer = null,
         bool isDummyVisual = false,
         bool isDummyForPaintingPreview = false
     )

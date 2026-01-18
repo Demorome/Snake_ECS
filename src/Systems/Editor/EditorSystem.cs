@@ -267,7 +267,7 @@ public class EditorSystem : MoonTools.ECS.System
             }
             var room = LevelEditor.ActiveLevel.GetRoomFromID(Get<LevelRoomID>(entity));
 
-            LiveLevel.EditorLayer? maybeLayer = null;
+            LoadedLevel.EditorLayer? maybeLayer = null;
             if (Has<Editor_LevelLayerID>(entity))
             {
                 // FIXME: might be null, if the layer has been deleted this session, then undone.
@@ -295,7 +295,7 @@ public class EditorSystem : MoonTools.ECS.System
                 }
                 else
                 {
-                    layerName = LiveLevel.EditorLayer.LayerTypeToString(layerType);
+                    layerName = LoadedLevel.EditorLayer.LayerTypeToString(layerType);
                 }
 
                 // Try to find an existing layer to group this with.
@@ -306,7 +306,7 @@ public class EditorSystem : MoonTools.ECS.System
                 else
                 {
                     // If not, create one.
-                    maybeLayer = new LiveLevel.EditorLayer(layerType, room, layerName, depth); // adds itself to lists
+                    maybeLayer = new LoadedLevel.EditorLayer(layerType, room, layerName, depth); // adds itself to lists
                 }
             }
 

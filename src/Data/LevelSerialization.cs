@@ -35,7 +35,7 @@ public static class LevelSerialization
 #if DEBUG
     // MARK: Save level
     public static void Editor_SaveToFile(
-        LiveLevel liveLevel,
+        LoadedLevel liveLevel,
         string levelContentPath, 
         World world, 
         PrefabManipulator prefabManipulator
@@ -99,7 +99,7 @@ public static class LevelSerialization
 #endif
     
     // MARK: Load level
-    public static LiveLevel LoadFromFile(
+    public static LoadedLevel LoadFromFile(
         string jsonPath, 
         World world, 
         PrefabManipulator prefabManipulator)
@@ -109,7 +109,7 @@ public static class LevelSerialization
         UndoRedo.ClearRedoList();
 #endif
 
-        var filedLevel = (FiledLevel)JsonSerializer.Deserialize(
+        var levelToLoad = (FiledLevel)JsonSerializer.Deserialize(
             File.ReadAllText(jsonPath),
             typeof(FiledLevel),
             JsonLevelContext
@@ -117,71 +117,71 @@ public static class LevelSerialization
 
         // 'SerializedVersion' can be used here, if needed
 
-        var liveLevelResult = new LiveLevel();
-        liveLevelResult.Name = filedLevel.Name;
+        var liveLevelResult = new LoadedLevel();
+        liveLevelResult.Name = levelToLoad.Name;
 
-        foreach (var filedRoom in filedLevel.Rooms)
+        foreach (var roomToLoad in levelToLoad.Rooms)
         {
             // Adds itself to list in ctor
-            var liveRoom = new LiveLevel.Room(filedRoom, liveLevelResult);
+            var liveRoom = new LoadedLevel.Room(roomToLoad, liveLevelResult);
 
-            foreach (var filedLayer in filedRoom.Layers)
+            foreach (var layerToLoad in roomToLoad.Layers)
             {
 #if DEBUG
-                if (liveRoom.LayersByName.ContainsKey(filedLayer.EditorName!))
+                if (liveRoom.LayersByName.ContainsKey(layerToLoad.EditorName!))
                 {
-                    Logger.LogError($"Unable to load layer {filedLayer.EditorName}: Name is no longer unique w/ other layers in this room!");
+                    Logger.LogError($"Unable to load layer {layerToLoad.EditorName}: Name is no longer unique w/ other layers in this room!");
                     continue;
                 }
-                var liveEditorLayer = new LiveLevel.EditorLayer(
-                    filedLayer, 
+                var liveEditorLayer = new LoadedLevel.EditorLayer(
+                    layerToLoad, 
                     liveRoom
                 ); // adds itself to lists in ctor
 #endif
                 VisualSetID? maybeTileSetID = null;
 
                 var logSetNotFoundError = (string setName) => 
-                    Logger.LogError($"Unable to load layer {filedLayer.EditorName}: Couldn't find visual set {setName}");
+                    Logger.LogError($"Unable to load layer {layerToLoad.EditorName}: Couldn't find visual set {setName}");
 
                 var logVariantNotFoundError = (byte variantID) => 
-                    Logger.LogError($"Unable to load layer {filedLayer.EditorName}: Couldn't find visual set variant with ID {variantID}");
+                    Logger.LogError($"Unable to load layer {layerToLoad.EditorName}: Couldn't find visual set variant with ID {variantID}");
 
-                if (filedLayer.TypeID == LevelLayerTypes.TileSet)
+                if (layerToLoad.TypeID == LevelLayerTypes.TileSet)
                 {
                     if (!TileSets.NameToTileSet.ContainsKey(
-                        filedLayer.MaybeVisualSet!.Value.NameID))
+                        layerToLoad.MaybeVisualSet!.Value.NameID))
                     {
-                        logSetNotFoundError(filedLayer.MaybeVisualSet.Value.NameID);
+                        logSetNotFoundError(layerToLoad.MaybeVisualSet.Value.NameID);
                         continue;
                     }
                     var tileSet = TileSets.NameToTileSet[
-                        filedLayer.MaybeVisualSet.Value.NameID
+                        layerToLoad.MaybeVisualSet.Value.NameID
                     ];
 
                     // Reminder that a variantID of 0 is valid; 
                     // it means the default tileset.
                     if (tileSet.VariantSets.Count 
-                        > filedLayer.MaybeVisualSet.Value.VariantID)
+                        > layerToLoad.MaybeVisualSet.Value.VariantID)
                     {
-                        logVariantNotFoundError(filedLayer.MaybeVisualSet.Value.VariantID);
+                        logVariantNotFoundError(layerToLoad.MaybeVisualSet.Value.VariantID);
                     }
                     maybeTileSetID = tileSet.ID;
                 }
-                else if (filedLayer.TypeID == LevelLayerTypes.ImageSet)
+                else if (layerToLoad.TypeID == LevelLayerTypes.ImageSet)
                 {
                     // FIXME: Implement!
                 }
 
                 for (int nthEntity = 0; 
-                    nthEntity < filedLayer.Entities.Length; 
+                    nthEntity < layerToLoad.Entities.Length; 
                     ++nthEntity
                 )
                 {
-                    var filedEntity = filedLayer.Entities[nthEntity];
+                    var entityToLoad = layerToLoad.Entities[nthEntity];
                     _ = LoadEntity(
-                        filedEntity,
-                        filedRoom,
-                        filedLayer,
+                        entityToLoad,
+                        roomToLoad,
+                        layerToLoad,
                         maybeTileSetID,
                         world, 
                         prefabManipulator,
@@ -205,9 +205,9 @@ public static class LevelSerialization
         VisualSetID? maybeTileSetID,
         World world,
         PrefabManipulator prefabManipulator,
-        LiveLevel.Room liveRoom
+        LoadedLevel.Room liveRoom
 #if DEBUG
-        , LiveLevel.EditorLayer liveEditorLayer
+        , LoadedLevel.EditorLayer liveEditorLayer
 #endif
     )
     {
@@ -292,8 +292,8 @@ public static class LevelSerialization
     public static FiledEntity Editor_SaveEntity(
         Entity liveEntity,
         World world,
-        LiveLevel.Room liveRoom,
-        LiveLevel.EditorLayer liveLayer,
+        LoadedLevel.Room liveRoom,
+        LoadedLevel.EditorLayer liveLayer,
         PrefabManipulator prefabManipulator
     )
     {
@@ -311,7 +311,8 @@ public static class LevelSerialization
             if (liveLayer.LayerType == LevelLayerTypes.TileSet)
             {
                 var tileID = world.Get<TileID>(liveEntity);
-                spawnInfoForDummy.VisualFromSetID = (VisualFromSetID_ForSpawning)tileID;
+                spawnInfoForDummy.VisualFromSetID 
+                    = (VisualFromSetID_ForSpawning)tileID;
                 filedSpawnInfo.PosInVisualSet = tileID.PosInSet;
                 empty = false;
             }

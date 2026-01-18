@@ -32,8 +32,8 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 
     public static bool IsInLevelEditor = false;
 
-    public LiveLevel ActiveLevel = new();
-    public LiveLevel.Room? ActiveRoom = null;
+    public LoadedLevel ActiveLevel = new();
+    public LoadedLevel.Room? ActiveRoom = null;
     //static bool SnapToGrid = true;
     public Vector2? HoveredOverTilePosition = null;
 
@@ -251,9 +251,9 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         }
     }
 
-    public LiveLevel.EditorLayer? MenuOpenedLayer = null;
-    public LiveLevel.EditorLayer? SelectedLayerInList = null;
-    public LiveLevel.EditorLayer? HoveredOverLayer = null;
+    public LoadedLevel.EditorLayer? MenuOpenedLayer = null;
+    public LoadedLevel.EditorLayer? SelectedLayerInList = null;
+    public LoadedLevel.EditorLayer? HoveredOverLayer = null;
 
     // MARK: Get Entities To Paint
     public bool HasSelectedVisualsToPaint => 
@@ -562,7 +562,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                 for (int i = 0; i < (int)LevelLayerTypes.SELECTABLE_IN_EDITOR_MAX; ++i)
                 {
                     var layerType = (LevelLayerTypes)i;
-                    var layerTypeStr = LiveLevel.EditorLayer.LayerTypeToString(layerType);
+                    var layerTypeStr = LoadedLevel.EditorLayer.LayerTypeToString(layerType);
                     if (ImGui.Selectable(layerTypeStr))
                     {
                         if (LevelLayerTypesFuncs.IsVisualSet(layerType))
@@ -572,7 +572,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                         }
                         else
                         {
-                            var _ = new LiveLevel.EditorLayer(layerType, ActiveRoom, layerTypeStr);
+                            var _ = new LoadedLevel.EditorLayer(layerType, ActiveRoom, layerTypeStr);
                         }
                     }
                 }
@@ -590,8 +590,8 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                 }
                 if (ImGui.Button("Use currently active Visual Set + VariantID"))
                 {
-                    var layerTypeStr = LiveLevel.EditorLayer.LayerTypeToString(NewLayerType);
-                    var newLayer = new LiveLevel.EditorLayer(NewLayerType, ActiveRoom, layerTypeStr);
+                    var layerTypeStr = LoadedLevel.EditorLayer.LayerTypeToString(NewLayerType);
+                    var newLayer = new LoadedLevel.EditorLayer(NewLayerType, ActiveRoom, layerTypeStr);
                     newLayer.MaybeVisualSet = VisualSetMenu.ActiveVisualSetMenu!.VisualSet;
                     newLayer.MaybeVisualSetVariantID = VisualSetMenu.ActiveVisualSetMenu.CurrentVariantID;
                 }

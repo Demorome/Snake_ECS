@@ -46,7 +46,8 @@ public readonly record struct Editor_LevelLayerID(int ID);
 /// <summary>
 /// Represents a level that's fully loaded in-game.
 /// </summary>
-public class LiveLevel
+//MARK: Level
+public class LoadedLevel
 {
     public string Name = "";
     public readonly List<Room> Rooms = new();
@@ -56,10 +57,11 @@ public class LiveLevel
         return Rooms[roomID.ID];
     }
 
+    //MARK: Room
     public class Room
     {
         public LevelRoomID ID;
-        public readonly LiveLevel Level;
+        public readonly LoadedLevel Level;
         public string? Name;
         /// <summary>
         /// Top-left corner to identify where the Room is, 
@@ -74,7 +76,7 @@ public class LiveLevel
         public readonly List<EditorLayer> Layers;
 #endif
 
-        public Room(LiveLevel levelParent)
+        public Room(LoadedLevel levelParent)
         {
             Level = levelParent;
             lock (levelParent.Rooms)
@@ -88,7 +90,7 @@ public class LiveLevel
 #endif
         }
 
-        public Room(FiledLevel.Room filedRoom, LiveLevel levelParent)
+        public Room(FiledLevel.Room filedRoom, LoadedLevel levelParent)
         {
             Level = levelParent;
             lock (levelParent.Rooms)
@@ -137,7 +139,7 @@ public class LiveLevel
         }
 
         public void DeleteLayerCleanup(
-            ref LiveLevel.EditorLayer? layerToRemove, 
+            ref LoadedLevel.EditorLayer? layerToRemove, 
             World world
         )
         {
@@ -178,7 +180,7 @@ public class LiveLevel
         }
         public readonly Editor_LevelLayerID LayerID;
         public readonly Room Room;
-        public LiveLevel Level => Room.Level;
+        public LoadedLevel Level => Room.Level;
         public LevelLayerTypes LayerType { get; private set; }
         public bool IsTiled => LayerType == LevelLayerTypes.TileSet;
 
@@ -207,7 +209,7 @@ public class LiveLevel
 
         public EditorLayer(
             LevelLayerTypes layerType,
-            LiveLevel.Room room,
+            LoadedLevel.Room room,
             string? name = null,
             float depth = (float)DepthLayer.PlaceholderDepth
             )
