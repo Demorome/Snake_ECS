@@ -333,5 +333,4 @@ public readonly record struct CursorPosition(Vector2 Value);
     public readonly record struct Editor_DummyVisualFromVisualSet_ForVisualSet();
     public readonly record struct Editor_DontShowInLists();
     public readonly record struct Editor_DontAddToLevel();
-    public readonly record struct Editor_GlobalDebugEntity();
 #endif

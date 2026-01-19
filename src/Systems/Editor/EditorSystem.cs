@@ -63,7 +63,7 @@ public class EditorSystem : MoonTools.ECS.System
             DebugEntity = World.CreateEntity(DebugEntityTag);
             Set(DebugEntity.Value, new Editor_DontShowInLists());
             Set(DebugEntity.Value, new Editor_DontAddToLevel()); // just in case, but shouldn't be needed
-            Set(DebugEntity.Value, new Editor_GlobalDebugEntity());
+            Set(DebugEntity.Value, new Components.Singletons.Editor_GlobalDebugEntity());
         }
 
         UpdateCachedLevelLayerEntities();
