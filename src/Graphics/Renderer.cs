@@ -79,14 +79,45 @@ public class Renderer : MoonTools.ECS.Renderer
 	{
 		GraphicsDevice = graphicsDevice;
 
-		DrawRectFilter = FilterBuilder.Include<Rectangle>().Include<Position2D>().Include<DrawAsRectangle>().Build();
-		TextFilter = FilterBuilder.Include<Text>().Include<Position2D>().Build();
-		SpriteAnimationFilter = FilterBuilder.Include<SpriteAnimation>().Include<Position2D>().Build();
-		DetectionConeFilter = FilterBuilder.Include<CanDetect>().Include<Position2D>().Include<DrawDetectionCone>().Build();
-		TileFilter = FilterBuilder.Include<TileID>().Include<Position2D>().Build();
+		DrawRectFilter = FilterBuilder
+			.Include<Rectangle>()
+			.Include<Position2D>()
+			.Include<DrawAsRectangle>()
+			.Exclude<Disabled>()
+			.Build();
+			
+		TextFilter = FilterBuilder
+			.Include<Text>()
+			.Include<Position2D>()
+			.Exclude<Disabled>()
+			.Build();
+
+		SpriteAnimationFilter = FilterBuilder
+			.Include<SpriteAnimation>()
+			.Include<Position2D>()
+			.Exclude<Disabled>()
+			.Build();
+
+		DetectionConeFilter = FilterBuilder
+			.Include<CanDetect>()
+			.Include<Position2D>()
+			.Include<DrawDetectionCone>()
+			.Exclude<Disabled>()
+			.Build();
+
+		TileFilter = FilterBuilder
+			.Include<TileID>()
+			.Include<Position2D>()
+			.Exclude<Disabled>()
+			.Build();
 
 #if DEBUG
-		ColliderFilter = FilterBuilder.Include<Rectangle>().Include<Position2D>().Build();
+		ColliderFilter = FilterBuilder
+			.Include<Rectangle>()
+			.Include<Position2D>()
+			.Exclude<Disabled>()
+			.Build();
+
 		EditorSystem = editorSystem;
 		TileManipulator = new(world);
 #endif
