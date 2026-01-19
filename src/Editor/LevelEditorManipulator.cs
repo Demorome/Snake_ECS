@@ -66,7 +66,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
             {
                 // TODO: Create backups of previous level file if possible!
 
-                LevelSerialization.Editor_SaveToFile(
+                LevelSerialization.Editor_SaveLevelToFile(
                     ActiveLevel, 
                     EditorLevelContentPath, 
                     World, 
@@ -98,7 +98,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                     if (ImGui.Button(levelPathStr))
                     {
                         // FIXME: Unload everything from the current level first!!!
-                        ActiveLevel = LevelSerialization.LoadFromFile(
+                        ActiveLevel = LevelSerialization.LoadLevelFromFile(
                             levelPathStr, 
                             World, 
                             PrefabManipulator

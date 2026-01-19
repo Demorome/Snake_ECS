@@ -34,7 +34,7 @@ public static class LevelSerialization
 
 #if DEBUG
     // MARK: Save level
-    public static void Editor_SaveToFile(
+    public static void Editor_SaveLevelToFile(
         LoadedLevel liveLevel,
         string levelContentPath, 
         World world, 
@@ -99,7 +99,7 @@ public static class LevelSerialization
 #endif
     
     // MARK: Load level
-    public static LoadedLevel LoadFromFile(
+    public static LoadedLevel LoadLevelFromFile(
         string jsonPath, 
         World world, 
         PrefabManipulator prefabManipulator)
@@ -349,11 +349,19 @@ public static class LevelSerialization
             bool different = false;
             var spawnFlags = FiledEntity.Flags.None;
 
-            if (CompareEntityFlagComponent<HorizontalFlip>(liveEntity, dummyEntity, world, ref different))
+            if (CompareEntityFlagComponent<HorizontalFlip>(
+                liveEntity, 
+                dummyEntity, 
+                world, 
+                ref different))
             {
                 spawnFlags |= FiledEntity.Flags.FlipX;
             }
-            if (CompareEntityFlagComponent<VerticalFlip>(liveEntity, dummyEntity, world, ref different))
+            if (CompareEntityFlagComponent<VerticalFlip>(
+                liveEntity, 
+                dummyEntity, 
+                world, 
+                ref different))
             {
                 spawnFlags |= FiledEntity.Flags.FlipY;
             }
@@ -372,7 +380,8 @@ public static class LevelSerialization
             // FIXME!!
             if (world.Has<ColorBlend>(liveEntity))
             {
-                spawnInfoOverrides.ColorBlend = world.Get<ColorBlend>(liveEntity);
+                spawnInfoOverrides.ColorBlend 
+                    = world.Get<ColorBlend>(liveEntity);
                 different = true;
             }
 
