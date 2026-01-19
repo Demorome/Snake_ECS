@@ -43,7 +43,8 @@ public static class LevelSerialization
     {
         var filedLevel = new FiledLevel();
         filedLevel.SerializedVersion = 1;
-        filedLevel.Name = liveLevel.Name;
+        filedLevel.PlayerFacingName = liveLevel.PlayerFacingName;
+        filedLevel.ID = liveLevel.ID;
 
         List<FiledLevel.Room> filedRooms = new(liveLevel.Rooms.Count);
         foreach (var liveRoom in liveLevel.Rooms)
@@ -108,7 +109,7 @@ public static class LevelSerialization
         Directory.CreateDirectory(levelContentPath);
         var jsonOutputPath = Path.Combine(
             levelContentPath, 
-            liveLevel.Name + ".json"
+            liveLevel.PlayerFacingName + ".json"
         );
         File.WriteAllText(jsonOutputPath, json);
     }
@@ -138,9 +139,12 @@ public static class LevelSerialization
 
         // 'SerializedVersion' can be used here, if needed
 
-        var liveLevelResult = new LoadedLevel();
-        liveLevelResult.Name = levelToLoad.Name;
-        liveLevelResult.StartingRoomID = levelToLoad.StartingRoomID;
+        var liveLevelResult = new LoadedLevel()
+        {
+            PlayerFacingName = levelToLoad.PlayerFacingName,
+            StartingRoomID = levelToLoad.StartingRoomID,
+            ID = levelToLoad.ID
+        };
 
         foreach (var roomToLoad in levelToLoad.Rooms)
         {

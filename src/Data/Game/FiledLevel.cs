@@ -7,9 +7,12 @@ namespace RollAndCash.Data;
 public struct FiledLevel
 {
     public int SerializedVersion;
-    public string Name;
-    public int Width;
-    public int Height;
+
+    public string PlayerFacingName;
+    public LevelID ID;
+
+    public int TotalWidth;
+    public int TotalHeight;
 
     public LevelRoomID StartingRoomID;
     public Room[] Rooms;

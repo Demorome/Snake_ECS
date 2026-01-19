@@ -23,7 +23,10 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
     TileManipulator TileManipulator;
     PrefabManipulator PrefabManipulator;
 
-    public LevelEditorManipulator(World world, EditorSystem editorSystem) : base(world)
+    public LevelEditorManipulator(
+        World world, 
+        EditorSystem editorSystem
+        ) : base(world)
     {
         EditorSystem = editorSystem;
         TileManipulator = new(World);
@@ -32,7 +35,10 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 
     public static bool IsInLevelEditor = false;
 
-    public LoadedLevel ActiveLevel = new();
+    public LoadedLevel ActiveLevel = new()
+    {
+        ID = new LevelID(LevelList.TestLevel)
+    };
     public LoadedLevel.Room? ActiveRoom = null;
     //static bool SnapToGrid = true;
     public Vector2? HoveredOverTilePosition = null;
@@ -56,9 +62,9 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         bool stillOpened = IsInLevelEditor;
         if (ImGui.Begin("Level Editor"u8, ref stillOpened))
         {
-            ImGui.InputText("Name"u8, ref ActiveLevel.Name, 256);
+            ImGui.InputText("Name"u8, ref ActiveLevel.PlayerFacingName, 256);
 
-            if (ActiveLevel.Name == null || ActiveLevel.Name.Length == 0)
+            if (ActiveLevel.PlayerFacingName == null || ActiveLevel.PlayerFacingName.Length == 0)
             {
                 ImGui.BeginDisabled();
             }
@@ -73,7 +79,7 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
                     PrefabManipulator
                 );
             }
-            if (ActiveLevel.Name == null || ActiveLevel.Name.Length == 0)
+            if (ActiveLevel.PlayerFacingName == null || ActiveLevel.PlayerFacingName.Length == 0)
             {
                 ImGui.EndDisabled();
             }
@@ -93,7 +99,8 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 
             if (ImGui.BeginPopup("##LoadLevelPopup"u8))
             {
-                foreach (var levelPathStr in Directory.GetFiles(EditorLevelContentPath))
+                foreach (var levelPathStr 
+                    in Directory.GetFiles(EditorLevelContentPath))
                 {
                     if (ImGui.Button(levelPathStr))
                     {

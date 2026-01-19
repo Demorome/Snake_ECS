@@ -49,7 +49,16 @@ public readonly record struct Editor_LevelLayerID(int ID);
 //MARK: Level
 public class LoadedLevel
 {
-    public string Name = "";
+    /// <summary>
+    /// Can safely be changed.
+    /// </summary>
+    public string PlayerFacingName = "<NON-SPECIFIED>";
+
+    public required LevelID ID;
+
+    //FIXME: Use these!
+    /*public int TotalWidth;
+    public int TotalHeight;*/
 
     public LevelRoomID StartingRoomID = default;
     public readonly List<Room> Rooms = new();
