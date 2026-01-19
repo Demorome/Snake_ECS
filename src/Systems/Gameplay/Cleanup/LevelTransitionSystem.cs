@@ -2,7 +2,6 @@ using System;
 using MoonTools.ECS;
 using RollAndCash.Relations;
 using RollAndCash.Components;
-using Timed = RollAndCash.Components.Timed;
 
 namespace RollAndCash.Systems;
 
@@ -15,11 +14,16 @@ public class LevelTransitionSystem : MoonTools.ECS.System
         DestroyOnTransitionFilter 
             = FilterBuilder
             .Include<DestroyOnTransition>()
+            // Avoid destroying entities that are loaded in an adjacent cell
+            .Exclude<Disabled>()
             .Build();
     }
 
     public override void Update(TimeSpan delta)
     {
+        // TODO: More fancy code, to support camera panning over to the new room.
+        // Once the transition is over, finally destroy the entities.
+        
         /*
         if (!SomeMessage<LevelTransitionMessage>())
         {
@@ -29,7 +33,6 @@ public class LevelTransitionSystem : MoonTools.ECS.System
 
         foreach (var entity in DestroyOnTransitionFilter.Entities)
         {
-            
         }*/
     }
 }
