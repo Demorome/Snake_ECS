@@ -18,9 +18,7 @@ namespace RollAndCash.Components;
 /// </summary>
 public static class Singletons
 {
-    //FIXME: Implement!
-    //public readonly record struct ActiveLevelStringID(? ID);
-
+    public readonly record struct ActiveLevelID(LevelID ID);
     public readonly record struct ActiveRoomID(LevelRoomID ID);
 
 #if DEBUG
