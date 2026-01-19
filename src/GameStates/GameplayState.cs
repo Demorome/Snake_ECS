@@ -43,6 +43,7 @@ public class GameplayState : GameState
     EnemySystem EnemySystem;
     TrailVisualSystem TrailVisualSystem;
     CameraSystem CameraSystem;
+    LevelTransitionSystem LevelTransitionSystem;
 
     ActorManipulator ActorManipulator;
 
@@ -97,6 +98,7 @@ public class GameplayState : GameState
         DetectionSystem = new DetectionSystem(World);
         EnemySystem = new(World);
         TrailVisualSystem = new(World);
+        LevelTransitionSystem = new(World);
 
         ActorManipulator = new(World);
 
@@ -195,6 +197,7 @@ public class GameplayState : GameState
 #endif
 
         Audio.Update(dt);
+        LevelTransitionSystem.Update(dt);
         Destroyer.Update(dt);
 
         if (World.SomeMessage<EndGame>())
