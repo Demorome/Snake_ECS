@@ -24,13 +24,15 @@ public class Projectile : MoonTools.ECS.System
         VFXManipulator = new VFXManipulator(world);
 
         ProjectileFilter = FilterBuilder
-        .Include<SpriteAnimation>()
-        .Include<Position2D>()
-        .Include<Direction2D>()
-        .Include<Speed>()
-        .Include<DealsDamageOnContact>()
-        .Exclude<Player>()
-        .Build();
+            .Include<SpriteAnimation>()
+            .Include<Position2D>()
+            .Include<Direction2D>()
+            .Include<Speed>()
+            .Include<DealsDamageOnContact>()
+            .Exclude<Player>()
+            .Exclude<Disabled>()
+            .Exclude<MarkedForDestroy>()
+            .Build();
     }
 
     public override void Update(TimeSpan delta)

@@ -14,10 +14,12 @@ public class TargetingDirection : MoonTools.ECS.System
     public TargetingDirection(World world) : base(world)
     {
         TargetDirectionFilter = FilterBuilder
-        .Include<Position2D>()
-        .Include<Direction2D>()
-        .Include<UpdateDirectionToTargetPosition>()
-        .Build();
+            .Include<Position2D>()
+            .Include<Direction2D>()
+            .Include<UpdateDirectionToTargetPosition>()
+            .Exclude<Disabled>()
+            .Exclude<MarkedForDestroy>()
+            .Build();
     }
 
     public override void Update(TimeSpan delta)

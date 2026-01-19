@@ -23,13 +23,15 @@ public class PlayerController : MoonTools.ECS.System
 	public PlayerController(World world) : base(world)
 	{
 		PlayerFilter =
-		FilterBuilder
-		.Include<Player>()
-		.Include<Position2D>()
-		.Include<Speed>()
-		.Include<Direction2D>()
-		.Include<HasHealth>()
-		.Build();
+			FilterBuilder
+			.Include<Player>()
+			.Include<Position2D>()
+			.Include<Speed>()
+			.Include<Direction2D>()
+			.Include<HasHealth>()
+            // intentionally not excluding MarkedForDestroy, nor Disabled
+			// Player shouldn't ever be Disabled anyways.
+			.Build();
 
 		ProjectileManipulator = new(world);
 	}

@@ -51,6 +51,7 @@ public class CameraSystem : MoonTools.ECS.System
             FilterBuilder
             .Include<CameraFocus>()
             .Include<Rectangle>()
+            .Exclude<Disabled>()
             .Build();
     }
 

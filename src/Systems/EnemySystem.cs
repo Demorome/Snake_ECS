@@ -22,6 +22,8 @@ public class EnemySystem : MoonTools.ECS.System
             FilterBuilder
             .Include<DealsDamageOnContact>()
             //.Include<CanAttack>()
+            .Exclude<Disabled>()
+            .Exclude<MarkedForDestroy>()
             .Build();
 
         EnemySpawner = new(world);

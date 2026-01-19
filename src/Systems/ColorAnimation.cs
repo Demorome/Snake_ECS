@@ -10,7 +10,12 @@ public class ColorAnimation : MoonTools.ECS.System
 
 	public ColorAnimation(World world) : base(world)
 	{
-		ColorAnimationFilter = FilterBuilder.Include<ColorBlend>().Include<ColorSpeed>().Build();
+		ColorAnimationFilter = FilterBuilder
+			.Include<ColorBlend>()
+			.Include<ColorSpeed>()
+			.Exclude<Disabled>()
+			//TODO: Could also exclude MarkedForDestroy, but eh?
+			.Build();
 	}
 
 	public override void Update(TimeSpan delta)

@@ -9,13 +9,22 @@ using RollAndCash.Relations;
 using RollAndCash.Utility;
 
 // Credits to Cassandra Lugo's tutorial: https://blood.church/posts/2023-09-25-shmup-tutorial/
-public class Collision : MoonTools.ECS.System
+public class CollisionSystem : MoonTools.ECS.System
 {
     CollisionManipulator CollisionManipulator;
 
-    public Collision(World world) : base(world)
+    public CollisionSystem(World world) : base(world)
     {
         CollisionManipulator = new(World);
+    }
+
+    public override void Update(System.TimeSpan delta)
+    {
+        foreach (var message in ReadMessages<Collide>())
+        {
+            // FIXME: We aren't checking for MarkedForDestroy, nor Disabled!!!
+            HandleCollision(message.A, message.B);
+        }
     }
 
     void HandleCollision(Entity movingEntity, Entity collidedEntity)
@@ -129,14 +138,6 @@ public class Collision : MoonTools.ECS.System
         if (Has<DestroyOnImpact>(collidedEntity))
         {
             Set(collidedEntity, new MarkedForDestroy());
-        }
-    }
-
-    public override void Update(System.TimeSpan delta)
-    {
-        foreach (var message in ReadMessages<Collide>())
-        {
-            HandleCollision(message.A, message.B);
         }
     }
 

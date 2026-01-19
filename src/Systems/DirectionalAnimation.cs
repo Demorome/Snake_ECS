@@ -14,9 +14,11 @@ public class DirectionalAnimation : MoonTools.ECS.System
     public DirectionalAnimation(World world) : base(world)
     {
         DirectionFilter = FilterBuilder
-        .Include<Direction2D>()
-        .Include<DirectionalSprites>()
-        .Build();
+            .Include<Direction2D>()
+            .Include<DirectionalSprites>()
+            .Exclude<Disabled>()
+            // intentionally not excluding MarkedForDestroy
+            .Build();
     }
 
     public override void Update(TimeSpan delta)

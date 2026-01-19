@@ -56,7 +56,10 @@ public class Input : MoonTools.ECS.System
 #endif
 
 		Inputs = inputs;
-		PlayerFilter = FilterBuilder.Include<Player>().Build();
+		PlayerFilter 
+			= FilterBuilder
+			.Include<Player>()
+			.Build();
 
 		PlayerOneMouseAndKeyboard.Up = Inputs.Keyboard.Button(KeyCode.W);
 		PlayerOneMouseAndKeyboard.Down = Inputs.Keyboard.Button(KeyCode.S);

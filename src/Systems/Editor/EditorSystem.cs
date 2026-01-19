@@ -47,6 +47,7 @@ public class EditorSystem : MoonTools.ECS.System
         PositionFilter =
             FilterBuilder
             .Include<Position2D>()
+            // Not excluding Disabled on purpose
             .Build();
 
         LevelEditor = new(World, this);

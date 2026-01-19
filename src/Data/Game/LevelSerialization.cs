@@ -84,6 +84,22 @@ public static class LevelSerialization
 
         filedLevel.Rooms = filedRooms.ToArray();
 
+        if (world.Some<LevelStart>())
+        {
+            var levelStart = world.GetSingleton<LevelStart>();
+
+            filedLevel.StartingRoomID = levelStart.StartRoomID;
+
+            // FIXME: Also store the position in the FiledLevel directly, 
+            // instead of saving it as an entity?
+
+            // FIXME: What about saving + loading room portal links??
+        }
+        else
+        {
+            filedLevel.StartingRoomID = default;
+        }
+
         var json = JsonSerializer.Serialize(
             filedLevel, 
             typeof(FiledLevel), 
@@ -99,6 +115,11 @@ public static class LevelSerialization
 #endif
     
     // MARK: Load level
+    /// <summary>
+    /// Fully loads the level, including all its rooms. <br/>
+    /// All loaded entities that aren't in the starting room
+    /// are Disabled by default.
+    /// </summary>
     public static LoadedLevel LoadLevelFromFile(
         string jsonPath, 
         World world, 
@@ -119,6 +140,7 @@ public static class LevelSerialization
 
         var liveLevelResult = new LoadedLevel();
         liveLevelResult.Name = levelToLoad.Name;
+        liveLevelResult.StartingRoomID = levelToLoad.StartingRoomID;
 
         foreach (var roomToLoad in levelToLoad.Rooms)
         {
@@ -178,7 +200,8 @@ public static class LevelSerialization
                 )
                 {
                     var entityToLoad = layerToLoad.Entities[nthEntity];
-                    _ = LoadEntity(
+
+                    var maybeLiveEntity = LoadEntity(
                         entityToLoad,
                         roomToLoad,
                         layerToLoad,
@@ -190,6 +213,16 @@ public static class LevelSerialization
                         , liveEditorLayer
 #endif
                     );
+
+                    if (maybeLiveEntity != null)
+                    {
+                        var liveEntity = maybeLiveEntity.Value;
+                        
+                        if (liveLevelResult.StartingRoomID != liveRoom.ID)
+                        {
+                            world.Set(liveEntity, new Disabled());
+                        }
+                    }
                 }
             }
         }
@@ -198,7 +231,7 @@ public static class LevelSerialization
     }
 
     //MARK: Load Entity
-    public static Entity? LoadEntity(
+    private static Entity? LoadEntity(
         FiledEntity toLoad,
         FiledLevel.Room filedRoom,
         FiledLevel.Layer filedLayer,
@@ -224,10 +257,10 @@ public static class LevelSerialization
                 )
             );
 
-            (prefabType, 
+            (   prefabType, 
                 var maybeSpawnFlags, 
                 var maybeExtraSpawnInfo_FromVisualSet
-                ) = VisualSet.GetMetadata(visualFromSetID);
+            ) = VisualSet.GetMetadata(visualFromSetID);
 
             spawnInfo = new PrefabSpawnInfo_Processed(visualFromSetID);
             if (!toLoad.MaybeSpawnFlags.HasValue)
@@ -254,7 +287,7 @@ public static class LevelSerialization
         var spawnPosition 
             = toLoad.PositionRelativeToRoom + filedRoom.Position;
 
-        // Spawn the entities
+        // Spawn the entity
         var maybeLiveEntity = prefabManipulator.TrySpawnPrefab(
             prefabType,
             spawnPosition,
@@ -289,7 +322,7 @@ public static class LevelSerialization
 
 #if DEBUG
     //MARK: Save Entity
-    public static FiledEntity Editor_SaveEntity(
+    private static FiledEntity Editor_SaveEntity(
         Entity liveEntity,
         World world,
         LoadedLevel.Room liveRoom,

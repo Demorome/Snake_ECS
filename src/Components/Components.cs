@@ -298,9 +298,29 @@ public readonly record struct HasLineHitbox();
 public readonly record struct ReflectsProjectiles();
 
 public readonly record struct BecomeInvincibleOnDamage(float Time);
-public readonly record struct MarkedForDestroy();
 public readonly record struct DestroyOnImpact();
 public readonly record struct HasHealth(int Health);
+
+/// <summary>
+/// To delay entity's destruction to the end of the frame. <br/>
+/// Useful if other entities should still be able to interact with it 
+/// before it's destroyed on that frame.
+/// </summary>
+public readonly record struct MarkedForDestroy();
+
+/// <summary>
+/// To prevent an entity from being used in most systems. <br/>
+/// Usually reserved for entities that are in a nearby loaded room, 
+/// who should act frozen until the room is entered. <br/>
+/// Note that this will also prevent rendering for that entity. <br/>
+/// FIXME: We aren't checking for this whenever we loop over Relations!!!
+/// </summary>
+public readonly record struct Disabled();
+
+public readonly record struct LevelStart(
+    LevelRoomID StartRoomID,
+    Position2D PlayerStartPosition
+);
 
 // FIXME: Implement behavior
 public readonly record struct MaxMovementDistance(float Value);

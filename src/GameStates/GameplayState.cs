@@ -32,7 +32,7 @@ public class GameplayState : GameState
     GameState TransitionState;
     Health Health;
     Projectile Projectile;
-    Collision Collision;
+    CollisionSystem Collision;
     Destroyer Destroyer;
     FlickerSystem FlickerSystem;
     FlipAnimationSystem FlipAnimationSystem;
@@ -87,7 +87,7 @@ public class GameplayState : GameState
         DirectionalAnimation = new DirectionalAnimation(World);
         Health = new Health(World);
         Projectile = new Projectile(World);
-        Collision = new Collision(World);
+        Collision = new CollisionSystem(World);
         Destroyer = new Destroyer(World);
         FlickerSystem = new FlickerSystem(World);
         FlipAnimationSystem = new FlipAnimationSystem(World);
@@ -161,15 +161,19 @@ public class GameplayState : GameState
             Timing.Update(dt);
             ChangeAppearanceOverTime.Update(dt);
             UpdateSpriteAnimationSystem.Update(dt);
+
             Input.Update(dt);
             PlayerController.Update(dt);
             EnemySystem.Update(dt);
+
             DetectionSystem.Update(dt);
             Projectile.Update(dt);
             TargetingDirection.Update(dt);
+            
             Motion.Update(dt);
             Collision.Update(dt);
             Health.Update(dt);
+
             TrailVisualSystem.Update(dt);
             FollowingSystem.Update(dt);
             DirectionalAnimation.Update(dt);
@@ -177,6 +181,7 @@ public class GameplayState : GameState
             ColorAnimation.Update(dt);
             FlickerSystem.Update(dt);
             FlipAnimationSystem.Update(dt);
+
             CameraSystem.Update(dt);
 #if DEBUG
         }

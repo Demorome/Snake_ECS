@@ -10,6 +10,8 @@ public struct FiledLevel
     public string Name;
     public int Width;
     public int Height;
+
+    public LevelRoomID StartingRoomID;
     public Room[] Rooms;
 
     // Contains the tile/image set information used by this level.

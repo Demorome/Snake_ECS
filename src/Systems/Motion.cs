@@ -30,6 +30,8 @@ public class Motion : MoonTools.ECS.System
             FilterBuilder
             .Include<Position2D>()
             .Include<Speed>()
+            .Exclude<Disabled>()
+            .Exclude<MarkedForDestroy>()
             .Build();
 
         //InteractFilter = FilterBuilder.Include<Position>().Include<Rectangle>().Include<CanInteract>().Build();
@@ -39,11 +41,15 @@ public class Motion : MoonTools.ECS.System
             .Include<Position2D>()
             .Include<AccelerateToPosition>()
             .Include<Speed>()
+            .Exclude<Disabled>()
+            .Exclude<MarkedForDestroy>()
             .Build();
 
         LineColliderFilter = 
             FilterBuilder
             .Include<HasLineHitbox>()
+            .Exclude<Disabled>()
+            .Exclude<MarkedForDestroy>()
             .Build();
     }
 

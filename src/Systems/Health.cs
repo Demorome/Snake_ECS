@@ -15,9 +15,11 @@ public class Health : MoonTools.ECS.System
     public Health(World world) : base(world)
     {
         HealthFilter = 
-        FilterBuilder
-        .Include<HasHealth>()
-        .Build();
+            FilterBuilder
+            .Include<HasHealth>()
+            .Exclude<Disabled>()
+            .Exclude<MarkedForDestroy>()
+            .Build();
     }
 
     public override void Update(System.TimeSpan delta)

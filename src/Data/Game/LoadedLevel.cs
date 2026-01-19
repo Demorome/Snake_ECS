@@ -50,6 +50,8 @@ public readonly record struct Editor_LevelLayerID(int ID);
 public class LoadedLevel
 {
     public string Name = "";
+
+    public LevelRoomID StartingRoomID = default;
     public readonly List<Room> Rooms = new();
 
     public Room GetRoomFromID(LevelRoomID roomID)

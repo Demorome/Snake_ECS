@@ -15,16 +15,16 @@ public class Destroyer : MoonTools.ECS.System
     public Destroyer(World world) : base(world)
     {
         DestroyFilter = FilterBuilder
-        .Include<MarkedForDestroy>()
-        .Build();
+            .Include<MarkedForDestroy>()
+            .Build();
 
         DestroyWhenNoSourceFilter = FilterBuilder
-        .Include<DestroyWhenNoSource>()
-        .Build();
+            .Include<DestroyWhenNoSource>()
+            .Build();
 
         DestroyWhenNoTargetFilter = FilterBuilder
-        .Include<DestroyWhenNoTarget>()
-        .Build();
+            .Include<DestroyWhenNoTarget>()
+            .Build();
     }
 
     public override void Update(TimeSpan delta)
