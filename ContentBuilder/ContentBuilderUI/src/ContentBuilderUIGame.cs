@@ -28,7 +28,13 @@ namespace ContentBuilderUI
 			WindowCreateInfo windowCreateInfo,
 			FramePacingSettings frameLimiterSettings,
 			bool debugMode
-		) : base(appInfo, windowCreateInfo, frameLimiterSettings, ShaderFormat.SPIRV, debugMode)
+		) : base(
+				appInfo, 
+				windowCreateInfo, 
+				frameLimiterSettings, 
+				ShaderFormat.SPIRV, 
+				debugMode
+			)
 		{
 			Operations.Initialize();
 
@@ -36,15 +42,20 @@ namespace ContentBuilderUI
 			{
 				if (Operations.Preferences.SourceContentDirectoryPath != null)
 				{
-					unprocessedContentPath = Operations.Preferences.SourceContentDirectoryPath;
+					unprocessedContentPath 
+						= Operations.Preferences.SourceContentDirectoryPath;
 				}
 				if (Operations.Preferences.GameDirectoryPath != null)
 				{
 					projectPath = Operations.Preferences.GameDirectoryPath;
 				}
 
-				ContentPathValid = Operations.ValidateSourceContentDirectory(unprocessedContentPath);
-				ProjectPathValid = Operations.ValidateGameProjectDirectory(projectPath);
+				ContentPathValid = Operations.ValidateSourceContentDirectory(
+					unprocessedContentPath
+				);
+				ProjectPathValid = Operations.ValidateGameProjectDirectory(
+					projectPath
+				);
 			}
 
 			ImGuiBackend = new ImGuiBackend(this);
@@ -86,8 +97,12 @@ namespace ContentBuilderUI
 			ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 1);
 			ImGui.PushStyleVar(ImGuiStyleVar.FrameRounding, 3);
 			ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1);
-			ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, new System.Numerics.Vector2(15, 15));
-			ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, new System.Numerics.Vector2(5, 1));
+			ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, 
+				new System.Numerics.Vector2(15, 15)
+			);
+			ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, 
+				new System.Numerics.Vector2(5, 1)
+			);
 			ImGui.PushStyleColor(ImGuiCol.FrameBg, UIColors.Transparent);
 			ImGui.PushStyleColor(ImGuiCol.FrameBgActive, hover);
 			ImGui.PushStyleColor(ImGuiCol.FrameBgHovered, hover);
@@ -105,16 +120,24 @@ namespace ContentBuilderUI
 
 			ImGui.SetNextWindowSize(ImGui.GetIO().DisplaySize);
 			ImGui.SetNextWindowPos(new System.Numerics.Vector2(0, 0));
-			ImGui.Begin("Main", ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove);
+			ImGui.Begin("Main", 
+				ImGuiWindowFlags.NoTitleBar 
+				| ImGuiWindowFlags.NoResize 
+				| ImGuiWindowFlags.NoMove
+			);
 
 			#region Content Path
 			ImGui.PushStyleColor(ImGuiCol.Text, BoolToColor(ContentPathValid));
 			ImGui.PushStyleColor(ImGuiCol.Border, BoolToColor(ContentPathValid));
 			ImGui.Text(BoolToEmoji(ContentPathValid));
 			ImGui.SameLine();
-			if (ImGui.InputText("Unprocessed Content Path", ref unprocessedContentPath, 255))
+			if (ImGui.InputText("Unprocessed Content Path", 
+				ref unprocessedContentPath, 255))
 			{
-				ContentPathValid = Operations.ValidateSourceContentDirectory(unprocessedContentPath);
+				ContentPathValid 
+					= Operations.ValidateSourceContentDirectory(
+						unprocessedContentPath
+					);
 			}
 			ImGui.PopStyleColor(2);
 			#endregion
@@ -126,7 +149,8 @@ namespace ContentBuilderUI
 			ImGui.SameLine();
 			if (ImGui.InputText("Project Path", ref projectPath, 255))
 			{
-				ProjectPathValid = Operations.ValidateGameProjectDirectory(projectPath);
+				ProjectPathValid 
+					= Operations.ValidateGameProjectDirectory(projectPath);
 			}
 			ImGui.PopStyleColor(2);
 			#endregion
@@ -140,7 +164,8 @@ namespace ContentBuilderUI
 			{
 				if (ImGui.Button("Check Content Directories"))
 				{
-					foreach (var trackedDirectory in Operations.AllTrackedDirectories)
+					foreach (var trackedDirectory 
+						in Operations.AllTrackedDirectories)
 					{
 						Task.Run(() =>
 						{
@@ -233,7 +258,8 @@ namespace ContentBuilderUI
 			{
 				if (ImGui.Button(name))
 				{
-					Task.Run(() => Operations.ProcessTrackedDir(trackedDirectory));
+					Task.Run(() => 
+						Operations.ProcessTrackedDir(trackedDirectory));
 				}
 				if (ImGui.IsItemHovered())
 				{
@@ -280,7 +306,8 @@ namespace ContentBuilderUI
 			};
 		}
 
-		private System.Numerics.Vector4 BuildStatusToColor(BuildStatus buildStatus)
+		private System.Numerics.Vector4 BuildStatusToColor(
+			BuildStatus buildStatus)
 		{
 			return buildStatus switch
 			{
@@ -294,7 +321,9 @@ namespace ContentBuilderUI
 		protected override void Draw(double alpha)
 		{
 			var commandBuffer = GraphicsDevice.AcquireCommandBuffer();
-			var swapchainTexture = commandBuffer.AcquireSwapchainTexture(MainWindow);
+			var swapchainTexture = commandBuffer.AcquireSwapchainTexture(
+				MainWindow
+			);
 			if (swapchainTexture != null)
 			{
 				ImGuiBackend.UploadAndRenderBuffers(
@@ -316,13 +345,16 @@ namespace ContentBuilderUI
 
 		public class DebugTextureStorage
 		{
-			Dictionary<IntPtr, WeakReference<Texture>> PointerToTexture = new Dictionary<IntPtr, WeakReference<Texture>>();
+			Dictionary<IntPtr, WeakReference<Texture>> PointerToTexture 
+				= new Dictionary<IntPtr, WeakReference<Texture>>();
 
 			public IntPtr Add(Texture texture)
 			{
 				if (!PointerToTexture.ContainsKey(texture.Handle))
 				{
-					PointerToTexture.Add(texture.Handle, new WeakReference<Texture>(texture));
+					PointerToTexture.Add(texture.Handle, 
+						new WeakReference<Texture>(texture)
+					);
 				}
 				return texture.Handle;
 			}
