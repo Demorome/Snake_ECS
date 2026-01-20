@@ -297,9 +297,19 @@ public static class Operations
         var subFolderName = Path.GetFileNameWithoutExtension(trackedDirectory.DirectoryPath);
 
         var source = new DirectoryInfo(Preferences.SourceContentDirectoryPath);
-        var output = new DirectoryInfo(Path.Combine(Preferences.GameDirectoryPath, "Content"));
+        var output = new DirectoryInfo(
+            Path.Combine(
+                Preferences.GameDirectoryPath, 
+                "ProcessedContent"
+            )
+        );
         var classOutput =
-            new DirectoryInfo(Path.Combine(Preferences.GameDirectoryPath, "src", "Generated"));
+            new DirectoryInfo(
+                Path.Combine(Preferences.GameDirectoryPath, 
+                "src", 
+                "Generated"
+            )
+        );
 
         switch (trackedDirectory.DirectoryType)
         {
