@@ -857,7 +857,7 @@ namespace RollAndCash.Content
 {{
     public static class Fonts
     {{
-        public static string FontContentPath = ""ProcessedContent/Fonts"";
+        public static string FontContentPath = ""Content/Fonts"";
 
 		{string.Join("\n\t\t", definitionStrings)}
 

@@ -300,7 +300,7 @@ public static class Operations
         var output = new DirectoryInfo(
             Path.Combine(
                 Preferences.GameDirectoryPath, 
-                "ProcessedContent"
+                "Content"
             )
         );
         var classOutput =

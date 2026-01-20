@@ -13,7 +13,7 @@ namespace ContentBuilderUI
 {
 	class ContentBuilderUIGame : Game
 	{
-		private string FontContentPath = Path.Combine("ProcessedContent", "Fonts");
+		private string FontContentPath = Path.Combine("Content", "Fonts");
 
 		private string unprocessedContentPath = "";
 		private string projectPath = "";
