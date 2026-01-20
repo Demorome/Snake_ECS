@@ -17,7 +17,9 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Content Include="Content\**\*.*">
+		<Content Include="Content\ProcessedContent\**\*.*">
+			<Link>"Content\%(Filename)%(Extension)"</Link>
+
 			<!-- Should almost never use "Always": -->
 			<!-- https://www.mrlacey.com/2020/06/never-set-copy-to-output-directory-to.html -->
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
