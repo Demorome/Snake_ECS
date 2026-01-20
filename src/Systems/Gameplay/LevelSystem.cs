@@ -2,14 +2,15 @@ using System;
 using MoonTools.ECS;
 using RollAndCash.Relations;
 using RollAndCash.Components;
+using RollAndCash.Data;
 
 namespace RollAndCash.Systems;
 
-public class LevelTransitionSystem : MoonTools.ECS.System
+public class LevelSystem : MoonTools.ECS.System
 {
     private Filter DestroyOnTransitionFilter;
 
-    public LevelTransitionSystem(World world) : base(world)
+    public LevelSystem(World world) : base(world)
     {
         DestroyOnTransitionFilter 
             = FilterBuilder
@@ -21,6 +22,10 @@ public class LevelTransitionSystem : MoonTools.ECS.System
 
     public override void Update(TimeSpan delta)
     {
+
+
+
+        //MARK: Transition
         // TODO: More fancy code, to support camera panning over to the new room.
         // Once the transition is over, finally destroy the entities.
         

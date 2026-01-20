@@ -18,8 +18,9 @@ namespace RollAndCash.Components;
 /// </summary>
 public static class Singletons
 {
+    /*
     public readonly record struct ActiveLevelID(LevelID ID);
-    public readonly record struct ActiveRoomID(LevelRoomID ID);
+    public readonly record struct ActiveRoomID(LevelRoomID ID);*/
 
 #if DEBUG
     public readonly record struct Editor_GlobalDebugEntity();

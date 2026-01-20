@@ -43,7 +43,7 @@ public class GameplayState : GameState
     EnemySystem EnemySystem;
     TrailVisualSystem TrailVisualSystem;
     CameraSystem CameraSystem;
-    LevelTransitionSystem LevelTransitionSystem;
+    LevelSystem LevelSystem;
 
     ActorManipulator ActorManipulator;
 
@@ -98,7 +98,7 @@ public class GameplayState : GameState
         DetectionSystem = new DetectionSystem(World);
         EnemySystem = new(World);
         TrailVisualSystem = new(World);
-        LevelTransitionSystem = new(World);
+        LevelSystem = new(World);
 
         ActorManipulator = new(World);
 
@@ -156,6 +156,8 @@ public class GameplayState : GameState
 
     public override void Update(TimeSpan dt)
     {
+        LevelSystem.Update(dt);
+
 #if DEBUG
         if (!FreezeTimeForAll && !Editor.LevelEditorManipulator.IsInLevelEditor)
         {
@@ -197,7 +199,6 @@ public class GameplayState : GameState
 #endif
 
         Audio.Update(dt);
-        LevelTransitionSystem.Update(dt);
         Destroyer.Update(dt);
 
         if (World.SomeMessage<EndGame>())

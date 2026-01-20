@@ -19,8 +19,12 @@ namespace RollAndCash.Editor;
 
 public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 {
+    // FIXME: Move GetEntityVisualRect out of this to a manipulator, 
+    // and use that instead!
     EditorSystem EditorSystem;
     TileManipulator TileManipulator;
+
+    LevelManipulator LevelManipulator;
     PrefabManipulator PrefabManipulator;
 
     public LevelEditorManipulator(
@@ -29,30 +33,19 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         ) : base(world)
     {
         EditorSystem = editorSystem;
+        LevelManipulator = new(World);
         TileManipulator = new(World);
         PrefabManipulator = new(World);
     }
 
     public static bool IsInLevelEditor = false;
 
-    public LoadedLevel ActiveLevel = new()
-    {
-        ID = new LevelID(LevelList.TestLevel)
-    };
-    public LoadedLevel.Room? ActiveRoom = null;
+    public LoadedLevel? ActiveLevel => LevelManipulator.ActiveLevel;
+    public LoadedLevel.Room? ActiveRoom => LevelManipulator.ActiveRoom;
     //static bool SnapToGrid = true;
     public Vector2? HoveredOverTilePosition = null;
 
     private PrefabType PrefabToSpawn = PrefabType.None;
-
-    // To write outside of bin/Debug, in order to get to .csproj location. For editor use only; never ship this!
-    // FIXME: This may break on you if you have a different deployment structure!
-    /*private static string OptimizedLevelContentPath =
-        Path.Combine(@"../../../", Path.Combine("Content", "Levels"))
-    ;*/
-    private static string EditorLevelContentPath =
-        Path.Combine(@"../../../", Path.Combine("EditorContent", "Levels"))
-    ;
 
     // Layout inspired by Elias Daler's tutorial series: 
     // https://edw.is/using-imgui-with-sfml-pt1/
@@ -62,29 +55,35 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
         bool stillOpened = IsInLevelEditor;
         if (ImGui.Begin("Level Editor"u8, ref stillOpened))
         {
-            ImGui.InputText("Name"u8, ref ActiveLevel.PlayerFacingName, 256);
-
-            if (ActiveLevel.PlayerFacingName == null || ActiveLevel.PlayerFacingName.Length == 0)
+            if (ActiveLevel != null)
             {
-                ImGui.BeginDisabled();
-            }
-            if (ImGui.Button("Save"u8))
-            {
-                // TODO: Create backups of previous level file if possible!
-
-                LevelSerialization.Editor_SaveLevelToFile(
-                    ActiveLevel, 
-                    EditorLevelContentPath, 
-                    World, 
-                    PrefabManipulator
+                ImGui.InputText("Name"u8, 
+                    ref ActiveLevel.PlayerFacingName, 
+                    256
                 );
+
+                if (ActiveLevel.PlayerFacingName == null 
+                    || ActiveLevel.PlayerFacingName.Length == 0)
+                {
+                    ImGui.BeginDisabled();
+                }
+                if (ImGui.Button("Save"u8))
+                {
+                    LevelManipulator.Editor_SaveActiveLevel();
+                }
+                if (ActiveLevel.PlayerFacingName == null 
+                    || ActiveLevel.PlayerFacingName.Length == 0)
+                {
+                    ImGui.EndDisabled();
+                }
+
+                ImGui.SameLine();
             }
-            if (ActiveLevel.PlayerFacingName == null || ActiveLevel.PlayerFacingName.Length == 0)
+            else
             {
-                ImGui.EndDisabled();
+                ImGui.Text("No level currently loaded."u8);
             }
 
-            ImGui.SameLine();
             if (ImGui.Button("Load"u8))
             {
                 // TODO: add a warning if there's unsaved changes!
@@ -99,17 +98,15 @@ public class LevelEditorManipulator : MoonTools.ECS.Manipulator
 
             if (ImGui.BeginPopup("##LoadLevelPopup"u8))
             {
-                foreach (var levelPathStr 
-                    in Directory.GetFiles(EditorLevelContentPath))
+                for (var levelType = LevelType.START; 
+                    levelType < LevelType.END;
+                    ++levelType)
                 {
-                    if (ImGui.Button(levelPathStr))
+                    // FIXME: Access some LevelList using 
+                    // the LevelID/Type to get string instead!
+                    if (ImGui.Button(levelType.ToString()))
                     {
-                        // FIXME: Unload everything from the current level first!!!
-                        ActiveLevel = LevelSerialization.LoadLevelFromFile(
-                            levelPathStr, 
-                            World, 
-                            PrefabManipulator
-                        );
+                        LevelManipulator.LoadLevel(levelType);
                     }
                 }
                 ImGui.EndPopup();

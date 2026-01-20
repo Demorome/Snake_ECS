@@ -2,8 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
 using System.Numerics;
 using MoonTools.ECS;
 using MoonWorks.Graphics;
@@ -35,11 +33,12 @@ public class CollisionManipulator : MoonTools.ECS.Manipulator
     public CollisionManipulator(World world) : base(world)
     {
         CollisionFilter = FilterBuilder
-        .Include<Position2D>()
-        .Include<Rectangle>()
-        .Include<Layer>()
-        .Build();
-
+            .Include<Position2D>()
+            .Include<Rectangle>()
+            .Include<Layer>()
+            .Exclude<Disabled>()
+            // FIXME: Should I exclude MarkedForDestroy?
+            .Build();
     }
 
     /*
