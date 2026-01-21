@@ -21,7 +21,7 @@ public static class CramAtlasReader
 	static CramTextureAtlasDataContext context 
 		= new CramTextureAtlasDataContext(options);
 
-	public unsafe static void ReadTextureAtlas(
+	public static void ReadTextureAtlas(
 		GraphicsDevice graphicsDevice, 
 		TexturePage texturePage)
 	{
