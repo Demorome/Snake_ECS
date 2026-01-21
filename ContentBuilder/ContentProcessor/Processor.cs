@@ -1198,7 +1198,7 @@ namespace RollAndCash.Content
 			{
 				var name = Path.GetFileNameWithoutExtension(file.Name);
 				readStrings.Add($"CramAtlasReader.ReadTextureAtlas(GraphicsDevice, {name});");
-				assignmentStrings.Add($"asyncFileLoader.EnqueueCompressedImageLoad(Path.ChangeExtension({name}.JsonFilename, \".png\"), {name}.Texture);");
+				assignmentStrings.Add($"asyncFileLoader.EnqueueCompressedImageLoad({name}.ImageFilePath, {name}.Texture);");
 				definitionStrings.Add($"public static TexturePage {name} = new TexturePage(Path.Combine(TextureContentPath, \"{file.Name}\"));");
 			}
 
@@ -1335,7 +1335,7 @@ namespace RollAndCash.Content
 			{
 				var name = Path.GetFileNameWithoutExtension(file.Name);
 				readStrings.Add($"TileSetAtlasReader.ReadTileSetAtlas(GraphicsDevice, {name});");
-				assignmentStrings.Add($"asyncFileLoader.EnqueueCompressedImageLoad(Path.ChangeExtension({name}.FullJsonFilePath, \".png\"), {name}.DefaultTexture);");
+				assignmentStrings.Add($"asyncFileLoader.EnqueueCompressedImageLoad({name}.ImageFilePath, {name}.DefaultTexture);");
 				definitionStrings.Add($"public static TileSet {name} = new TileSet(\"{file.Name}\", Path.Combine(TileTextureContentPath, \"{file.Name}\"));");
 			}
 

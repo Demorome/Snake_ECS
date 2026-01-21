@@ -25,7 +25,9 @@ public readonly record struct TileID(
 
 public class TileSet : VisualSet
 {
-    public string FullJsonFilePath { get; private set; }
+    public string JsonFilePath { get; private set; }
+    public string ImageFilePath 
+        => Path.ChangeExtension(JsonFilePath, ".png");
     public int TileSize = Dimensions.TILE_SIZE;
     public int PixelHeight, PixelWidth;
     public Texture? DefaultTexture { get; private set; } = null;
@@ -35,7 +37,7 @@ public class TileSet : VisualSet
     public TileSet(string fileName, string fullFilePath) 
         : base(fileName)
     {
-        FullJsonFilePath = fullFilePath;
+        JsonFilePath = fullFilePath;
     }
 
     public static TileSet FromID(VisualSetID id)
