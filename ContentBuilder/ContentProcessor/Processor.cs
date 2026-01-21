@@ -31,18 +31,29 @@ namespace ContentProcessor
 // </auto-generated>
 // ------------------------------------------------------------------------------";
 
-		public static void ProcessShaders(DirectoryInfo sourceDir, DirectoryInfo outputDir)
+		public static void ProcessShaders(
+			DirectoryInfo sourceDir, 
+			DirectoryInfo outputDir)
 		{
 			WriteOutput("Processing shaders...");
-			var shaderDir = new DirectoryInfo(Path.Combine(sourceDir.FullName, "Shaders"));
+			var shaderDir = new DirectoryInfo(
+				Path.Combine(sourceDir.FullName, "Shaders")
+			);
 
-			var shaderOutputDir = new DirectoryInfo(Path.Combine(outputDir.FullName, "Shaders"));
+			var shaderOutputDir = new DirectoryInfo(
+				Path.Combine(outputDir.FullName, "Shaders")
+			);
 			CreateOrClearDirectory(shaderOutputDir);
 
+			var compilerExecutable = new FileInfo(
+				Path.Combine(
+					System.AppContext.BaseDirectory, 
 #if WINDOWS
-			var compilerExecutable = new FileInfo(Path.Combine(System.AppContext.BaseDirectory, "shadercross.exe"));
-#elif LINUX || OSX // linux
-			var compilerExecutable = new FileInfo(Path.Combine(System.AppContext.BaseDirectory, "shadercross"));
+					"shadercross.exe"
+#elif LINUX || OSX
+					"shadercross"
+				)
+			);
 #endif
 
 			foreach (var file in shaderDir.EnumerateFiles())
@@ -56,7 +67,9 @@ namespace ContentProcessor
 				process.StartInfo.UseShellExecute = false;
 				process.StartInfo.RedirectStandardOutput = false;
 				process.StartInfo.RedirectStandardError = true;
-				process.ErrorDataReceived += (sendingProcess, outLine) => Console.WriteLine(outLine.Data);
+				process.ErrorDataReceived 
+					+= (sendingProcess, outLine) 
+					=> Console.WriteLine(outLine.Data);
 				process.Start();
 				process.BeginErrorReadLine();
 				process.WaitForExit();
@@ -68,7 +81,10 @@ namespace ContentProcessor
 			}
 		}
 
-		public static void CopyDirectory(string sourceDir, string destinationDir, bool recursive)
+		public static void CopyDirectory(
+			string sourceDir, 
+			string destinationDir, 
+			bool recursive)
 		{
 			// Get information about the source directory
 			var dir = new DirectoryInfo(sourceDir);
@@ -95,7 +111,9 @@ namespace ContentProcessor
 			{
 				foreach (DirectoryInfo subDir in dirs)
 				{
-					string newDestinationDir = Path.Combine(destinationDir, subDir.Name);
+					string newDestinationDir = Path.Combine(
+						destinationDir, subDir.Name
+					);
 					CopyDirectory(subDir.FullName, newDestinationDir, true);
 				}
 			}
@@ -109,7 +127,8 @@ namespace ContentProcessor
 				{
 					file.Delete();
 				}
-				foreach (DirectoryInfo subdirectory in directory.EnumerateDirectories())
+				foreach (DirectoryInfo subdirectory 
+					in directory.EnumerateDirectories())
 				{
 					subdirectory.Delete(true);
 				}
@@ -120,13 +139,20 @@ namespace ContentProcessor
 			}
 		}
 
-		public static void ProcessSprites(DirectoryInfo sourceDir, DirectoryInfo outputDir, DirectoryInfo classOutputDir)
+		public static void ProcessSprites(
+			DirectoryInfo sourceDir, 
+			DirectoryInfo outputDir, 
+			DirectoryInfo classOutputDir)
 		{
 			WriteOutput("Processing sprites into texture pages...");
 
-			var spriteDir = new DirectoryInfo(Path.Combine(sourceDir.FullName, "Sprites"));
+			var spriteDir = new DirectoryInfo(
+				Path.Combine(sourceDir.FullName, "Sprites")
+			);
 
-			var textureOutputDir = new DirectoryInfo(Path.Combine(outputDir.FullName, "Textures"));
+			var textureOutputDir = new DirectoryInfo(
+				Path.Combine(outputDir.FullName, "Textures")
+			);
 			CreateOrClearDirectory(textureOutputDir);
 
 			foreach (var directory in spriteDir.GetDirectories())
@@ -138,12 +164,22 @@ namespace ContentProcessor
 			GenerateSpriteAnimationsClass(spriteDir, outputDir, classOutputDir);
 		}
 
-		public static void ProcessSpriteFolder(DirectoryInfo sourceDir, DirectoryInfo outputDir, DirectoryInfo classOutputDir, string subFolder)
+		public static void ProcessSpriteFolder(
+			DirectoryInfo sourceDir, 
+			DirectoryInfo outputDir, 
+			DirectoryInfo classOutputDir, 
+			string subFolder)
 		{
-			var spriteDir = new DirectoryInfo(Path.Combine(sourceDir.FullName, "Sprites"));
-			var textureOutputDir = new DirectoryInfo(Path.Combine(outputDir.FullName, "Textures"));
+			var spriteDir = new DirectoryInfo(
+				Path.Combine(sourceDir.FullName, "Sprites")
+			);
+			var textureOutputDir = new DirectoryInfo(
+				Path.Combine(outputDir.FullName, "Textures")
+			);
 
-			var subdirectory = new DirectoryInfo(Path.Combine(spriteDir.FullName, subFolder));
+			var subdirectory = new DirectoryInfo(
+				Path.Combine(spriteDir.FullName, subFolder)
+			);
 
 			ProcessTexturePage(subdirectory, textureOutputDir);
 
@@ -151,23 +187,32 @@ namespace ContentProcessor
 			GenerateSpriteAnimationsClass(spriteDir, outputDir, classOutputDir);
 		}
 
-		public static void ProcessTextures(DirectoryInfo sourceDir, DirectoryInfo outputDir)
+		public static void ProcessTextures(
+			DirectoryInfo sourceDir, 
+			DirectoryInfo outputDir)
 		{
 			WriteOutput("Processing textures...");
 
-			var textureOutputDir = new DirectoryInfo(Path.Combine(outputDir.FullName, "Textures"));
+			var textureOutputDir = new DirectoryInfo(
+				Path.Combine(outputDir.FullName, "Textures")
+			);
 			if (!textureOutputDir.Exists)
 			{
 				CreateOrClearDirectory(textureOutputDir);
 			}
 
-			var textureDir = new DirectoryInfo(Path.Combine(sourceDir.FullName, "Textures"));
+			var textureDir = new DirectoryInfo(
+				Path.Combine(sourceDir.FullName, "Textures")
+			);
 			if (textureDir.Exists)
 			{
 				foreach (var file in textureDir.EnumerateFiles())
 				{
 					// Clear if existing file
-					var destination = Path.Combine(textureOutputDir.FullName, file.Name);
+					var destination = Path.Combine(
+						textureOutputDir.FullName, 
+						file.Name
+					);
 					if (File.Exists(destination))
 					{
 						File.Delete(destination);
@@ -187,9 +232,17 @@ namespace ContentProcessor
 		{
 			WriteOutput("Processing tilesets...");
 
-			var sourceTileSetDir = new DirectoryInfo(Path.Combine(sourceDir.FullName, "TileSets"));
-			var sourceSubDir = new DirectoryInfo(Path.Combine(sourceTileSetDir.FullName, subFolder));
-			var tileTextureOutputDir = new DirectoryInfo(Path.Combine(outputDir.FullName, Path.Combine("Textures", "TileSets")));
+			var sourceTileSetDir = new DirectoryInfo(
+				Path.Combine(sourceDir.FullName, "TileSets")
+			);
+			var sourceSubDir = new DirectoryInfo(
+				Path.Combine(sourceTileSetDir.FullName, subFolder)
+			);
+			var tileTextureOutputDir = new DirectoryInfo(
+				Path.Combine(outputDir.FullName, 
+					Path.Combine("Textures", "TileSets")
+				)
+			);
 			
 			if (!tileTextureOutputDir.Exists)
             {
@@ -205,7 +258,9 @@ namespace ContentProcessor
 					return;
                 }
 
-				var tileSetName = Path.GetFileNameWithoutExtension(pngs[0].FullName);
+				var tileSetName = Path.GetFileNameWithoutExtension(
+					pngs[0].FullName
+				);
 
 				if (sourceSubDir.GetFiles("*.json").Length == 0)
                 {
@@ -219,13 +274,18 @@ namespace ContentProcessor
 					data.PixelHeight = height;
 					data.PixelWidth = width;
 
-					TileSetAtlasWriter.Write(data, Path.Join(sourceSubDir.FullName, tileSetName + ".json"));
+					TileSetAtlasWriter.Write(data, 
+						Path.Join(sourceSubDir.FullName, tileSetName + ".json")
+					);
                 	Logger.LogWarn($"Auto-generated a tileset's json metadata in '{subFolder}', for {tileSetName}.");
 				}
 
 				foreach (var file in sourceSubDir.EnumerateFiles())
 				{
-					var destination = Path.Combine(tileTextureOutputDir.FullName, file.Name);
+					var destination = Path.Combine(
+						tileTextureOutputDir.FullName, 
+						file.Name
+					);
 
 					if (File.Exists(destination))
 					{
@@ -240,12 +300,23 @@ namespace ContentProcessor
 			}
 		}
 
-		public static void ProcessLevels(DirectoryInfo sourceDir, DirectoryInfo outputDir, DirectoryInfo classOutputDir)
+		public static void ProcessLevels(
+			DirectoryInfo sourceDir, 
+			DirectoryInfo outputDir, 
+			DirectoryInfo classOutputDir)
 		{
 			WriteOutput("Processing levels...");
 
-			var levelDir = new DirectoryInfo(Path.Combine(sourceDir.FullName, "Levels"));
-			var levelOutputDir = new DirectoryInfo(Path.Combine(outputDir.FullName, "Levels"));
+			var levelDir = new DirectoryInfo(
+				Path.Combine(sourceDir.FullName, 
+				"Levels")
+			);
+			var levelOutputDir = new DirectoryInfo(
+				Path.Combine(
+					outputDir.FullName, 
+					"Levels"
+				)
+			);
 			CreateOrClearDirectory(levelOutputDir);
 
 			GenerateLevelsClass(levelDir, levelOutputDir, classOutputDir);
@@ -265,7 +336,8 @@ namespace ContentProcessor
 		{
 			public WaveHeaderData HeaderData;
 			public readonly List<FileInfo> Files = new List<FileInfo>();
-			public readonly Dictionary<string, AudioPackEntry> Entries = new Dictionary<string, AudioPackEntry>();
+			public readonly Dictionary<string, AudioPackEntry> Entries 
+				= new Dictionary<string, AudioPackEntry>();
 		}
 
 		record struct AudioPackEntry
@@ -278,7 +350,11 @@ namespace ContentProcessor
 		{
 			WaveHeaderData headerData;
 			var fileInfo = new FileInfo(path);
-			using FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read);
+			using FileStream fs = new FileStream(
+				path, 
+				FileMode.Open, 
+				FileAccess.Read
+			);
 			using BinaryReader br = new BinaryReader(fs);
 
 			headerData.FileLength = (int)fileInfo.Length - 8;
@@ -302,7 +378,11 @@ namespace ContentProcessor
 
 		static void WriteWaveHeader(string path, WaveHeaderData headerData)
 		{
-			using FileStream fs = new FileStream(path, FileMode.Create, FileAccess.Write);
+			using FileStream fs = new FileStream(
+				path, 
+				FileMode.Create, 
+				FileAccess.Write
+			);
 			using BinaryWriter bw = new BinaryWriter(fs);
 			bw.Write(RIFF_HEADER);
 
@@ -317,7 +397,9 @@ namespace ContentProcessor
 
 			bw.Write(headerData.SampleRate);
 
-			bw.Write((int)(headerData.SampleRate * ((headerData.BitsPerSample * headerData.Channels) / 8)));
+			bw.Write((int)(headerData.SampleRate 
+				* ((headerData.BitsPerSample * headerData.Channels) / 8))
+			);
 
 			bw.Write((short)((headerData.BitsPerSample * headerData.Channels) / 8));
 
@@ -327,7 +409,8 @@ namespace ContentProcessor
 			bw.Write(headerData.DataLength);
 		}
 
-		static JsonSerializerOptions audioPackSerializerOptions = new JsonSerializerOptions
+		static JsonSerializerOptions audioPackSerializerOptions 
+			= new JsonSerializerOptions
 		{
 			IncludeFields = true,
 			WriteIndented = true
@@ -335,7 +418,8 @@ namespace ContentProcessor
 
 		static void PackWaveFiles(FileInfo[] files, DirectoryInfo outDir)
 		{
-			Dictionary<(short, short, short, int), WavePack> packs = new Dictionary<(short, short, short, int), WavePack>();
+			Dictionary<(short, short, short, int), WavePack> packs 
+				= new Dictionary<(short, short, short, int), WavePack>();
 
 			foreach (var fileInfo in files)
 			{
@@ -362,7 +446,9 @@ namespace ContentProcessor
 				var pack = packs[key];
 
 				pack.Files.Add(fileInfo);
-				pack.Entries.Add(Path.GetFileNameWithoutExtension(fileInfo.FullName), new AudioPackEntry
+				pack.Entries.Add(
+					Path.GetFileNameWithoutExtension(fileInfo.FullName), 
+					new AudioPackEntry
 				{
 					Start = pack.HeaderData.DataLength,
 					Length = header.DataLength
@@ -381,22 +467,39 @@ namespace ContentProcessor
 
 				WriteWaveHeader(packFilePath, pack.HeaderData);
 
-				using FileStream fo = new FileStream(packFilePath, FileMode.Append, FileAccess.Write);
+				using FileStream fo = new FileStream(
+					packFilePath, 
+					FileMode.Append, 
+					FileAccess.Write
+				);
 				foreach (var fileInfo in pack.Files)
 				{
 					var header = ReadWaveHeader(fileInfo.FullName);
-					using FileStream fs = new FileStream(fileInfo.FullName, FileMode.Open, FileAccess.Read);
+					using FileStream fs = new FileStream(
+						fileInfo.FullName, 
+						FileMode.Open, 
+						FileAccess.Read
+					);
 					var bytes = new byte[header.DataLength];
 					fs.Position = 44;
 					fs.Read(bytes, 0, header.DataLength);
 					fo.Write(bytes);
 				}
 
-				File.WriteAllText(metadataFilePath, JsonSerializer.Serialize(pack.Entries, audioPackSerializerOptions));
+				File.WriteAllText(
+					metadataFilePath, 
+					JsonSerializer.Serialize(
+						pack.Entries, 
+						audioPackSerializerOptions
+					)
+				);
 			}
 		}
 
-		static void ConvertStreamingAudio(FileInfo[] files, DirectoryInfo outputDir, FileInfo qoaConvExe)
+		static void ConvertStreamingAudio(
+			FileInfo[] files, 
+			DirectoryInfo outputDir, 
+			FileInfo qoaConvExe)
 		{
 			foreach (var fileInfo in files)
 			{
@@ -419,20 +522,37 @@ namespace ContentProcessor
 			}
 		}
 
-		public static void ProcessAudio(DirectoryInfo sourceDir, DirectoryInfo outputDir, DirectoryInfo classOutputDir)
+		public static void ProcessAudio(
+			DirectoryInfo sourceDir, 
+			DirectoryInfo outputDir, 
+			DirectoryInfo classOutputDir)
 		{
 			ProcessStaticAudio(sourceDir, outputDir, classOutputDir);
 			ProcessStreamingAudio(sourceDir, outputDir, classOutputDir);
 			ProcessMusicStems(sourceDir, outputDir, classOutputDir);
 		}
 
-		public static void ProcessStaticAudio(DirectoryInfo sourceDir, DirectoryInfo outputDir,
+		public static void ProcessStaticAudio(
+			DirectoryInfo sourceDir, 
+			DirectoryInfo outputDir,
 			DirectoryInfo classOutputDir)
 		{
 			WriteOutput("Processing static audio...");
-			var staticAudioDir = new DirectoryInfo(Path.Combine(sourceDir.FullName, "Audio", "Static"));
+			var staticAudioDir = new DirectoryInfo(
+				Path.Combine(
+					sourceDir.FullName, 
+					"Audio", 
+					"Static"
+				)
+			);
 
-			var staticAudioOutputDir = new DirectoryInfo(Path.Combine(outputDir.FullName, "Audio", "Static"));
+			var staticAudioOutputDir = new DirectoryInfo(
+				Path.Combine(
+					outputDir.FullName, 
+					"Audio", 
+					"Static"
+				)
+			);
 			CreateOrClearDirectory(staticAudioOutputDir);
 
 			PackWaveFiles(staticAudioDir.GetFiles(), staticAudioOutputDir);
@@ -440,43 +560,81 @@ namespace ContentProcessor
 			GenerateStaticAudioClass(staticAudioOutputDir, classOutputDir);
 		}
 
-		public static void ProcessStreamingAudio(DirectoryInfo sourceDir, DirectoryInfo outputDir,
+		public static void ProcessStreamingAudio(
+			DirectoryInfo sourceDir, 
+			DirectoryInfo outputDir,
 			DirectoryInfo classOutputDir)
 		{
 			WriteOutput("Processing streaming audio...");
-			var streamingAudioDir = new DirectoryInfo(Path.Combine(sourceDir.FullName, "Audio", "Streaming"));
+			var streamingAudioDir = new DirectoryInfo(
+				Path.Combine(
+					sourceDir.FullName, 
+					"Audio", "Streaming"
+				)
+			);
 
-			var streamingAudioOutputDir = new DirectoryInfo(Path.Combine(outputDir.FullName, "Audio", "Streaming"));
+			var streamingAudioOutputDir = new DirectoryInfo(
+				Path.Combine(
+					outputDir.FullName, 
+					"Audio", 
+					"Streaming"
+				)
+			);
 			CreateOrClearDirectory(streamingAudioOutputDir);
 
+			var qoaExe = new FileInfo(
+				Path.Combine(
+					System.AppContext.BaseDirectory, 
 #if WINDOWS
-			var qoaExe = new FileInfo(Path.Combine(System.AppContext.BaseDirectory, "qoaconv.exe"));
+					"qoaconv.exe"
 #elif LINUX || OSX
-			var qoaExe = new FileInfo(Path.Combine(System.AppContext.BaseDirectory, "qoaconv"));
+					"qoaconv"
 #endif
-			ConvertStreamingAudio(streamingAudioDir.GetFiles("*.flac", new EnumerationOptions { RecurseSubdirectories = true }), streamingAudioOutputDir, qoaExe);
+				)
+			);
+			ConvertStreamingAudio(
+				streamingAudioDir.GetFiles(
+					"*.flac", 
+					new EnumerationOptions { RecurseSubdirectories = true }
+				), 
+				streamingAudioOutputDir, 
+				qoaExe
+			);
 			GenerateStreamingAudioClass(outputDir, classOutputDir);
 		}
 
-		public static void ProcessHitboxes(DirectoryInfo sourceDir, DirectoryInfo outputDir)
+		public static void ProcessHitboxes(
+			DirectoryInfo sourceDir, 
+			DirectoryInfo outputDir)
 		{
 			WriteOutput("Copying hitboxes...");
 
-			var hitboxDir = new DirectoryInfo(Path.Combine(sourceDir.FullName, "Hitbox"));
+			var hitboxDir = new DirectoryInfo(
+				Path.Combine(sourceDir.FullName, "Hitbox")
+			);
 
-			var hitboxOutputDir = new DirectoryInfo(Path.Combine(outputDir.FullName, "Hitbox"));
+			var hitboxOutputDir = new DirectoryInfo(
+				Path.Combine(outputDir.FullName, "Hitbox")
+			);
 			CreateOrClearDirectory(hitboxOutputDir);
 
 			CopyDirectory(hitboxDir.FullName, hitboxOutputDir.FullName, true);
 		}
 
-		public static void ProcessFonts(DirectoryInfo sourceDir, DirectoryInfo outputDir, DirectoryInfo classOutputDir)
+		public static void ProcessFonts(
+			DirectoryInfo sourceDir, 
+			DirectoryInfo outputDir, 
+			DirectoryInfo classOutputDir)
 		{
 			WriteOutput("Copying fonts...");
 
-			var fontDir = new DirectoryInfo(Path.Combine(sourceDir.FullName, "Fonts"));
+			var fontDir = new DirectoryInfo(
+				Path.Combine(sourceDir.FullName, "Fonts")
+			);
 
-			var fontOutputDir = new DirectoryInfo(Path.Combine(outputDir.FullName, "Fonts"));
+			var fontOutputDir = new DirectoryInfo(
+				Path.Combine(outputDir.FullName, "Fonts")
+			);
 			CreateOrClearDirectory(fontOutputDir);
 
 			foreach (var dir in Directory.GetDirectories(fontDir.FullName))
@@ -485,30 +643,51 @@ namespace ContentProcessor
 			}
 		}
 
-		public static void ProcessFontFolder(DirectoryInfo sourceDir, DirectoryInfo outputDir, string subFolder)
+		public static void ProcessFontFolder(
+			DirectoryInfo sourceDir, 
+			DirectoryInfo outputDir, 
+			string subFolder)
 		{
 			UpdateFontClass = true;
 
-			var fontDir = new DirectoryInfo(Path.Combine(sourceDir.FullName, "Fonts"));
-			var fontOutputDir = new DirectoryInfo(Path.Combine(outputDir.FullName, "Fonts"));
+			var fontDir = new DirectoryInfo(
+				Path.Combine(sourceDir.FullName, "Fonts")
+			);
+			var fontOutputDir = new DirectoryInfo(
+				Path.Combine(outputDir.FullName, "Fonts")
+			);
 
-			var subdirectory = new DirectoryInfo(Path.Combine(fontDir.FullName, subFolder));
+			var subdirectory = new DirectoryInfo(
+				Path.Combine(fontDir.FullName, subFolder)
+			);
 
 			ProcessFont(subdirectory, fontOutputDir);
 		}
 
-		public static void ProcessFont(DirectoryInfo fontDir, DirectoryInfo fontOutputDir)
+		public static void ProcessFont(
+			DirectoryInfo fontDir, 
+			DirectoryInfo fontOutputDir)
 		{
 			var inputDir = fontDir.FullName;
 			fontOutputDir.Create();
 
+			var msdfAtlasGenInfo = new FileInfo(
+				Path.Combine(
+					System.AppContext.BaseDirectory, 
 #if WINDOWS
-			var msdfAtlasGenInfo = new FileInfo(Path.Combine(System.AppContext.BaseDirectory, "msdf-atlas-gen.exe"));
+					"msdf-atlas-gen.exe"
 #elif LINUX || OSX
-			var msdfAtlasGenInfo = new FileInfo(Path.Combine(System.AppContext.BaseDirectory, "msdf-atlas-gen"));
+					"msdf-atlas-gen"
 #endif
+				)
+			);
 
-			var charsetFile = new FileInfo(Path.Combine(fontDir.FullName, "charset.txt"));
+			var charsetFile = new FileInfo(
+				Path.Combine(
+					fontDir.FullName, 
+					"charset.txt"
+				)
+			);
 
 			var fontPath = Path.Combine(fontDir.FullName, fontDir.Name + ".ttf");
 			if (!File.Exists(fontPath))
@@ -521,8 +700,14 @@ namespace ContentProcessor
 				return;
 			}
 
-			var textureOutputPath = Path.Combine(fontOutputDir.FullName, fontDir.Name + ".png");
-			var jsonOutputPath = Path.Combine(fontOutputDir.FullName, fontDir.Name + ".json");
+			var textureOutputPath = Path.Combine(
+				fontOutputDir.FullName, 
+				fontDir.Name + ".png"
+			);
+			var jsonOutputPath = Path.Combine(
+				fontOutputDir.FullName, 
+				fontDir.Name + ".json"
+			);
 
 			var arguments = $"-font {fontPath} -yorigin top -imageout {textureOutputPath} -json {jsonOutputPath}";
 
@@ -538,37 +723,72 @@ namespace ContentProcessor
 				throw new System.SystemException("Font packing failed!");
 			}
 
-			File.Copy(fontPath, Path.Combine(fontOutputDir.FullName, Path.GetFileNameWithoutExtension(fontPath) + ".font"), true);
+			File.Copy(
+				fontPath, 
+				Path.Combine(
+					fontOutputDir.FullName, 
+					Path.GetFileNameWithoutExtension(fontPath) + ".font"
+				), 
+				true
+			);
 		}
 
-		public static void ProcessVideos(DirectoryInfo sourceDir, DirectoryInfo outputDir, DirectoryInfo classOutputDir)
+		public static void ProcessVideos(
+			DirectoryInfo sourceDir, 
+			DirectoryInfo outputDir, 
+			DirectoryInfo classOutputDir)
 		{
 			WriteOutput("Copying videos...");
 
-			var videoDir = new DirectoryInfo(Path.Combine(sourceDir.FullName, "Videos"));
+			var videoDir = new DirectoryInfo(
+				Path.Combine(sourceDir.FullName, "Videos")
+			);
 
-			var videoOutputDir = new DirectoryInfo(Path.Combine(outputDir.FullName, "Videos"));
+			var videoOutputDir = new DirectoryInfo(
+				Path.Combine(outputDir.FullName, "Videos")
+			);
 			CreateOrClearDirectory(videoOutputDir);
 
 #if WINDOWS
-			var ffmpegExecutablePath = new FileInfo(Path.Combine(System.AppContext.BaseDirectory, "ffmpeg.exe"));
+			var ffmpegExecutablePath = new FileInfo(
+				Path.Combine(System.AppContext.BaseDirectory, "ffmpeg.exe")
+			);
 #elif LINUX
 			// on linux, just assume system has ffmpeg installed
 			var ffmpegExecutablePath = new FileInfo("/usr/bin/ffmpeg");
 #elif OSX
-			var ffmpegExecutablePath = new FileInfo(Path.Combine(System.AppContext.BaseDirectory, "ffmpeg"));
+			var ffmpegExecutablePath = new FileInfo(
+				Path.Combine(
+					System.AppContext.BaseDirectory, "
+					ffmpeg"
+				)
+			);
 #endif
 			ConvertVideos(videoDir, videoOutputDir, ffmpegExecutablePath);
-			GenerateVideosClass(videoDir, videoOutputDir, classOutputDir, ffmpegExecutablePath);
+			GenerateVideosClass(
+				videoDir, 
+				videoOutputDir, 
+				classOutputDir, 
+				ffmpegExecutablePath
+			);
 		}
 
-		public static void ProcessMusicStems(DirectoryInfo sourceDir, DirectoryInfo outputDir, DirectoryInfo classOutputDir)
+		public static void ProcessMusicStems(
+			DirectoryInfo sourceDir, 
+			DirectoryInfo outputDir, 
+			DirectoryInfo classOutputDir)
 		{
 			WriteOutput("Copying stems...");
 
-			var stemDir = new DirectoryInfo(Path.Combine(sourceDir.FullName, "Audio", "Stems"));
+			var stemDir = new DirectoryInfo(
+				Path.Combine(sourceDir.FullName, "Audio", "Stems")
+			);
 
-			var stemOutputDir = new DirectoryInfo(Path.Combine(outputDir.FullName, "Audio", "Stems"));
+			var stemOutputDir = new DirectoryInfo(
+				Path.Combine(
+					outputDir.FullName, "Audio", "Stems"
+				)
+			);
 			CreateOrClearDirectory(stemOutputDir);
 
 			CopyDirectory(stemDir.FullName, stemOutputDir.FullName, true);
@@ -612,7 +832,10 @@ namespace ContentProcessor
 			return (width, height);
 		}
 #if NET10_0_OR_GREATER
-		static StringComparer NumericOrderingComparer = StringComparer.Create(CultureInfo.CurrentCulture, CompareOptions.NumericOrdering);
+		static StringComparer NumericOrderingComparer = StringComparer.Create(
+			CultureInfo.CurrentCulture, 
+			CompareOptions.NumericOrdering
+		);
 		sealed class FileNameComparer : IComparer<FileInfo>
 		{
 			public int Compare(FileInfo? x, FileInfo? y)
@@ -666,18 +889,30 @@ namespace ContentProcessor
 #endif
 		static FileNameComparer NumericOrderFileNameComparer = new();
 
-		public static void ProcessTexturePage(DirectoryInfo texturePageDir, DirectoryInfo textureOutputDir)
+		public static void ProcessTexturePage(
+			DirectoryInfo texturePageDir, 
+			DirectoryInfo textureOutputDir)
 		{
 			var inputDir = texturePageDir.FullName;
 			textureOutputDir.Create();
 
+			var cramInfo = new FileInfo(
+				Path.Combine(
+					System.AppContext.BaseDirectory, 
 #if WINDOWS
-			var cramInfo = new FileInfo(Path.Combine(System.AppContext.BaseDirectory, "cramcli.exe"));
+					"cramcli.exe"
 #elif LINUX || OSX
-			var cramInfo = new FileInfo(Path.Combine(System.AppContext.BaseDirectory, "cramcli"));
+					"cramcli"
 #endif
+				)
+			);
 
-			var textureAtlasOptionsFile = new FileInfo(Path.Combine(texturePageDir.FullName, texturePageDir.Name + ".json"));
+			var textureAtlasOptionsFile = new FileInfo(
+				Path.Combine(
+					texturePageDir.FullName, 
+					texturePageDir.Name + ".json"
+				)
+			);
 			var textureAtlasOptionsSerializerOptions = new JsonSerializerOptions
 			{
 				PropertyNameCaseInsensitive = true,
@@ -688,7 +923,10 @@ namespace ContentProcessor
 				textureAtlasOptionsSerializerOptions
 			);
 
-			var textureOutputName = Path.Combine(textureOutputDir.FullName, texturePageDir.Name);
+			var textureOutputName = Path.Combine(
+				textureOutputDir.FullName, 
+				texturePageDir.Name
+			);
 
 			var arguments = $"{inputDir} {textureOutputDir.FullName} {texturePageDir.Name}";
 			arguments += " --padding " + textureAtlasOptions.Padding;
@@ -715,8 +953,12 @@ namespace ContentProcessor
 				throw new System.SystemException("Texture packing failed!");
 			}
 
-			var textureAtlasMetadataFile = new FileInfo(textureOutputName + ".json");
-			var jsonSerializerOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+			var textureAtlasMetadataFile = new FileInfo(
+				textureOutputName + ".json"
+			);
+			var jsonSerializerOptions = new JsonSerializerOptions { 
+				PropertyNameCaseInsensitive = true 
+			};
 			var textureAtlasData = JsonSerializer.Deserialize<CramTextureAtlasData>(
 				File.ReadAllText(textureAtlasMetadataFile.FullName),
 				jsonSerializerOptions
@@ -747,7 +989,10 @@ namespace ContentProcessor
 				if (jsonFiles.Length == 0)
 				{
 					var firstSpriteFile = new FileInfo(frameList[0]);
-					var firstSpriteFilePath = Path.Combine(directory.FullName, firstSpriteFile.Name);
+					var firstSpriteFilePath = Path.Combine(
+						directory.FullName, 
+						firstSpriteFile.Name
+					);
 					var (width, height) = GetPNGSize(firstSpriteFilePath);
 
 					// Generate a default anim metadata.
@@ -755,8 +1000,15 @@ namespace ContentProcessor
 					animationMetadata.YOrigin = height / 2;
 					animationMetadata.FrameRate = 0;
 
-					ExportResource(new CramTextureAtlasAnimationData_ToCreateDefault(animationMetadata),
-						new FileInfo(Path.Combine(directory.FullName, "data.json")));
+					ExportResource(
+						new CramTextureAtlasAnimationData_ToCreateDefault(
+							animationMetadata
+						),
+						new FileInfo(
+							Path.Combine(
+								directory.FullName, "data.json")
+							)
+					);
 
 					Logger.LogWarn($"Auto-generated a missing metadata file at {directory.Name}; verify it suits your needs.");
 				}
@@ -790,15 +1042,23 @@ namespace ContentProcessor
 
 			if (textureAtlasOptions.Compress)
 			{
+				var compressionEncoderInfo = new FileInfo(
+					Path.Combine(
+						System.AppContext.BaseDirectory, 
 #if WINDOWS
-				var compressionEncoderInfo = new FileInfo(Path.Combine(System.AppContext.BaseDirectory, "bc7enc.exe"));
+						"bc7enc.exe"
 #elif LINUX || OSX
-				var compressionEncoderInfo = new FileInfo(Path.Combine(System.AppContext.BaseDirectory, "bc7enc"));
+						"bc7enc"
 #endif
+					)
+				);
+
 
 				var compressionProcess = new Process();
-				compressionProcess.StartInfo.FileName = compressionEncoderInfo.FullName;
-				compressionProcess.StartInfo.Arguments = textureOutputName + ".png -o -g";
+				compressionProcess.StartInfo.FileName 
+					= compressionEncoderInfo.FullName;
+				compressionProcess.StartInfo.Arguments 
+					= textureOutputName + ".png -o -g";
 				compressionProcess.StartInfo.CreateNoWindow = true;
 				compressionProcess.StartInfo.UseShellExecute = false;
 				compressionProcess.StartInfo.RedirectStandardOutput = false;
@@ -814,9 +1074,16 @@ namespace ContentProcessor
 				}
 
 				// compress the DDS file using zlib compression
-				using (FileStream ddsFile = File.Open(textureOutputName + ".dds", FileMode.Open))
-				using (FileStream compressedFileStream = File.Create(textureOutputName + ".ctex"))
-				using (DeflateStream compressor = new DeflateStream(compressedFileStream, CompressionLevel.Optimal))
+				using (FileStream ddsFile = File.Open(
+					textureOutputName + ".dds", 
+					FileMode.Open)
+				)
+				using (FileStream compressedFileStream = File.Create(
+					textureOutputName + ".ctex")
+				)
+				using (DeflateStream compressor = new DeflateStream(
+					compressedFileStream, 
+					CompressionLevel.Optimal))
 				{
 					ddsFile.CopyTo(compressor);
 				}
@@ -826,11 +1093,15 @@ namespace ContentProcessor
 			}
 		}
 
-		public static void GenerateFontsClass(DirectoryInfo outputDir, DirectoryInfo classOutputDir)
+		public static void GenerateFontsClass(
+			DirectoryInfo outputDir, 
+			DirectoryInfo classOutputDir)
 		{
 			UpdateFontClass = false;
 
-			var fontsDir = new DirectoryInfo(Path.Combine(outputDir.FullName, "Fonts"));
+			var fontsDir = new DirectoryInfo(
+				Path.Combine(outputDir.FullName, "Fonts")
+			);
 			fontsDir.Create();
 
 			var definitionStrings = new List<string>();
@@ -863,7 +1134,9 @@ namespace RollAndCash.Content
 
         private static List<Font> FontStorage = new List<Font>();
 
-        public static void LoadAll(GraphicsDevice graphicsDevice, TitleStorage titleStorage)
+        public static void LoadAll(
+			GraphicsDevice graphicsDevice, 
+			TitleStorage titleStorage)
         {{
             var commandBuffer = graphicsDevice.AcquireCommandBuffer();
 
@@ -872,7 +1145,10 @@ namespace RollAndCash.Content
             graphicsDevice.Submit(commandBuffer);
         }}
 
-        public static FontID LoadFont(GraphicsDevice graphicsDevice, TitleStorage titleStorage, string path)
+        public static FontID LoadFont(
+			GraphicsDevice graphicsDevice, 
+			TitleStorage titleStorage, 
+			string path)
         {{
             var index = FontStorage.Count;
             FontStorage.Add(Font.Load(graphicsDevice, titleStorage, path));
@@ -895,9 +1171,16 @@ namespace RollAndCash.Content
 			File.WriteAllText(classPath, fontsClassCode);
 		}
 
-		private static void GenerateTextureAtlasesClass(DirectoryInfo outputDir, DirectoryInfo classOutputDir)
+		private static void GenerateTextureAtlasesClass(
+			DirectoryInfo outputDir, 
+			DirectoryInfo classOutputDir)
 		{
-			var textureDir = new DirectoryInfo(Path.Combine(outputDir.FullName, "Textures"));
+			var textureDir = new DirectoryInfo(
+				Path.Combine(
+					outputDir.FullName, 
+					"Textures"
+				)
+			);
 
 			var readStrings = new List<string>();
 			var definitionStrings = new List<string>();
@@ -924,7 +1207,11 @@ namespace RollAndCash.Content
 	public static class TextureAtlases
 	{{
 		public static GraphicsDevice GraphicsDevice {{ get; private set; }}
-		public static string TextureContentPath = Path.Combine(System.AppContext.BaseDirectory, ""Content"", ""Textures"");
+		public static string TextureContentPath = Path.Combine(
+			System.AppContext.BaseDirectory, 
+			""Content"", 
+			""Textures""
+		);
 
 		public static void Init(GraphicsDevice graphicsDevice)
 		{{
@@ -944,11 +1231,17 @@ namespace RollAndCash.Content
 
 			classOutputDir.Create();
 
-			var classPath = Path.Combine(classOutputDir.FullName, "TextureAtlases.g.cs");
+			var classPath = Path.Combine(
+				classOutputDir.FullName, 
+				"TextureAtlases.g.cs"
+			);
 			File.WriteAllText(classPath, textureAtlasesClassCode);
 		}
 
-		static void GenerateSpriteAnimationsClass(DirectoryInfo spriteDir, DirectoryInfo outputDir, DirectoryInfo classOutputDir)
+		static void GenerateSpriteAnimationsClass(
+			DirectoryInfo spriteDir, 
+			DirectoryInfo outputDir, 
+			DirectoryInfo classOutputDir)
 		{
 			var definitionStrings = new List<string>();
 			var assignmentStrings = new List<string>();
@@ -958,7 +1251,8 @@ namespace RollAndCash.Content
 			{
 				var textureName = textureGroupDir.Name;
 
-				foreach (var spriteAnimationDir in textureGroupDir.GetDirectories())
+				foreach (var spriteAnimationDir 
+					in textureGroupDir.GetDirectories())
 				{
 					var spriteAnimationName = spriteAnimationDir.Name;
 
@@ -984,7 +1278,8 @@ namespace RollAndCash.Content
 	public static class SpriteAnimations
 	{{
 		public static bool Loaded = false;
-		public static Dictionary<string, SpriteAnimationInfo> NameToInfoMap {{get; private set;}}
+		public static Dictionary<string, SpriteAnimationInfo> NameToInfoMap 
+			{{get; private set;}}
 
 		public static IEnumerable<string> Names => NameToInfoMap.Keys;
 
@@ -1005,13 +1300,23 @@ namespace RollAndCash.Content
 
 			classOutputDir.Create();
 
-			var classPath = Path.Combine(classOutputDir.FullName, "SpriteAnimations.g.cs");
+			var classPath = Path.Combine(
+				classOutputDir.FullName, 
+				"SpriteAnimations.g.cs"
+			);
 			File.WriteAllText(classPath, spriteAnimationsClassCode);
 		}
 
-		private static void GenerateTileSetAtlasesClass(DirectoryInfo outputDir, DirectoryInfo classOutputDir)
+		private static void GenerateTileSetAtlasesClass(
+			DirectoryInfo outputDir, 
+			DirectoryInfo classOutputDir)
 		{
-			var tileTextureDir = new DirectoryInfo(Path.Combine(outputDir.FullName, Path.Combine("Textures", "TileSets")));
+			var tileTextureDir = new DirectoryInfo(
+				Path.Combine(
+					outputDir.FullName, 
+					Path.Combine("Textures", "TileSets")
+				)
+			);
 
 			var readStrings = new List<string>();
 			var definitionStrings = new List<string>();
@@ -1065,13 +1370,23 @@ namespace RollAndCash.Content
 
 			classOutputDir.Create();
 
-			var classPath = Path.Combine(classOutputDir.FullName, "TileSetsAtlases.g.cs");
+			var classPath = Path.Combine(
+				classOutputDir.FullName, 
+				"TileSetsAtlases.g.cs"
+			);
 			File.WriteAllText(classPath, tileSetAtlasesClassCode);
 		}
 
-		private static void GenerateTileSetsClass(DirectoryInfo outputDir, DirectoryInfo classOutputDir)
+		private static void GenerateTileSetsClass(
+			DirectoryInfo outputDir, 
+			DirectoryInfo classOutputDir)
 		{
-			var tileTextureDir = new DirectoryInfo(Path.Combine(outputDir.FullName, Path.Combine("Textures", "TileSets")));
+			var tileTextureDir = new DirectoryInfo(
+				Path.Combine(
+					outputDir.FullName, 
+					Path.Combine("Textures", "TileSets")
+				)
+			);
 
 			var lookupStrings = new List<string>();
 
@@ -1094,7 +1409,8 @@ namespace RollAndCash.Content
 	public static class TileSets
 	{{
 		public static bool Loaded = false;
-		public static Dictionary<string, TileSet> NameToTileSet {{get; private set;}}
+		public static Dictionary<string, TileSet> NameToTileSet 
+			{{get; private set;}}
 
 		public static IEnumerable<string> Names => NameToTileSet.Keys;
 
@@ -1112,11 +1428,17 @@ namespace RollAndCash.Content
 
 			classOutputDir.Create();
 
-			var classPath = Path.Combine(classOutputDir.FullName, "TileSets.g.cs");
+			var classPath = Path.Combine(
+				classOutputDir.FullName, 
+				"TileSets.g.cs"
+			);
 			File.WriteAllText(classPath, tileSetsClassCode);
 		}
 
-		static void GenerateLevelsClass(DirectoryInfo levelDir, DirectoryInfo levelOutputDir, DirectoryInfo classOutputDir)
+		static void GenerateLevelsClass(
+			DirectoryInfo levelDir, 
+			DirectoryInfo levelOutputDir, 
+			DirectoryInfo classOutputDir)
 		{
 			var definitionStrings = new List<string>();
 			var assignmentStrings = new List<string>();
@@ -1124,11 +1446,19 @@ namespace RollAndCash.Content
 			var adventureYieldStrings = new List<string>();
 			var showdownYieldStrings = new List<string>();
 
-			var versusLevelDir = new DirectoryInfo(Path.Combine(levelDir.FullName, "Versus"));
+			var versusLevelDir = new DirectoryInfo(
+				Path.Combine(levelDir.FullName, "Versus")
+			);
 
 			foreach (var file in versusLevelDir.EnumerateFiles())
 			{
-				File.Copy(file.FullName, Path.Combine(levelOutputDir.FullName, file.Name), true);
+				File.Copy(file.FullName, 
+					Path.Combine(
+						levelOutputDir.FullName, 
+						file.Name
+					), 
+					true
+				);
 
 				definitionStrings.Add($"public static Level {Path.GetFileNameWithoutExtension(file.Name)};");
 				assignmentStrings.Add($"{Path.GetFileNameWithoutExtension(file.Name)} = Level.FromImportLevel(Path.Combine(LevelContentPath, \"{file.Name}\"));");
@@ -1136,7 +1466,12 @@ namespace RollAndCash.Content
 				versusYieldStrings.Add($"{Path.GetFileNameWithoutExtension(file.Name)}");
 			}
 
-			var adventureLevelDir = new DirectoryInfo(Path.Combine(levelDir.FullName, "Adventure"));
+			var adventureLevelDir = new DirectoryInfo(
+				Path.Combine(
+					levelDir.FullName, 
+					"Adventure"
+				)
+			);
 
 			foreach (var file in adventureLevelDir.EnumerateFiles())
 			{
@@ -1148,11 +1483,17 @@ namespace RollAndCash.Content
 				adventureYieldStrings.Add($"{Path.GetFileNameWithoutExtension(file.Name)}");
 			}
 
-			var showdownLevelDir = new DirectoryInfo(Path.Combine(levelDir.FullName, "Showdown"));
+			var showdownLevelDir = new DirectoryInfo(
+				Path.Combine(levelDir.FullName, "Showdown")
+			);
 
 			foreach (var file in showdownLevelDir.EnumerateFiles())
 			{
-				File.Copy(file.FullName, Path.Combine(levelOutputDir.FullName, file.Name), true);
+				File.Copy(
+					file.FullName, 
+					Path.Combine(levelOutputDir.FullName, file.Name), 
+					true
+				);
 
 				definitionStrings.Add($"public static Level {Path.GetFileNameWithoutExtension(file.Name)};");
 				assignmentStrings.Add($"{Path.GetFileNameWithoutExtension(file.Name)} = Level.FromImportLevel(Path.Combine(LevelContentPath, \"{file.Name}\"));");
@@ -1171,7 +1512,11 @@ namespace RollAndCash.Content
 {{
 	public static class Levels
 	{{
-		public static string LevelContentPath = Path.Combine(System.AppContext.BaseDirectory, ""Content"", ""Levels"");
+		public static string LevelContentPath = Path.Combine(
+			System.AppContext.BaseDirectory, 
+			""Content"", 
+			""Levels""
+		);
 
 		public static Level[] VersusLevels;
 		public static Level[] AdventureLevels;
@@ -1220,11 +1565,17 @@ namespace RollAndCash.Content
 			File.WriteAllText(classPath, textureAtlasesClassCode);
 		}
 
-		static void ConvertVideos(DirectoryInfo videoDir, DirectoryInfo videoOutputDir, FileInfo ffmpegInfo)
+		static void ConvertVideos(
+			DirectoryInfo videoDir, 
+			DirectoryInfo videoOutputDir, 
+			FileInfo ffmpegInfo)
 		{
 			foreach (var videoFile in videoDir.EnumerateFiles("*.mp4"))
 			{
-				var outputPath = Path.Combine(videoOutputDir.FullName, Path.ChangeExtension(videoFile.Name, ".obu"));
+				var outputPath = Path.Combine(
+					videoOutputDir.FullName, 
+					Path.ChangeExtension(videoFile.Name, ".obu")
+				);
 				var arguments = $"-i {videoFile.FullName} -c:v libsvtav1 -preset 8 -crf 35 {outputPath}";
 
 				var process = new Process();
@@ -1269,8 +1620,10 @@ namespace RollAndCash.Content
 			process.StartInfo.UseShellExecute = false;
 			process.StartInfo.RedirectStandardOutput = true;
 			process.StartInfo.RedirectStandardError = true;
-			process.OutputDataReceived += (s, e) => GetFPSStringFromFFmpeg(e.Data, ref fps);
-			process.ErrorDataReceived += (s, e) => GetFPSStringFromFFmpeg(e.Data, ref fps);
+			process.OutputDataReceived += (s, e) 
+				=> GetFPSStringFromFFmpeg(e.Data, ref fps);
+			process.ErrorDataReceived += (s, e) 
+				=> GetFPSStringFromFFmpeg(e.Data, ref fps);
 			process.Start();
 			process.BeginOutputReadLine();
 			process.BeginErrorReadLine();
@@ -1284,7 +1637,11 @@ namespace RollAndCash.Content
 			return fps;
 		}
 
-		static void GenerateVideosClass(DirectoryInfo videoInputDir, DirectoryInfo videoOutputDir, DirectoryInfo classOutputDir, FileInfo ffmpegInfo)
+		static void GenerateVideosClass(
+			DirectoryInfo videoInputDir, 
+			DirectoryInfo videoOutputDir, 
+			DirectoryInfo classOutputDir, 
+			FileInfo ffmpegInfo)
 		{
 			var definitionStrings = new List<string>();
 			var assignmentStrings = new List<string>();
@@ -1295,7 +1652,12 @@ namespace RollAndCash.Content
 				var definitionString = $"public static VideoAV1 {name};";
 				definitionStrings.Add(definitionString);
 
-				var fps = GetFPSFromMP4(ffmpegInfo, new FileInfo(Path.Combine(videoInputDir.FullName, Path.ChangeExtension(videoFile.Name, "mp4"))));
+				var fps = GetFPSFromMP4(ffmpegInfo, new FileInfo(
+					Path.Combine(
+						videoInputDir.FullName, 
+						Path.ChangeExtension(videoFile.Name, "mp4"))
+					)
+				);
 
 				var assignmentString = $"{name} = new VideoAV1(graphicsDevice, Path.Combine(VideoContentPath, \"{videoFile.Name}\"), {fps});";
 				assignmentStrings.Add(assignmentString);
@@ -1312,7 +1674,10 @@ namespace RollAndCash.Content
 {{
 	public static class Videos
 	{{
-		private static string VideoContentPath = Path.Combine(""Content"", ""Videos"");
+		private static string VideoContentPath = Path.Combine(
+			""Content"", 
+			""Videos""
+		);
 
 		{string.Join("\n\t\t", definitionStrings)}
 
@@ -1357,7 +1722,12 @@ namespace RollAndCash.Content
 {{
 	public static class StaticAudioPacks
 	{{
-		public static string StaticAudioContentPath = Path.Combine(System.AppContext.BaseDirectory, ""Content"", ""Audio"", ""Static"");
+		public static string StaticAudioContentPath = Path.Combine(
+			System.AppContext.BaseDirectory, 
+			""Content"", 
+			""Audio"", 
+			""Static""
+		);
 
 		public static void Init(AudioDevice audioDevice)
 		{{
@@ -1375,7 +1745,10 @@ namespace RollAndCash.Content
 ";
 
 			classOutputDir.Create();
-			var classPath = Path.Combine(classOutputDir.FullName, "StaticAudioPacks.g.cs");
+			var classPath = Path.Combine(
+				classOutputDir.FullName, 
+				"StaticAudioPacks.g.cs"
+			);
 			File.WriteAllText(classPath, staticAudioClassCode);
 		}
 
@@ -1384,17 +1757,20 @@ namespace RollAndCash.Content
 			DirectoryInfo classOutputDir)
 		{
 			var definitionStrings = new List<string>();
-			var assignmentStrings = new List<string>();
 			var lookupStrings = new List<string>();
 
 			var id = 0;
-			foreach (var audioPackJsonFile in staticAudioOutputDir.EnumerateFiles("*.json"))
+			foreach (var audioPackJsonFile 
+				in staticAudioOutputDir.EnumerateFiles("*.json"))
 			{
-				var packName = Path.GetFileNameWithoutExtension(audioPackJsonFile.Name);
+				var packName = Path.GetFileNameWithoutExtension(
+					audioPackJsonFile.Name
+				);
 
 				var entries = JsonSerializer.Deserialize<Dictionary<string, AudioPackEntry>>(
 					File.ReadAllText(audioPackJsonFile.FullName),
-					audioPackSerializerOptions);
+					audioPackSerializerOptions
+				)!;
 
 				foreach (var (name, entry) in entries)
 				{
@@ -1421,7 +1797,12 @@ namespace RollAndCash.Content
 
 	public static class StaticAudio
 	{{
-		private static string StaticAudioContentPath = Path.Combine(System.AppContext.BaseDirectory, ""Content"", ""Audio"", ""Static"");
+		private static string StaticAudioContentPath = Path.Combine(
+			System.AppContext.BaseDirectory, 
+			""Content"", 
+			""Audio"", 
+			""Static""
+		);
 
 		public static bool Loaded = false;
 
@@ -1447,13 +1828,23 @@ namespace RollAndCash.Content
 ";
 
 			classOutputDir.Create();
-			var classPath = Path.Combine(classOutputDir.FullName, "StaticAudio.g.cs");
+			var classPath = Path.Combine(
+				classOutputDir.FullName, 
+				"StaticAudio.g.cs"
+			);
 			File.WriteAllText(classPath, staticAudioClassCode);
 		}
 
-		static void GenerateStreamingAudioClass(DirectoryInfo outputDir, DirectoryInfo classOutputDir)
+		static void GenerateStreamingAudioClass(
+			DirectoryInfo outputDir, 
+			DirectoryInfo classOutputDir)
 		{
-			var streamingAudioOutputDir = new DirectoryInfo(Path.Combine(outputDir.FullName, "Audio", "Streaming"));
+			var streamingAudioOutputDir = new DirectoryInfo(
+				Path.Combine(
+					outputDir.FullName, 
+					"Audio", "Streaming"
+				)
+			);
 
 			var definitionStrings = new List<string>();
 			var lookupStrings = new List<string>();
@@ -1461,7 +1852,9 @@ namespace RollAndCash.Content
 			var id = 0;
 			foreach (var file in streamingAudioOutputDir.EnumerateFiles())
 			{
-				var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(file.Name);
+				var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(
+					file.Name
+				);
 
 				definitionStrings.Add($"public static StreamingSoundID {fileNameWithoutExtension} = new StreamingSoundID({id});");
 				lookupStrings.Add($"{{{id}, new QoaFile(Path.Combine(StreamingAudioContentPath, \"{file.Name}\"), AudioDataQoa.Create(audioDevice)) }}");
@@ -1484,7 +1877,12 @@ namespace RollAndCash.Content
 
 	public static class StreamingAudio
 	{{
-		private static string StreamingAudioContentPath = Path.Combine(System.AppContext.BaseDirectory, ""Content"", ""Audio"", ""Streaming"");
+		private static string StreamingAudioContentPath = Path.Combine(
+			System.AppContext.BaseDirectory, 
+			""Content"", 
+			""Audio"", 
+			""Streaming""
+		);
 		private static Dictionary<int, QoaFile> IDToQoaFile;
 
 		public static AudioDataQoa Lookup(StreamingSoundID id)
@@ -1504,7 +1902,10 @@ namespace RollAndCash.Content
 		{{
 			foreach (var (id, qoaFile) in IDToQoaFile)
 			{{
-				loader.EnqueueQoaStreamingLoad(qoaFile.FilePath, qoaFile.AudioData);
+				loader.EnqueueQoaStreamingLoad(
+					qoaFile.FilePath, 
+					qoaFile.AudioData
+				);
 			}}
 		}}
 
@@ -1514,13 +1915,20 @@ namespace RollAndCash.Content
 			";
 
 			classOutputDir.Create();
-			var classPath = Path.Combine(classOutputDir.FullName, "StreamingAudio.g.cs");
+			var classPath = Path.Combine(
+				classOutputDir.FullName, 
+				"StreamingAudio.g.cs"
+			);
 			File.WriteAllText(classPath, streamingAudioClassCode);
 		}
 
-		static void GenerateMusicStemsClass(DirectoryInfo outputDir, DirectoryInfo classOutputDir)
+		static void GenerateMusicStemsClass(
+			DirectoryInfo outputDir, 
+			DirectoryInfo classOutputDir)
 		{
-			var stemsOutputDir = new DirectoryInfo(Path.Combine(outputDir.FullName, "Audio", "Stems"));
+			var stemsOutputDir = new DirectoryInfo(
+				Path.Combine(outputDir.FullName, "Audio", "Stems")
+			);
 
 			var definitionStrings = new List<string>();
 			var loadStrings = new List<string>();
@@ -1528,7 +1936,8 @@ namespace RollAndCash.Content
 
 			foreach (var file in stemsOutputDir.EnumerateFiles())
 			{
-				var fileNameWithoutExtension = Path.GetFileNameWithoutExtension(file.Name);
+				var fileNameWithoutExtension 
+					= Path.GetFileNameWithoutExtension(file.Name);
 				definitionStrings.Add($"public static MusicStemGroup {fileNameWithoutExtension} = new MusicStemGroup(Path.Combine(MusicStemsContentPath, \"{file.Name}\"));");
 				loadStrings.Add($"{fileNameWithoutExtension}.Load();");
 				allArrayStrings.Add(fileNameWithoutExtension);
@@ -1543,7 +1952,12 @@ namespace RollAndCash.Content
 {{
 	public static class MusicStems
 	{{
-		public static string MusicStemsContentPath = Path.Combine(System.AppContext.BaseDirectory, ""Content"", ""Audio"", ""Stems"");
+		public static string MusicStemsContentPath = Path.Combine(
+			System.AppContext.BaseDirectory, 
+			""Content"", 
+			""Audio"", 
+			""Stems""
+		);
 
 		public static bool Loaded = false;
 
@@ -1564,26 +1978,52 @@ namespace RollAndCash.Content
 			";
 
 			classOutputDir.Create();
-			var classPath = Path.Combine(classOutputDir.FullName, "MusicStems.g.cs");
+			var classPath = Path.Combine(
+				classOutputDir.FullName, 
+				"MusicStems.g.cs"
+			);
 			File.WriteAllText(classPath, musicStemsClassClode);
 		}
 
-		public static void CopyData(DirectoryInfo sourceDir, DirectoryInfo outputDir)
+		public static void CopyData(
+			DirectoryInfo sourceDir, 
+			DirectoryInfo outputDir)
 		{
-			var dataDir = new DirectoryInfo(Path.Combine(sourceDir.FullName, "Data"));
-			var dataOutputDir = new DirectoryInfo(Path.Combine(outputDir.FullName, "Data"));
+			var dataDir = new DirectoryInfo(
+				Path.Combine(
+					sourceDir.FullName, 
+					"Data"
+				)
+			);
+			var dataOutputDir = new DirectoryInfo(
+				Path.Combine(
+					outputDir.FullName, 
+					"Data"
+				)
+			);
 
 			dataOutputDir.Create();
 
 			foreach (var file in dataDir.GetFiles())
 			{
-				File.Copy(file.FullName, Path.Combine(dataOutputDir.FullName, file.Name), true);
+				File.Copy(
+					file.FullName, 
+					Path.Combine(
+						dataOutputDir.FullName, 
+						file.Name
+					), 
+					true
+				);
 			}
 		}
 
 		public static void ExportResource<T>(T resource, FileInfo dest)
 		{
-			var stream = new FileStream(dest.FullName, FileMode.Create, FileAccess.Write);
+			var stream = new FileStream(
+				dest.FullName, 
+				FileMode.Create, 
+				FileAccess.Write
+			);
 			var writer = new Utf8JsonWriter(stream, new JsonWriterOptions
 			{
 				Indented = true
