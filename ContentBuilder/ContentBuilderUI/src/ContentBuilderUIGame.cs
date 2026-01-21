@@ -44,7 +44,7 @@ namespace ContentBuilderUI
 				{
 					ContentPathValid = 
 						Operations.ValidateSourceContentDirectory(
-							unprocessedContentPath
+							Operations.Preferences.SourceContentDirectoryPath
 						);
 
 					if (ContentPathValid)
@@ -61,7 +61,7 @@ namespace ContentBuilderUI
 				if (Operations.Preferences.GameDirectoryPath != null)
 				{
 					ProjectPathValid = Operations.ValidateGameProjectDirectory(
-						projectPath
+						Operations.Preferences.GameDirectoryPath
 					);
 
 					if (ProjectPathValid)
