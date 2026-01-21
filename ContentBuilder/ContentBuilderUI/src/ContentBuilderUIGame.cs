@@ -42,20 +42,37 @@ namespace ContentBuilderUI
 			{
 				if (Operations.Preferences.SourceContentDirectoryPath != null)
 				{
-					unprocessedContentPath 
-						= Operations.Preferences.SourceContentDirectoryPath;
+					ContentPathValid = 
+						Operations.ValidateSourceContentDirectory(
+							unprocessedContentPath
+						);
+
+					if (ContentPathValid)
+					{
+						unprocessedContentPath 
+							= Operations.Preferences.SourceContentDirectoryPath;
+					}
 				}
-				if (Operations.Preferences.GameDirectoryPath != null)
+				else
 				{
-					projectPath = Operations.Preferences.GameDirectoryPath;
+					ContentPathValid = false;
 				}
 
-				ContentPathValid = Operations.ValidateSourceContentDirectory(
-					unprocessedContentPath
-				);
-				ProjectPathValid = Operations.ValidateGameProjectDirectory(
-					projectPath
-				);
+				if (Operations.Preferences.GameDirectoryPath != null)
+				{
+					ProjectPathValid = Operations.ValidateGameProjectDirectory(
+						projectPath
+					);
+
+					if (ProjectPathValid)
+					{
+						projectPath = Operations.Preferences.GameDirectoryPath;
+					}
+				}
+				else
+				{
+					ProjectPathValid = false;
+				}
 			}
 
 			ImGuiBackend = new ImGuiBackend(this);
@@ -134,10 +151,9 @@ namespace ContentBuilderUI
 			if (ImGui.InputText("Unprocessed Content Path", 
 				ref unprocessedContentPath, 255))
 			{
-				ContentPathValid 
-					= Operations.ValidateSourceContentDirectory(
-						unprocessedContentPath
-					);
+				ContentPathValid = Operations.ValidateSourceContentDirectory(
+					unprocessedContentPath
+				);
 			}
 			ImGui.PopStyleColor(2);
 			#endregion
