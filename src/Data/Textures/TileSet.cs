@@ -22,7 +22,7 @@ public readonly record struct TileID(
     }
 }
 
-
+// TODO: Make this Disposable
 public class TileSet : VisualSet
 {
     public string JsonFilePath { get; private set; }
@@ -168,7 +168,11 @@ public class TileSet : VisualSet
 #endif
 }
 
-// Also known as Palette Swaps, though in rare cases it may also have different per-tile metadata.
+// TODO: Make this Disposable
+/// <summary>
+/// Also known as Palette Swaps, though in rare cases 
+/// it may also have different per-tile metadata.
+/// </summary>
 public class TileSetVariant : VisualSetVariant
 {
     // Might be the same as the default TileSet, if we just want to create some tile color variants in-editor.

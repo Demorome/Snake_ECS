@@ -10,6 +10,7 @@ namespace RollAndCash.Data;
 
 public readonly record struct TexturePageID(int ID);
 
+// TODO: Make this Disposable
 public class TexturePage
 {
 	static List<TexturePage> IDLookup = new List<TexturePage>();
