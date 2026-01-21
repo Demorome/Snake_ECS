@@ -84,7 +84,9 @@ public class TileSet : VisualSet
         }
     }
 
-    public void Load(GraphicsDevice graphicsDevice, TileSetAtlasData atlasData)
+    public void ReLoadAtlasData(
+        GraphicsDevice graphicsDevice, 
+        TileSetAtlasData atlasData)
 	{
         TileSize = atlasData.TileSize;
         PixelHeight = atlasData.PixelHeight;
@@ -104,6 +106,7 @@ public class TileSet : VisualSet
             }
 		}
 
+        DefaultTexture?.Dispose();
 		DefaultTexture = Texture.Create2D(
 			graphicsDevice,
 			atlasData.Name,

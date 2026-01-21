@@ -31,11 +31,15 @@ public static class TileSetAtlasReader
 
 	static TileSetAtlasDataContext context = new(options);
 
-	public static void ReadTileSetAtlas(GraphicsDevice graphicsDevice, TileSet tileSet)
+	public static void ReadTileSetAtlas(
+		GraphicsDevice graphicsDevice, 
+		TileSet tileSet)
 	{
         var data = (TileSetAtlasData)JsonSerializer.Deserialize(
-            File.ReadAllText(tileSet.JsonFilePath), typeof(TileSetAtlasData), context
+            File.ReadAllText(tileSet.JsonFilePath), 
+			typeof(TileSetAtlasData), 
+			context
         )!;
-		tileSet.Load(graphicsDevice, data);
+		tileSet.ReLoadAtlasData(graphicsDevice, data);
 	}
 }
