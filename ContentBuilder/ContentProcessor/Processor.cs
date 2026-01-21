@@ -239,8 +239,10 @@ namespace ContentProcessor
 				Path.Combine(sourceTileSetDir.FullName, subFolder)
 			);
 			var tileTextureOutputDir = new DirectoryInfo(
-				Path.Combine(outputDir.FullName, 
-					Path.Combine("Textures", "TileSets")
+				Path.Combine(
+					outputDir.FullName, 
+					"Textures", 
+					"TileSets"
 				)
 			);
 			
@@ -461,8 +463,14 @@ namespace ContentProcessor
 			var index = 0;
 			foreach (var (key, pack) in packs)
 			{
-				var packFilePath = Path.Combine(outDir.FullName, $"pack_{index}.wav");
-				var metadataFilePath = Path.Combine(outDir.FullName, $"pack_{index}.json");
+				var packFilePath = Path.Combine(
+					outDir.FullName, 
+					$"pack_{index}.wav"
+				);
+				var metadataFilePath = Path.Combine(
+					outDir.FullName, 
+					$"pack_{index}.json"
+				);
 				index += 1;
 
 				WriteWaveHeader(packFilePath, pack.HeaderData);
@@ -1314,7 +1322,8 @@ namespace RollAndCash.Content
 			var tileTextureDir = new DirectoryInfo(
 				Path.Combine(
 					outputDir.FullName, 
-					Path.Combine("Textures", "TileSets")
+					"Textures", 
+					"TileSets"
 				)
 			);
 
@@ -1383,7 +1392,8 @@ namespace RollAndCash.Content
 			var tileTextureDir = new DirectoryInfo(
 				Path.Combine(
 					outputDir.FullName, 
-					Path.Combine("Textures", "TileSets")
+					"Textures", 
+					"TileSets"
 				)
 			);
 
@@ -1474,7 +1484,14 @@ namespace RollAndCash.Content
 
 			foreach (var file in adventureLevelDir.EnumerateFiles())
 			{
-				File.Copy(file.FullName, Path.Combine(levelOutputDir.FullName, file.Name), true);
+				File.Copy(
+					file.FullName, 
+					Path.Combine(
+						levelOutputDir.FullName, 
+						file.Name
+					), 
+					true
+				);
 
 				definitionStrings.Add($"public static Level {Path.GetFileNameWithoutExtension(file.Name)};");
 				assignmentStrings.Add($"{Path.GetFileNameWithoutExtension(file.Name)} = Level.FromImportLevel(Path.Combine(LevelContentPath, \"{file.Name}\"));");
@@ -1693,9 +1710,13 @@ namespace RollAndCash.Content
 			File.WriteAllText(classPath, videosClassCode);
 		}
 
-		static void GenerateStaticAudioPacksClass(DirectoryInfo outputDir, DirectoryInfo classOutputDir)
+		static void GenerateStaticAudioPacksClass(
+			DirectoryInfo outputDir, 
+			DirectoryInfo classOutputDir)
 		{
-			var staticAudioOutputDir = new DirectoryInfo(Path.Combine(outputDir.FullName, "Audio", "Static"));
+			var staticAudioOutputDir = new DirectoryInfo(
+				Path.Combine(outputDir.FullName, "Audio", "Static")
+			);
 
 			var initStrings = new List<string>();
 			var loadStrings = new List<string>();
