@@ -1327,7 +1327,7 @@ namespace RollAndCash.Content
 				var name = Path.GetFileNameWithoutExtension(file.Name);
 				readStrings.Add($"TileSetAtlasReader.ReadTileSetAtlas(GraphicsDevice, {name});");
 				assignmentStrings.Add($"asyncFileLoader.EnqueueCompressedImageLoad(Path.ChangeExtension({name}.FullJsonFilePath, \".png\"), {name}.DefaultTexture);");
-				definitionStrings.Add($"public static TileSet {name} = new TileSet(\"{file.Name}\", Path.Combine(FullTileTextureContentPath, \"{file.Name}\"));");
+				definitionStrings.Add($"public static TileSet {name} = new TileSet(\"{file.Name}\", Path.Combine(TileTextureContentPath, \"{file.Name}\"));");
 			}
 
 			var tileSetAtlasesClassCode =  
@@ -1345,11 +1345,10 @@ namespace RollAndCash.Content
 		public static GraphicsDevice GraphicsDevice {{ get; private set; }}
 
 		public static readonly string TileTextureContentPath = Path.Combine(
-			""Content"", ""Textures"", ""TileSets""
-		);
-
-		public static readonly string FullTileTextureContentPath = Path.Combine(
-			System.AppContext.BaseDirectory, ""Content"", ""Textures"", ""TileSets""
+			System.AppContext.BaseDirectory, 
+			""Content"", 
+			""Textures"", 
+			""TileSets""
 		);
 		
 		public static void Init(GraphicsDevice graphicsDevice)
