@@ -15,6 +15,9 @@ public class TexturePage
 	static List<TexturePage> IDLookup = new List<TexturePage>();
 
 	public string JsonFilePath { get; private set; }
+	public string ImageFilePath
+		=> Path.ChangeExtension(JsonFilePath, ".png");
+
 	public readonly TexturePageID ID;
 	public CramTextureAtlasData AtlasData { get; private set;}
 	public Texture? Texture { get; private set; } = null;
