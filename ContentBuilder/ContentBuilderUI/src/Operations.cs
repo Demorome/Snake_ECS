@@ -34,8 +34,14 @@ public class TrackedDirectory
     {
         get
         {
-            var hashFileName = Path.GetFileNameWithoutExtension(DirectoryPath) + ".hash";
-            return Path.Combine(Operations.PreferencesFolderLocation, hashFileName);
+            var hashFileName 
+                = Path.GetFileNameWithoutExtension(DirectoryPath) 
+                + ".hash";
+
+            return Path.Combine(
+                Operations.PreferencesFolderLocation, 
+                hashFileName
+            );
         }
     }
 
@@ -78,7 +84,10 @@ public class TrackedDirectory
         {
             var contentHashSpan = new ReadOnlySpan<byte>(ContentHash);
             var savedHashSpan = new ReadOnlySpan<byte>(SavedHash);
-            BuildStatus = contentHashSpan.SequenceEqual(savedHashSpan) ? BuildStatus.Complete : BuildStatus.OutOfDate;
+            BuildStatus 
+                = contentHashSpan.SequenceEqual(savedHashSpan) 
+                ? BuildStatus.Complete 
+                : BuildStatus.OutOfDate;
         }
     }
 }
@@ -169,7 +178,9 @@ public static class Operations
     {
         if (File.Exists(PreferencesFileLocation))
         {
-            var data = JsonSerializer.Deserialize<Preferences>(File.ReadAllText(PreferencesFileLocation));
+            var data = JsonSerializer.Deserialize<Preferences>(
+                File.ReadAllText(PreferencesFileLocation)
+            );
             if (data != null)
             {
                 Preferences = data;
@@ -194,8 +205,14 @@ public static class Operations
         }
 
         // Audio
-        TrackDirectory(Path.Combine(contentDir, "Audio", "Static"), DirectoryType.AudioStatic);
-        TrackDirectory(Path.Combine(contentDir, "Audio", "Streaming"), DirectoryType.AudioStreaming);
+        TrackDirectory(
+            Path.Combine(contentDir, "Audio", "Static"), 
+            DirectoryType.AudioStatic
+        );
+        TrackDirectory(
+            Path.Combine(contentDir, "Audio", "Streaming"), 
+            DirectoryType.AudioStreaming
+        );
 
         // Fonts
         var fontDir = new DirectoryInfo(Path.Combine(contentDir, "Fonts"));
@@ -280,7 +297,10 @@ public static class Operations
         // Build
         WriteOutput("Building any outdated asset folders");
 
-        Task.Run(() => Parallel.ForEach(AllTrackedDirectories, new ParallelOptions { MaxDegreeOfParallelism = 8 }, (trackedDirectory) =>
+        Task.Run(() => Parallel.ForEach(
+            AllTrackedDirectories, 
+            new ParallelOptions { MaxDegreeOfParallelism = 8 }, 
+            (trackedDirectory) =>
         {
             WriteOutput("Processing: " + trackedDirectory.DirectoryPath);
             ProcessTrackedDir(trackedDirectory);
@@ -294,7 +314,9 @@ public static class Operations
     {
         trackedDirectory.BuildStatus = BuildStatus.InProgress;
 
-        var subFolderName = Path.GetFileNameWithoutExtension(trackedDirectory.DirectoryPath);
+        var subFolderName = Path.GetFileNameWithoutExtension(
+            trackedDirectory.DirectoryPath
+        );
 
         var source = new DirectoryInfo(Preferences.SourceContentDirectoryPath);
         var output = new DirectoryInfo(
@@ -315,7 +337,9 @@ public static class Operations
         {
             case DirectoryType.SpriteTPage:
                 WriteOutput("Cramming Sprites: " + subFolderName);
-                Processor.ProcessSpriteFolder(source, output, classOutput, subFolderName);
+                Processor.ProcessSpriteFolder(
+                    source, output, classOutput, subFolderName
+                );
                 break;
 
             case DirectoryType.AudioStatic:
@@ -348,7 +372,9 @@ public static class Operations
 
             case DirectoryType.TileSets:
                 WriteOutput("Processing a TileSet: " + subFolderName);
-                Processor.ProcessTileSet(source, output, classOutput, subFolderName);
+                Processor.ProcessTileSet(
+                    source, output, classOutput, subFolderName
+                );
                 break;
 
             default:
@@ -371,7 +397,11 @@ public static class Operations
     public static byte[] GetByteHash(string directoryPath)
     {
         using var sha256 = SHA256.Create();
-        var files = Directory.GetFiles(directoryPath, "*.*", SearchOption.AllDirectories);
+        var files = Directory.GetFiles(
+            directoryPath, 
+            "*.*", 
+            SearchOption.AllDirectories
+        );
 
         using var allFilesStream = new MemoryStream();
         foreach (var file in files)
