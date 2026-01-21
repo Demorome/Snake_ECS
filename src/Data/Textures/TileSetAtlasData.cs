@@ -37,11 +37,9 @@ public static class TileSetAtlasReader
 		TileSet tileSet,
 		TitleStorage titleStorage)
 	{
-		var fileText = titleStorage.ReadFile(tileSet.JsonFilePath, var test);
-		Span<byte> test = new();
-
-        var data = (TileSetAtlasData)JsonSerializer.Deserialize(
-			test,
+        var data = (TileSetAtlasData)TitleStorageExt.DeserializeJson(
+			titleStorage,
+			tileSet.PartialJsonFilePath,
 			typeof(TileSetAtlasData), 
 			context
         )!;

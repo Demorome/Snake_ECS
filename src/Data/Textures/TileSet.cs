@@ -25,19 +25,31 @@ public readonly record struct TileID(
 // TODO: Make this Disposable
 public class TileSet : VisualSet
 {
-    public string JsonFilePath { get; private set; }
-    public string ImageFilePath 
-        => Path.ChangeExtension(JsonFilePath, ".png");
+    public string PartialJsonFilePath { get; private set; }
+    // TODO: Remove this when Async Title Storage loading is supported.
+    public string FullJsonFilePath => Path.Combine(
+		System.AppContext.BaseDirectory,
+		PartialJsonFilePath
+	);
+
+    public string PartialImageFilePath 
+        => Path.ChangeExtension(PartialJsonFilePath, ".png");
+    // TODO: Remove this when Async Title Storage loading is supported.
+    public string FullImageFilePath => Path.Combine(
+		System.AppContext.BaseDirectory,
+		PartialImageFilePath
+	);
+
     public int TileSize = Dimensions.TILE_SIZE;
     public int PixelHeight, PixelWidth;
     public Texture? DefaultTexture { get; private set; } = null;
 
     private TileSprite[,]? TileSprites = null;
 
-    public TileSet(string fileName, string fullFilePath) 
+    public TileSet(string fileName, string partialFilePath) 
         : base(fileName)
     {
-        JsonFilePath = fullFilePath;
+        PartialJsonFilePath = partialFilePath;
     }
 
     public static TileSet FromID(VisualSetID id)

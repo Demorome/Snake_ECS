@@ -42,8 +42,8 @@ namespace RollAndCash
 			Inputs.Mouse.Hide();
 #endif
 
-			TextureAtlases.Init(GraphicsDevice);
-			TileSetAtlases.Init(GraphicsDevice);
+			TextureAtlases.Init(GraphicsDevice, RootTitleStorage);
+			TileSetAtlases.Init(GraphicsDevice, RootTitleStorage);
 			StaticAudioPacks.Init(AudioDevice);
 			StreamingAudio.Init(AudioDevice);
 			Fonts.LoadAll(GraphicsDevice, RootTitleStorage);

@@ -15,9 +15,20 @@ public class TexturePage
 {
 	static List<TexturePage> IDLookup = new List<TexturePage>();
 
-	public string JsonFilePath { get; private set; }
-	public string ImageFilePath
-		=> Path.ChangeExtension(JsonFilePath, ".png");
+	public string PartialJsonFilePath { get; private set; }
+	// TODO: Remove this when Async Title Storage loading is supported.
+	public string FullJsonFilePath => Path.Combine(
+		System.AppContext.BaseDirectory,
+		PartialJsonFilePath
+	);
+
+	public string PartialImageFilePath
+		=> Path.ChangeExtension(PartialJsonFilePath, ".png");
+	// TODO: Remove this when Async Title Storage loading is supported.
+	public string FullImageFilePath => Path.Combine(
+		System.AppContext.BaseDirectory,
+		PartialImageFilePath
+	);
 
 	public readonly TexturePageID ID;
 	public CramTextureAtlasData AtlasData { get; private set;}
@@ -35,14 +46,14 @@ public class TexturePage
 		return IDLookup[id.ID];
 	}
 
-	public TexturePage(string jsonFilePath)
+	public TexturePage(string partialJsonFilePath)
 	{
 		lock (IDLookup)
 		{
 			ID = new TexturePageID(IDLookup.Count);
 			IDLookup.Add(this);
 		}
-		JsonFilePath = jsonFilePath;
+		PartialJsonFilePath = partialJsonFilePath;
 	}
 
 	public void Load(GraphicsDevice graphicsDevice, CramTextureAtlasData data)

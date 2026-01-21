@@ -29,7 +29,7 @@ public static class CramAtlasReader
 	{
         var data = (CramTextureAtlasData)TitleStorageExt.DeserializeJson(
 			storage,
-			texturePage.JsonFilePath, 
+			texturePage.PartialJsonFilePath, 
 			typeof(CramTextureAtlasData), 
 			context
 		)!;

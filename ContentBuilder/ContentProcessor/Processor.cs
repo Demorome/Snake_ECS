@@ -1197,9 +1197,9 @@ namespace RollAndCash.Content
 			foreach (var file in textureDir.GetFiles("*.json"))
 			{
 				var name = Path.GetFileNameWithoutExtension(file.Name);
-				readStrings.Add($"CramAtlasReader.ReadTextureAtlas(GraphicsDevice, {name});");
-				assignmentStrings.Add($"asyncFileLoader.EnqueueCompressedImageLoad({name}.ImageFilePath, {name}.Texture);");
-				definitionStrings.Add($"public static TexturePage {name} = new TexturePage(Path.Combine(TextureContentPath, \"{file.Name}\"));");
+				readStrings.Add($"CramAtlasReader.ReadTextureAtlas(GraphicsDevice, {name}, storage);");
+				assignmentStrings.Add($"asyncFileLoader.EnqueueCompressedImageLoad({name}.FullImageFilePath, {name}.Texture);");
+				definitionStrings.Add($"public static TexturePage {name} = new TexturePage(Path.Combine(TextureContentPartialPath, \"{file.Name}\"));");
 			}
 
 			var textureAtlasesClassCode = 
@@ -1209,19 +1209,21 @@ using System.IO;
 using RollAndCash.Data;
 using MoonWorks.AsyncIO;
 using MoonWorks.Graphics;
+using MoonWorks.Storage;
 
 namespace RollAndCash.Content
 {{
 	public static class TextureAtlases
 	{{
 		public static GraphicsDevice GraphicsDevice {{ get; private set; }}
-		public static string TextureContentPath = Path.Combine(
-			System.AppContext.BaseDirectory, 
+		public static string TextureContentPartialPath = Path.Combine(
 			""Content"", 
 			""Textures""
 		);
 
-		public static void Init(GraphicsDevice graphicsDevice)
+		public static void Init(
+			GraphicsDevice graphicsDevice,
+			TitleStorage storage)
 		{{
 			GraphicsDevice = graphicsDevice;
 			{string.Join("\n\t\t\t", readStrings)}
@@ -1334,9 +1336,9 @@ namespace RollAndCash.Content
 			foreach (var file in tileTextureDir.GetFiles("*.json"))
 			{
 				var name = Path.GetFileNameWithoutExtension(file.Name);
-				readStrings.Add($"TileSetAtlasReader.ReadTileSetAtlas(GraphicsDevice, {name});");
-				assignmentStrings.Add($"asyncFileLoader.EnqueueCompressedImageLoad({name}.ImageFilePath, {name}.DefaultTexture);");
-				definitionStrings.Add($"public static TileSet {name} = new TileSet(\"{file.Name}\", Path.Combine(TileTextureContentPath, \"{file.Name}\"));");
+				readStrings.Add($"TileSetAtlasReader.ReadTileSetAtlas(GraphicsDevice, {name}, storage);");
+				assignmentStrings.Add($"asyncFileLoader.EnqueueCompressedImageLoad({name}.FullImageFilePath, {name}.DefaultTexture);");
+				definitionStrings.Add($"public static TileSet {name} = new TileSet(\"{file.Name}\", Path.Combine(TileTextureContentPartialPath, \"{file.Name}\"));");
 			}
 
 			var tileSetAtlasesClassCode =  
@@ -1346,6 +1348,7 @@ using System.IO;
 using RollAndCash.Data;
 using MoonWorks.AsyncIO;
 using MoonWorks.Graphics;
+using MoonWorks.Storage;
 
 namespace RollAndCash.Content
 {{
@@ -1353,14 +1356,15 @@ namespace RollAndCash.Content
 	{{
 		public static GraphicsDevice GraphicsDevice {{ get; private set; }}
 
-		public static readonly string TileTextureContentPath = Path.Combine(
-			System.AppContext.BaseDirectory, 
+		public static readonly string TileTextureContentPartialPath = Path.Combine(
 			""Content"", 
 			""Textures"", 
 			""TileSets""
 		);
 		
-		public static void Init(GraphicsDevice graphicsDevice)
+		public static void Init(
+			GraphicsDevice graphicsDevice,
+			TitleStorage storage)
 		{{
 			GraphicsDevice = graphicsDevice;
 			{string.Join("\n\t\t\t", readStrings)}
