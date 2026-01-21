@@ -26,7 +26,7 @@ public static class CramAtlasReader
 		TexturePage texturePage)
 	{
         var data = (CramTextureAtlasData)JsonSerializer.Deserialize(
-			File.ReadAllText(texturePage.JsonFilename), 
+			File.ReadAllText(texturePage.JsonFilePath), 
 			typeof(CramTextureAtlasData), 
 			context
 		)!;

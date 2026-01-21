@@ -14,7 +14,7 @@ public class TexturePage
 {
 	static List<TexturePage> IDLookup = new List<TexturePage>();
 
-	public string JsonFilename { get; private set; }
+	public string JsonFilePath { get; private set; }
 	public readonly TexturePageID ID;
 	public CramTextureAtlasData AtlasData { get; private set;}
 	public Texture? Texture { get; private set; } = null;
@@ -31,14 +31,14 @@ public class TexturePage
 		return IDLookup[id.ID];
 	}
 
-	public TexturePage(string jsonFilename)
+	public TexturePage(string jsonFilePath)
 	{
 		lock (IDLookup)
 		{
 			ID = new TexturePageID(IDLookup.Count);
 			IDLookup.Add(this);
 		}
-		JsonFilename = jsonFilename;
+		JsonFilePath = jsonFilePath;
 	}
 
 	public void Load(GraphicsDevice graphicsDevice, CramTextureAtlasData data)
@@ -79,7 +79,9 @@ public class TexturePage
 		);
 	}
 
-	public void LoadImage(GraphicsDevice graphicsDevice, ReadOnlySpan<byte> data)
+	public void LoadImage(
+		GraphicsDevice graphicsDevice, 
+		ReadOnlySpan<byte> data)
 	{
 		var resourceUploader = new ResourceUploader(graphicsDevice);
 		resourceUploader.SetTextureDataFromCompressed(
