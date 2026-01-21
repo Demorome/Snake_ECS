@@ -191,6 +191,7 @@ public class TileSetVariant : VisualSetVariant
     /// </summary>
     public Texture? Texture { get; private set; } = null;
 
+    // TODO: Use this somewhere!
     public TileSetVariant(Texture texture, TileSet parent) : base(parent)
     {
         Texture = texture;
