@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using MoonWorks.Graphics;
+using MoonWorks.Storage;
 
 namespace RollAndCash.Data;
 
@@ -33,10 +34,14 @@ public static class TileSetAtlasReader
 
 	public static void ReadTileSetAtlas(
 		GraphicsDevice graphicsDevice, 
-		TileSet tileSet)
+		TileSet tileSet,
+		TitleStorage titleStorage)
 	{
+		var fileText = titleStorage.ReadFile(tileSet.JsonFilePath, var test);
+		Span<byte> test = new();
+
         var data = (TileSetAtlasData)JsonSerializer.Deserialize(
-            File.ReadAllText(tileSet.JsonFilePath), 
+			test,
 			typeof(TileSetAtlasData), 
 			context
         )!;

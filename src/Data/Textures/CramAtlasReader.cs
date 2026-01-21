@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using MoonWorks.Graphics;
+using MoonWorks.Storage;
 
 namespace RollAndCash.Data;
 
@@ -23,10 +24,12 @@ public static class CramAtlasReader
 
 	public static void ReadTextureAtlas(
 		GraphicsDevice graphicsDevice, 
-		TexturePage texturePage)
+		TexturePage texturePage,
+		TitleStorage storage)
 	{
-        var data = (CramTextureAtlasData)JsonSerializer.Deserialize(
-			File.ReadAllText(texturePage.JsonFilePath), 
+        var data = (CramTextureAtlasData)TitleStorageExt.DeserializeJson(
+			storage,
+			texturePage.JsonFilePath, 
 			typeof(CramTextureAtlasData), 
 			context
 		)!;
