@@ -18,9 +18,12 @@ public static class CramAtlasReader
 		PropertyNameCaseInsensitive = true
 	};
 
-	static CramTextureAtlasDataContext context = new CramTextureAtlasDataContext(options);
+	static CramTextureAtlasDataContext context 
+		= new CramTextureAtlasDataContext(options);
 
-	public unsafe static void ReadTextureAtlas(GraphicsDevice graphicsDevice, TexturePage texturePage)
+	public unsafe static void ReadTextureAtlas(
+		GraphicsDevice graphicsDevice, 
+		TexturePage texturePage)
 	{
         var data = (CramTextureAtlasData)JsonSerializer.Deserialize(
 			File.ReadAllText(texturePage.JsonFilename), 
