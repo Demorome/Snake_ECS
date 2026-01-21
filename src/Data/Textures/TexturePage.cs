@@ -21,8 +21,10 @@ public class TexturePage
 	public uint Width => (uint)AtlasData.Width;
 	public uint Height => (uint)AtlasData.Height;
 
-	private Dictionary<string, Sprite> sprites = new Dictionary<string, Sprite>();
-	private Dictionary<string, SpriteAnimationInfo> animationInfos = new Dictionary<string, SpriteAnimationInfo>();
+	private Dictionary<string, Sprite> Sprites 
+		= new Dictionary<string, Sprite>();
+	private Dictionary<string, SpriteAnimationInfo> AnimationInfos 
+		= new Dictionary<string, SpriteAnimationInfo>();
 
 	public static TexturePage FromID(TexturePageID id)
 	{
@@ -64,7 +66,7 @@ public class TexturePage
 				spriteAnimation.YOrigin
 			);
 
-			animationInfos.Add(name, spriteAnimationInfo);
+			AnimationInfos.Add(name, spriteAnimationInfo);
 		}
 
 		Texture = Texture.Create2D(
@@ -80,7 +82,9 @@ public class TexturePage
 	public void LoadImage(GraphicsDevice graphicsDevice, ReadOnlySpan<byte> data)
 	{
 		var resourceUploader = new ResourceUploader(graphicsDevice);
-		resourceUploader.SetTextureDataFromCompressed(new TextureRegion(Texture), data);
+		resourceUploader.SetTextureDataFromCompressed(
+			new TextureRegion(Texture), data
+		);
 		resourceUploader.Upload();
 		resourceUploader.Dispose();
 	}
@@ -109,16 +113,16 @@ public class TexturePage
 		};
 		var sprite = new Sprite(this, sliceRect, frameRect);
 
-		sprites.Add(imageData.Name, sprite);
+		Sprites.Add(imageData.Name, sprite);
 	}
 
 	public SpriteAnimationInfo GetSpriteAnimationInfo(string name)
 	{
-		return animationInfos[name];
+		return AnimationInfos[name];
 	}
 
 	public Sprite GetSprite(string name)
 	{
-		return sprites[name];
+		return Sprites[name];
 	}
 }
