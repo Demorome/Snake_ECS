@@ -16,14 +16,10 @@ public class TexturePage
 	static List<TexturePage> IDLookup = new List<TexturePage>();
 
 	public string PartialJsonFilePath { get; private set; }
-	// TODO: Remove this when Async Title Storage loading is supported.
-	public string FullJsonFilePath => Path.Combine(
-		System.AppContext.BaseDirectory,
-		PartialJsonFilePath
-	);
 
 	public string PartialImageFilePath
 		=> Path.ChangeExtension(PartialJsonFilePath, ".png");
+		
 	// TODO: Remove this when Async Title Storage loading is supported.
 	public string FullImageFilePath => Path.Combine(
 		System.AppContext.BaseDirectory,
