@@ -79,7 +79,8 @@ public class TileSet : VisualSet
         }
         else
         {
-            return (VariantSets[TileSetVariantID.ID - 1] as TileSetVariant)!.Texture!;
+            return (VariantSets[TileSetVariantID.ID - 1] 
+                as TileSetVariant)!.Texture!;
         }
     }
 
@@ -113,13 +114,18 @@ public class TileSet : VisualSet
 		);
 	}
 
-	/*public void LoadImage(GraphicsDevice graphicsDevice, ReadOnlySpan<byte> data)
+	public void LoadImage(
+        GraphicsDevice graphicsDevice, 
+        ReadOnlySpan<byte> data)
 	{
 		var resourceUploader = new ResourceUploader(graphicsDevice);
-		resourceUploader.SetTextureDataFromCompressed(new TextureRegion(Texture), data);
+		resourceUploader.SetTextureDataFromCompressed(
+            new TextureRegion(DefaultTexture), 
+            data
+        );
 		resourceUploader.Upload();
 		resourceUploader.Dispose();
-	}*/
+	}
 
     // FIXME: Auto-unload when this TileSet is disposed?
 	private void Unload()
@@ -133,7 +139,9 @@ public class TileSet : VisualSet
 		DefaultTexture = null;
 	}
 
-    public override Vector2 GetVisualSize(PositionInVisualSet posInVisualSet, VisualSetVariantID variantID)
+    public override Vector2 GetVisualSize(
+        PositionInVisualSet posInVisualSet, 
+        VisualSetVariantID variantID)
     {
         return new Vector2(TileSize, TileSize);
     }
@@ -175,9 +183,12 @@ public class TileSet : VisualSet
 /// </summary>
 public class TileSetVariant : VisualSetVariant
 {
-    // Might be the same as the default TileSet, if we just want to create some tile color variants in-editor.
-    // Or if we just want to have other different metadata per tile, 
-    // such as as version of a tile that isn't solid for secret walls.
+    /// <summary>
+    /// Might be the same as the default TileSet, 
+    /// if we just want to create some tile color variants in-editor. <br/>
+    /// Or if we just want to have other different metadata per tile, 
+    /// such as as version of a tile that isn't solid for secret walls.
+    /// </summary>
     public Texture? Texture { get; private set; } = null;
 
     public TileSetVariant(Texture texture, TileSet parent) : base(parent)
