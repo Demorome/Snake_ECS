@@ -4,11 +4,11 @@ using System;
 using MoonWorks;
 
 [assembly: System.Reflection.Metadata.MetadataUpdateHandler(
-    typeof(HotReloadManager)
+    typeof(CodeHotReloadManager)
     )
 ]
 
-internal static class HotReloadManager
+internal static class CodeHotReloadManager
 {
     /// <summary>
     /// Gives update handlers an opportunity 
