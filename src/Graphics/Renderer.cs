@@ -51,7 +51,7 @@ public class Renderer : MoonTools.ECS.Renderer
 	readonly Texture RenderTexture;
 	readonly Texture DepthTexture;
 
-	Texture SpriteAtlasTexture;
+	Texture SpriteAtlasTexture => TextureAtlases.TP_Sprites.Texture!;
 
 	Sampler PointSampler;
 
@@ -147,8 +147,6 @@ public class Renderer : MoonTools.ECS.Renderer
 			TextureFormat.D16Unorm,
 			TextureUsageFlags.DepthStencilTarget
 		);
-
-		SpriteAtlasTexture = TextureAtlases.TP_Sprites.Texture!;
 
 		TextPipeline = GraphicsPipeline.Create(
 			GraphicsDevice,
