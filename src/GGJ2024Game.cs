@@ -1,5 +1,8 @@
 #if DEBUG
+
 #define UseDebugGUI
+using Hexa.NET.ImGui;
+
 #endif
 
 using MoonWorks.Graphics;
@@ -42,6 +45,10 @@ namespace RollAndCash
 			Inputs.Mouse.Hide();
 #endif
 
+#if DEBUG
+			AssetHotReloadManager.Init();
+#endif
+
 			TextureAtlases.Init(GraphicsDevice, RootTitleStorage);
 			TileSetAtlases.Init(GraphicsDevice, RootTitleStorage);
 			StaticAudioPacks.Init(AudioDevice);
@@ -74,6 +81,10 @@ namespace RollAndCash
 			ImGuiBackend.NewFrame();
 #endif
 
+#if DEBUG
+			AssetHotReloadManager.ProcessChangesOnMainThread();
+#endif
+
 			CurrentState?.Update(dt);
 
 #if UseDebugGUI
@@ -83,7 +94,6 @@ namespace RollAndCash
 
 		protected override void Step()
         {
-            
         }
 
 		protected override void Draw(double alpha)

@@ -22,17 +22,22 @@ public static class CramAtlasReader
 	static CramTextureAtlasDataContext context 
 		= new CramTextureAtlasDataContext(options);
 
-	public static void ReadTextureAtlas(
+	public static bool ReadTextureAtlas(
 		GraphicsDevice graphicsDevice, 
 		TexturePage texturePage,
 		TitleStorage storage)
 	{
-        var data = (CramTextureAtlasData)TitleStorageExt.DeserializeJson(
+        var data = (CramTextureAtlasData?)TitleStorageExt.DeserializeJson(
 			storage,
 			texturePage.PartialJsonFilePath, 
 			typeof(CramTextureAtlasData), 
 			context
-		)!;
-		texturePage.Load(graphicsDevice, data);
+		);
+		if (data == null)
+		{
+			return false;
+		}
+		texturePage.ReLoadAtlasInfo(graphicsDevice, data.Value);
+		return true;
 	}
 }

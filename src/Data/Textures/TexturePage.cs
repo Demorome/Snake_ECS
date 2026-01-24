@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using MoonWorks;
 using MoonWorks.Graphics;
+using MoonWorks.Storage;
 using RollAndCash.Components;
 using RollAndCash.Content;
 
@@ -13,14 +14,14 @@ public readonly record struct TexturePageID(int ID);
 // TODO: Make this Disposable
 public class TexturePage
 {
-	static List<TexturePage> IDLookup = new List<TexturePage>();
+	public readonly static List<TexturePage> IDLookup 
+		= new List<TexturePage>();
 
 	public string PartialJsonFilePath { get; private set; }
 
 	public string PartialImageFilePath
 		=> Path.ChangeExtension(PartialJsonFilePath, ".png");
-		
-	// TODO: Remove this when Async Title Storage loading is supported.
+	//FIXME: Remove this when we can always load w/ TitleStorage!
 	public string FullImageFilePath => Path.Combine(
 		System.AppContext.BaseDirectory,
 		PartialImageFilePath
@@ -32,10 +33,8 @@ public class TexturePage
 	public uint Width => (uint)AtlasData.Width;
 	public uint Height => (uint)AtlasData.Height;
 
-	private Dictionary<string, Sprite> Sprites 
-		= new Dictionary<string, Sprite>();
-	private Dictionary<string, SpriteAnimationInfo> AnimationInfos 
-		= new Dictionary<string, SpriteAnimationInfo>();
+	private Dictionary<string, Sprite>? Sprites;
+	private Dictionary<string, SpriteAnimationInfo>? AnimationInfos;
 
 	public static TexturePage FromID(TexturePageID id)
 	{
@@ -52,14 +51,19 @@ public class TexturePage
 		PartialJsonFilePath = partialJsonFilePath;
 	}
 
-	public void Load(GraphicsDevice graphicsDevice, CramTextureAtlasData data)
+	public void ReLoadAtlasInfo(
+		GraphicsDevice graphicsDevice, 
+		CramTextureAtlasData data)
 	{
 		AtlasData = data;
+
+		Sprites = new();
 		foreach (var image in AtlasData.Images)
 		{
 			AddSprite(image);
 		}
 
+		AnimationInfos = new();
 		foreach (var (name, spriteAnimation) in AtlasData.Animations)
 		{
 			var frames = new List<Sprite>();
@@ -80,6 +84,7 @@ public class TexturePage
 			AnimationInfos.Add(name, spriteAnimationInfo);
 		}
 
+		Texture?.Dispose();
 		Texture = Texture.Create2D(
 			graphicsDevice,
 			data.Name,
@@ -90,17 +95,31 @@ public class TexturePage
 		);
 	}
 
-	public void LoadImage(
+#if DEBUG
+	public bool Debug_HotReloadAtlasImage(
 		GraphicsDevice graphicsDevice, 
-		ReadOnlySpan<byte> data)
+		string compressedImagePartialPath,
+		TitleStorage storage)
 	{
 		var resourceUploader = new ResourceUploader(graphicsDevice);
-		resourceUploader.SetTextureDataFromCompressed(
-			new TextureRegion(Texture), data
+
+		Texture?.Dispose();
+		Texture = resourceUploader.CreateTexture2DFromCompressed(
+			storage,
+			compressedImagePartialPath,
+			TextureFormat.R8G8B8A8Unorm,
+			TextureUsageFlags.Sampler
 		);
-		resourceUploader.Upload();
+
+		if (Texture != null)
+		{
+			resourceUploader.Upload();
+		}
 		resourceUploader.Dispose();
+
+		return Texture != null;
 	}
+#endif
 
 	private void Unload()
 	{
@@ -126,16 +145,16 @@ public class TexturePage
 		};
 		var sprite = new Sprite(this, sliceRect, frameRect);
 
-		Sprites.Add(imageData.Name, sprite);
+		Sprites!.Add(imageData.Name, sprite);
 	}
 
 	public SpriteAnimationInfo GetSpriteAnimationInfo(string name)
 	{
-		return AnimationInfos[name];
+		return AnimationInfos![name];
 	}
 
 	public Sprite GetSprite(string name)
 	{
-		return Sprites[name];
+		return Sprites![name];
 	}
 }
