@@ -53,9 +53,9 @@ public class TexturePage
 
 	public void ReLoadAtlasInfo(
 		GraphicsDevice graphicsDevice, 
-		CramTextureAtlasData data)
+		CramTextureAtlasData atlasData)
 	{
-		AtlasData = data;
+		AtlasData = atlasData;
 
 		Sprites = new();
 		foreach (var image in AtlasData.Images)
@@ -84,15 +84,34 @@ public class TexturePage
 			AnimationInfos.Add(name, spriteAnimationInfo);
 		}
 
-		Texture?.Dispose();
-		Texture = Texture.Create2D(
-			graphicsDevice,
-			data.Name,
-            (uint)AtlasData.Width,
-            (uint)AtlasData.Height,
-			TextureFormat.R8G8B8A8Unorm,
-			TextureUsageFlags.Sampler
-		);
+		// Avoid creating a new texture if current one has identical size.
+        // This logic only exists to handle the case of asset hot-reloading.
+        bool generateTexture = true;
+
+        if (Texture != null)
+        {
+            if (Texture.Height != (uint)atlasData.Height
+                || Texture.Width != (uint)atlasData.Width)
+            {
+                Texture.Dispose();
+            }
+            else
+            {
+                generateTexture = false;
+            }
+		}
+
+		if (generateTexture)
+		{
+			Texture = Texture.Create2D(
+				graphicsDevice,
+				atlasData.Name,
+				(uint)AtlasData.Width,
+				(uint)AtlasData.Height,
+				TextureFormat.R8G8B8A8Unorm,
+				TextureUsageFlags.Sampler
+			);
+		}
 	}
 
 #if DEBUG

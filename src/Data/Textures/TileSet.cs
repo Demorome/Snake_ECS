@@ -114,15 +114,34 @@ public class TileSet : VisualSet
             }
 		}
 
-        DefaultTexture?.Dispose();
-		DefaultTexture = Texture.Create2D(
-			graphicsDevice,
-			atlasData.Name,
-            (uint)atlasData.PixelWidth,
-            (uint)atlasData.PixelHeight,
-			TextureFormat.R8G8B8A8Unorm,
-			TextureUsageFlags.Sampler
-		);
+        // Avoid creating a new texture if current one has identical size.
+        // This logic only exists to handle the case of asset hot-reloading.
+        bool generateTexture = true;
+
+        if (DefaultTexture != null)
+        {
+            if (DefaultTexture.Height != (uint)atlasData.PixelHeight
+                || DefaultTexture.Width != (uint)atlasData.PixelWidth)
+            {
+                DefaultTexture.Dispose();
+            }
+            else
+            {
+                generateTexture = false;
+            }
+        }
+        
+        if (generateTexture)
+        {
+            DefaultTexture = Texture.Create2D(
+                graphicsDevice,
+                atlasData.Name,
+                (uint)atlasData.PixelWidth,
+                (uint)atlasData.PixelHeight,
+                TextureFormat.R8G8B8A8Unorm,
+                TextureUsageFlags.Sampler
+            );
+        }
 	}
 
 	public void LoadImage(
