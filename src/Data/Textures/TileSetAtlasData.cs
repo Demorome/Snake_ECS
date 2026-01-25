@@ -34,17 +34,22 @@ public static class TileSetAtlasReader
 
 	static TileSetAtlasDataContext context = new(options);
 
-	public static void ReadTileSetAtlas(
+	public static bool ReadTileSetAtlas(
 		GraphicsDevice graphicsDevice, 
 		TileSet tileSet,
 		TitleStorage titleStorage)
 	{
-        var data = (TileSetAtlasData)TitleStorageExt.DeserializeJson(
+        var data = (TileSetAtlasData?)TitleStorageExt.DeserializeJson(
 			titleStorage,
 			tileSet.PartialJsonFilePath,
 			typeof(TileSetAtlasData), 
 			context
-        )!;
-		tileSet.ReLoadAtlasData(graphicsDevice, data);
+        );
+		if (!data.HasValue)
+		{
+			return false;
+		}
+		tileSet.ReLoadAtlasData(graphicsDevice, data.Value);
+		return true;
 	}
 }

@@ -1434,8 +1434,14 @@ namespace RollAndCash.Content
 		{{
 			var maybeExtension = Path.GetExtension(partialPath).ToLower();
 
-			foreach (var tileSet in TileSet.IDLookup)
+			foreach (var visualSet in VisualSet.IDLookup)
 			{{
+				if (visualSet is not TileSet)
+				{{
+					continue;
+				}}
+				var tileSet = (TileSet)visualSet;
+				
 				if (maybeExtension == "".json"")
 				{{
 					if (partialPath == tileSet.PartialJsonFilePath)
