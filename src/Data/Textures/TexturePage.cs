@@ -115,27 +115,17 @@ public class TexturePage
 	}
 
 #if DEBUG
-	public bool Debug_HotReloadAtlasImage(
+	public bool Debug_HotReloadImage(
 		GraphicsDevice graphicsDevice, 
 		string compressedImagePartialPath,
 		TitleStorage storage)
 	{
-		var resourceUploader = new ResourceUploader(graphicsDevice);
-
-		Texture?.Dispose();
-		Texture = resourceUploader.CreateTexture2DFromCompressed(
-			storage,
+		Texture = AssetHotReloadManager.Debug_HotReloadImage(
+			Texture,
+			graphicsDevice,
 			compressedImagePartialPath,
-			TextureFormat.R8G8B8A8Unorm,
-			TextureUsageFlags.Sampler
+			storage
 		);
-
-		if (Texture != null)
-		{
-			resourceUploader.Upload();
-		}
-		resourceUploader.Dispose();
-
 		return Texture != null;
 	}
 #endif

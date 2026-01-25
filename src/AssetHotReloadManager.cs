@@ -3,6 +3,7 @@
 using System;
 using System.Diagnostics;
 using MoonWorks;
+using MoonWorks.Graphics;
 using MoonWorks.Storage;
 
 // TODO: Make this Dispose-able
@@ -211,6 +212,33 @@ internal static class AssetHotReloadManager
 
         return canAccessFile;
     }
+
+	public static Texture? Debug_HotReloadImage(
+        Texture? Texture,
+		GraphicsDevice graphicsDevice, 
+		string compressedImagePartialPath,
+		TitleStorage storage)
+	{
+		var resourceUploader = new ResourceUploader(graphicsDevice);
+
+		// FIXME: Shouldn't need to create a new texture if new JSON 
+		// was processed before this!
+		Texture?.Dispose();
+		Texture = resourceUploader.CreateTexture2DFromCompressed(
+			storage,
+			compressedImagePartialPath,
+			TextureFormat.R8G8B8A8Unorm,
+			TextureUsageFlags.Sampler
+		);
+
+		if (Texture != null)
+		{
+			resourceUploader.Upload();
+		}
+		resourceUploader.Dispose();
+
+		return Texture;
+	}
 }
 
 #endif

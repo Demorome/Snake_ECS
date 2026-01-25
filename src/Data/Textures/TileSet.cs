@@ -5,6 +5,7 @@ using System.Numerics;
 using MoonTools.ECS;
 using MoonWorks;
 using MoonWorks.Graphics;
+using MoonWorks.Storage;
 using RollAndCash.Components;
 using RollAndCash.Content;
 
@@ -204,6 +205,20 @@ public class TileSet : VisualSet, ITextureOwner
             tileID.VariantID
         );
     }
+
+	public bool Debug_HotReloadImage(
+		GraphicsDevice graphicsDevice, 
+		string compressedImagePartialPath,
+		TitleStorage storage)
+	{
+		DefaultTexture = AssetHotReloadManager.Debug_HotReloadImage(
+			DefaultTexture,
+			graphicsDevice,
+			compressedImagePartialPath,
+			storage
+		);
+		return DefaultTexture != null;
+	}
 #endif
 }
 
@@ -220,7 +235,7 @@ public class TileSetVariant : VisualSetVariant, ITextureOwner
     /// Or if we just want to have other different metadata per tile, 
     /// such as a version of a tile that isn't solid for secret walls.
     /// </summary>
-    public required Texture Texture { get; init; }
+    public Texture? Texture { get; private set; }
     public Texture? GetTexture() => Texture;
     public required bool IsDefaultTexture { get; init; }
 
@@ -234,7 +249,23 @@ public class TileSetVariant : VisualSetVariant, ITextureOwner
     {
         if (!IsDefaultTexture)
         {
-            Texture.Dispose();
+            Texture?.Dispose();
         }
     }
+
+#if DEBUG
+	public bool Debug_HotReloadImage(
+		GraphicsDevice graphicsDevice, 
+		string compressedImagePartialPath,
+		TitleStorage storage)
+	{
+		Texture = AssetHotReloadManager.Debug_HotReloadImage(
+			Texture,
+			graphicsDevice,
+			compressedImagePartialPath,
+			storage
+		);
+		return Texture != null;
+	}
+#endif
 }
