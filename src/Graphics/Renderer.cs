@@ -580,7 +580,12 @@ public class Renderer : MoonTools.ECS.Renderer
 
 		if (ArtSpriteBatch.InstanceCount > 0)
 		{
-			ArtSpriteBatch.Render(renderPass, SpriteAtlasTexture, PointSampler, viewProjectionMatrices);
+			ArtSpriteBatch.Render(
+				renderPass, 
+				SpriteAtlasTexture, 
+				PointSampler, 
+				viewProjectionMatrices
+			);
 		}
 
 		// Render stuff with transparency AFTER opaque stuff.
