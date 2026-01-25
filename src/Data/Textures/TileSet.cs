@@ -23,7 +23,7 @@ public readonly record struct TileID(
 }
 
 // TODO: Make this Disposable
-public class TileSet : VisualSet
+public class TileSet : VisualSet, ITextureOwner
 {
     public string PartialJsonFilePath { get; private set; }
 
@@ -39,6 +39,7 @@ public class TileSet : VisualSet
     public int TileSize = Dimensions.TILE_SIZE;
     public int PixelHeight, PixelWidth;
     public Texture? DefaultTexture { get; private set; } = null;
+    public Texture? GetTexture() => DefaultTexture;
 
     private TileSprite[,]? TileSprites = null;
 
@@ -162,7 +163,7 @@ public class TileSet : VisualSet
 	{
         foreach (TileSetVariant variant in VariantSets)
         {
-            variant.UnloadUnlessDefaultTexture(DefaultTexture);
+            variant.Dispose();
         }
 
 		DefaultTexture?.Dispose();
@@ -211,7 +212,7 @@ public class TileSet : VisualSet
 /// Also known as Palette Swaps, though in rare cases 
 /// it may also have different per-tile metadata.
 /// </summary>
-public class TileSetVariant : VisualSetVariant
+public class TileSetVariant : VisualSetVariant, ITextureOwner
 {
     /// <summary>
     /// Might be the same as the default TileSet, 
@@ -219,7 +220,9 @@ public class TileSetVariant : VisualSetVariant
     /// Or if we just want to have other different metadata per tile, 
     /// such as a version of a tile that isn't solid for secret walls.
     /// </summary>
-    public Texture? Texture { get; private set; } = null;
+    public required Texture Texture { get; init; }
+    public Texture? GetTexture() => Texture;
+    public required bool IsDefaultTexture { get; init; }
 
     // TODO: Use this somewhere!
     public TileSetVariant(Texture texture, TileSet parent) : base(parent)
@@ -227,14 +230,11 @@ public class TileSetVariant : VisualSetVariant
         Texture = texture;
     }
 
-    public void UnloadUnlessDefaultTexture(Texture? DefaultTexture)
+    public void Dispose()
     {
-        if (Texture != null && 
-            DefaultTexture != null && 
-            Texture.Handle != DefaultTexture.Handle)
+        if (!IsDefaultTexture)
         {
             Texture.Dispose();
-            Texture = null;
         }
     }
 }

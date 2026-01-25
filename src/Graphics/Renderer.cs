@@ -30,9 +30,13 @@ public class Renderer : MoonTools.ECS.Renderer
 	TriangleBatch TriangleBatch;
 	SpriteBatch ArtSpriteBatch;
 
-	// Its size should only change if a TileSet or TileSetVariant is added/removed from the Editor.
-	// Otherwise, creating new SpriteBatches could slow things down, unless we really need the GPU space.
-	List<(Texture, SpriteBatch)> TileSpriteBatches;
+	/// <summary>
+	/// Its size should only change if a TileSet 
+	/// or TileSetVariant is added/removed from the Editor. <br/>
+	/// Otherwise, creating new SpriteBatches could slow things down, 
+	/// unless we really need the GPU space.
+	/// </summary>
+	List<(ITextureOwner, SpriteBatch)> TileSpriteBatches;
 
 #if DEBUG
 	SpriteBatch EditorSpriteBatch;
@@ -214,7 +218,7 @@ public class Renderer : MoonTools.ECS.Renderer
 		foreach (var (_, tileSet) in TileSets.NameToTileSet)
         {
 			TileSpriteBatches.Add(
-				new (tileSet.DefaultTexture!, 
+				new (tileSet, 
 					new SpriteBatch(
 						$"TileSet SpriteBatch Pipeline for texture {tileSet.DefaultTexture!}",
 						GraphicsDevice, 
@@ -230,7 +234,7 @@ public class Renderer : MoonTools.ECS.Renderer
                 if (variantTileSet.Texture! != tileSet.DefaultTexture!)
                 {
                     TileSpriteBatches.Add(
-						new (variantTileSet.Texture!, 
+						new (variantTileSet, 
 							new SpriteBatch(
 								$"TileSet variant SpriteBatch Pipeline for texture {variantTileSet.Texture!.Name}",
 								GraphicsDevice, 
@@ -302,10 +306,10 @@ public class Renderer : MoonTools.ECS.Renderer
         	var tileSprite = TileSprite.FromID(tileID);
 
 			bool found = false;
-			foreach (var (texture, batch) in TileSpriteBatches)
+			foreach (var (textureOwner, batch) in TileSpriteBatches)
             {
 				// We shouldn't have many textures to check, so O(n) should be fine.
-                if (tileSprite.Texture.Handle == texture.Handle)
+                if (tileSprite.Texture.Handle == textureOwner.GetTexture()!.Handle)
                 {
                     batch.Add(
 						RenderingManipulator.GetSpriteInstanceData(
@@ -587,7 +591,12 @@ public class Renderer : MoonTools.ECS.Renderer
 #if DEBUG
 		if (EditorSpriteBatch.InstanceCount > 0)
 		{
-			EditorSpriteBatch.Render(renderPass, SpriteAtlasTexture, PointSampler, viewProjectionMatrices);
+			EditorSpriteBatch.Render(
+				renderPass, 
+				SpriteAtlasTexture, 
+				PointSampler, 
+				viewProjectionMatrices
+			);
 		}
 #endif
 		// FIXME: This seems to crush transparency from EditorSpriteBatch if we render this first.
@@ -597,11 +606,16 @@ public class Renderer : MoonTools.ECS.Renderer
 			TriangleBatch.Render(renderPass, viewProjectionMatrices);
 		}
 
-		foreach (var (texture, batch) in TileSpriteBatches)
+		foreach (var (textureOwner, batch) in TileSpriteBatches)
         {        
 			if (batch.InstanceCount > 0)
 			{
-				batch.Render(renderPass, texture, PointSampler, viewProjectionMatrices);
+				batch.Render(
+					renderPass, 
+					textureOwner.GetTexture()!, 
+					PointSampler, 
+					viewProjectionMatrices
+				);
 			}
         }
 
