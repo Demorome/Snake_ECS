@@ -47,6 +47,7 @@ namespace RollAndCash
 
 #if DEBUG
 			AssetHotReloadManager.Init();
+			ProjectContentPorting.Init();
 #endif
 
 			TextureAtlases.Init(GraphicsDevice, RootTitleStorage);
@@ -83,6 +84,7 @@ namespace RollAndCash
 
 #if DEBUG
 			AssetHotReloadManager.ProcessChangesOnMainThread();
+			ProjectContentPorting.ProcessChangesOnMainThread();
 #endif
 
 			CurrentState?.Update(dt);

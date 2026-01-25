@@ -148,24 +148,28 @@ internal static class AssetHotReloadManager
         OnChangeOrCreate(e.FullPath);
     }
 
-    private static void OnExeContentCreated(object sender, FileSystemEventArgs e)
+    internal static void MaybeChangeExtension(ref string fullPath)
     {
         // If we get an event for a ".part" file, 
         // such as from a text editor,
         // we'll act as if it's not a partial file 
         // and just hope the minimum delay will be enough.
         // FIXME: How to better delay here?
-        var fullPath = e.FullPath;
         var extension = Path.GetExtension(fullPath).ToLower();
         var index = extension.IndexOf(".part");
         if (index != -1)
         {
             fullPath = Path.ChangeExtension(
                 fullPath, 
-                extension.Substring(0, index)
+                null
             );
         }
+    }
 
+    private static void OnExeContentCreated(object sender, FileSystemEventArgs e)
+    {
+        var fullPath = e.FullPath;
+        MaybeChangeExtension(ref fullPath);
         OnChangeOrCreate(fullPath);
     }
 
@@ -180,7 +184,7 @@ internal static class AssetHotReloadManager
             //  and internal buffer of the  FileSystemWatcher is not large enough to handle this
             //  rate of events. The InternalBufferOverflowException error informs the application
             //  that some of the file system events are being lost.
-            Console.WriteLine(
+            Logger.LogError(
                 "The FileSystemWatcher experienced an internal buffer overflow: " 
                 + e.GetException().Message
             );
