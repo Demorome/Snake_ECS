@@ -1428,7 +1428,7 @@ namespace RollAndCash.Content
 
 			var classPath = Path.Combine(
 				classOutputDir.FullName, 
-				"TileSetsAtlases.g.cs"
+				"TileSetAtlases.g.cs"
 			);
 			File.WriteAllText(classPath, tileSetAtlasesClassCode);
 		}
