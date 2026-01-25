@@ -1415,7 +1415,7 @@ namespace RollAndCash.Content
 
 #if DEBUG
 			AssetHotReloadManager.RegisterHandler(
-				TextureContentPartialPath,
+				TileTextureContentPartialPath,
 				Debug_OnUpdateAsset
 			);
 #endif
@@ -1441,7 +1441,7 @@ namespace RollAndCash.Content
 					continue;
 				}}
 				var tileSet = (TileSet)visualSet;
-				
+
 				if (maybeExtension == "".json"")
 				{{
 					if (partialPath == tileSet.PartialJsonFilePath)
