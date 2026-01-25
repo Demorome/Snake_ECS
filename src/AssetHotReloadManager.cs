@@ -5,6 +5,7 @@ using System.Diagnostics;
 using MoonWorks;
 using MoonWorks.Storage;
 
+// TODO: Make this Dispose-able
 internal static class AssetHotReloadManager
 {
     private static FileSystemWatcher? Watcher;
@@ -36,13 +37,25 @@ internal static class AssetHotReloadManager
             )
         );
         Watcher.NotifyFilter = NotifyFilters.LastWrite;
-        Watcher.EnableRaisingEvents = true;
         Watcher.IncludeSubdirectories = true;
+        Watcher.EnableRaisingEvents = true;
         Watcher.Changed += OnChanged;
+        Watcher.Error += OnError;
+
+        // Try to avoid missing events by not exceeding event buffer size.
+        // Credits to Roger Sanders:
+        // https://stackoverflow.com/a/35432077/32021917
+        Watcher.InternalBufferSize = 64 * 1024;
+
 
         Timer.Start();
 
         Logger.LogInfo("Hot-reloading of assets in the Content directory is supported.");
+    }
+
+    public static void Dispose()
+    {
+        Watcher?.Dispose();
     }
 
     public static void RegisterHandler(
@@ -94,7 +107,8 @@ internal static class AssetHotReloadManager
 
     /// <summary>
     /// WARNING: This can run outside the main thread, 
-    /// and before the file is fully updated!
+    /// and before the file is fully updated! <br/>
+    /// Can also run multiple times for the same file change!
     /// </summary>
     private static void OnChanged(object sender, FileSystemEventArgs e)
     {
@@ -124,8 +138,27 @@ internal static class AssetHotReloadManager
             }
         }
         
-        Logger.LogWarn($"Currently not supporting hot-reloadable assets for {relativePath}");
+        Logger.LogWarn($"Asset hot-reloading: Currently not supporting {relativePath}");
     }
+
+    private static void OnError(object sender, ErrorEventArgs e)
+    {
+        Logger.LogError("Asset hot-reloading: The FileSystemWatcher has detected an error");
+
+        //  Give more information if the error is due to an internal buffer overflow.
+        if (e.GetException().GetType() == typeof(InternalBufferOverflowException))
+        {
+            //  This can happen if Windows is reporting many file system events quickly
+            //  and internal buffer of the  FileSystemWatcher is not large enough to handle this
+            //  rate of events. The InternalBufferOverflowException error informs the application
+            //  that some of the file system events are being lost.
+            Console.WriteLine(
+                "The FileSystemWatcher experienced an internal buffer overflow: " 
+                + e.GetException().Message
+            );
+        }
+    }
+
 
     // Credits to Chris Schiffhauer: 
     // https://stackoverflow.com/a/21053032/32021917
