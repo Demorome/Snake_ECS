@@ -335,7 +335,10 @@ public class VisualSetVariant
     public string? Editor_Name;
 #endif
 
-    // NOTE: If any field is non-null, it completely overrides the base field of the TileSet.
+    /// <summary>
+    /// NOTE: If any field is non-null, 
+    /// it completely overrides the base field of the TileSet.
+    /// </summary>
     public Dictionary<PositionInVisualSet, 
         (PrefabType?, FiledEntity.Flags?, PrefabSpawnInfoOverride?)>  
         TileMetadataOverrides = new();

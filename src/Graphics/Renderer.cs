@@ -208,7 +208,8 @@ public class Renderer : MoonTools.ECS.Renderer
 			TextureFormat.D16Unorm
 		);
 
-		// TODO: If I have multiple tileset textures, is there a limit to how many batchers I can have at once?
+		// TODO: If I have multiple tileset textures, 
+		// is there a limit to how many batchers I can have at once?
 		TileSpriteBatches = new();
 		foreach (var (_, tileSet) in TileSets.NameToTileSet)
         {

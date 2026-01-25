@@ -198,7 +198,7 @@ public class TileSetVariant : VisualSetVariant
     /// Might be the same as the default TileSet, 
     /// if we just want to create some tile color variants in-editor. <br/>
     /// Or if we just want to have other different metadata per tile, 
-    /// such as as version of a tile that isn't solid for secret walls.
+    /// such as a version of a tile that isn't solid for secret walls.
     /// </summary>
     public Texture? Texture { get; private set; } = null;
 
