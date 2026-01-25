@@ -1227,12 +1227,56 @@ namespace RollAndCash.Content
 		{{
 			GraphicsDevice = graphicsDevice;
 			{string.Join("\n\t\t\t", readStrings)}
+
+#if DEBUG
+			AssetHotReloadManager.RegisterHandler(
+				TextureContentPartialPath,
+				Debug_OnUpdateAsset
+			);
+#endif
+
 		}}
 
 		public static void EnqueueLoadAllImages(AsyncFileLoader asyncFileLoader)
 		{{
 			{string.Join("\n\t\t\t", assignmentStrings)}
 		}}
+
+#if DEBUG
+		private static bool Debug_OnUpdateAsset(
+			string partialPath, 
+			TitleStorage storage)
+		{{
+			var maybeExtension = Path.GetExtension(partialPath).ToLower();
+
+			foreach (var page in TexturePage.IDLookup)
+			{{
+				if (maybeExtension == "".json"")
+				{{
+					if (partialPath == page.PartialJsonFilePath)
+					{{
+						return CramAtlasReader.ReadTextureAtlas(
+							GraphicsDevice, 
+							page, 
+							storage
+						);
+					}}
+				}}
+				else if (maybeExtension == "".png"")
+				{{
+					if (partialPath == page.PartialImageFilePath)
+					{{
+						return page.Debug_HotReloadAtlasImage(
+							GraphicsDevice,
+							partialPath,
+							storage
+						);
+					}}
+				}}
+			}}
+			return false;
+		}}
+#endif
 
 		{string.Join("\n\t\t", definitionStrings)}
 	}}
