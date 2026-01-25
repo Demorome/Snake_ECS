@@ -151,7 +151,7 @@ namespace ContentProcessor
 			);
 
 			var textureOutputDir = new DirectoryInfo(
-				Path.Combine(outputDir.FullName, "Textures")
+				Path.Combine(outputDir.FullName, "Textures", "Atlases")
 			);
 			CreateOrClearDirectory(textureOutputDir);
 
@@ -174,7 +174,7 @@ namespace ContentProcessor
 				Path.Combine(sourceDir.FullName, "Sprites")
 			);
 			var textureOutputDir = new DirectoryInfo(
-				Path.Combine(outputDir.FullName, "Textures")
+				Path.Combine(outputDir.FullName, "Textures", "Atlases")
 			);
 
 			var subdirectory = new DirectoryInfo(
@@ -1186,7 +1186,8 @@ namespace RollAndCash.Content
 			var textureDir = new DirectoryInfo(
 				Path.Combine(
 					outputDir.FullName, 
-					"Textures"
+					"Textures",
+					"Atlases"
 				)
 			);
 
@@ -1199,7 +1200,7 @@ namespace RollAndCash.Content
 				var name = Path.GetFileNameWithoutExtension(file.Name);
 				readStrings.Add($"CramAtlasReader.ReadTextureAtlas(GraphicsDevice, {name}, storage);");
 				assignmentStrings.Add($"asyncFileLoader.EnqueueCompressedImageLoad({name}.FullImageFilePath, {name}.Texture);");
-				definitionStrings.Add($"public static TexturePage {name} = new TexturePage(Path.Combine(TextureContentPartialPath, \"{file.Name}\"));");
+				definitionStrings.Add($"public static TexturePage {name} = new TexturePage(Path.Combine(TextureAtlasContentPartialPath, \"{file.Name}\"));");
 			}
 
 			var textureAtlasesClassCode = 
@@ -1216,9 +1217,10 @@ namespace RollAndCash.Content
 	public static class TextureAtlases
 	{{
 		public static GraphicsDevice GraphicsDevice {{ get; private set; }}
-		public static string TextureContentPartialPath = Path.Combine(
+		public static string TextureAtlasContentPartialPath = Path.Combine(
 			""Content"", 
-			""Textures""
+			""Textures"",
+			""Atlases""
 		);
 
 		public static void Init(
@@ -1230,7 +1232,7 @@ namespace RollAndCash.Content
 
 #if DEBUG
 			AssetHotReloadManager.RegisterHandler(
-				TextureContentPartialPath,
+				TextureAtlasContentPartialPath,
 				Debug_OnUpdateAsset
 			);
 #endif
