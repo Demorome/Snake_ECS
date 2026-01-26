@@ -14,10 +14,11 @@ namespace RollAndCash.GameStates;
 
 #nullable disable
 
-public class GameplayState : GameState
+public class GameplayState(
+    RollAndCashGame Game,
+    GameState TransitionState
+    ) : GameState
 {
-    RollAndCashGame Game;
-
     Renderer Renderer;
     World World;
     Input Input;
@@ -29,7 +30,6 @@ public class GameplayState : GameState
     UpdateSpriteAnimationSystem UpdateSpriteAnimationSystem;
     ColorAnimation ColorAnimation;
     PlayerController PlayerController;
-    GameState TransitionState;
     Health Health;
     Projectile Projectile;
     CollisionSystem Collision;
@@ -53,12 +53,6 @@ public class GameplayState : GameState
     public static bool FreezeTimeForAll = false;
     public static bool LockingCursorPosition  = false;
 #endif
-
-    public GameplayState(RollAndCashGame game, GameState transitionState)
-    {
-        Game = game;
-        TransitionState = transitionState;
-    }
 
     public override void Start()
     {
@@ -255,30 +249,30 @@ public class GameplayState : GameState
 
     void CreateBattleAreaBorder()
     {
-        const int x_offset = Dimensions.BATTLE_AREA_W / 2;
-        const int y_offset = Dimensions.BATTLE_AREA_H / 2;
+        const int xOffset = Dimensions.BATTLE_AREA_W / 2;
+        const int yOffset = Dimensions.BATTLE_AREA_H / 2;
         const int thickness = Dimensions.BATTLE_AREA_THICKNESS;
 
         var topBorder = World.CreateEntity(StaticColliderTag);
-        World.Set(topBorder, new Position2D(x_offset + thickness, y_offset));
+        World.Set(topBorder, new Position2D(xOffset + thickness, yOffset));
         World.Set(topBorder, new Rectangle(0, 0, Dimensions.BATTLE_AREA_W - thickness, thickness));
         World.Set(topBorder, new Layer(CollisionLayer.LevelCollider_ExistsOn, CollisionLayer.StaticLevelCollider_CollidesWith));
         World.Set(topBorder, new DrawAsRectangle());
 
         var bottomBorder = World.CreateEntity(StaticColliderTag);
-        World.Set(bottomBorder, new Position2D(x_offset + thickness, y_offset + Dimensions.BATTLE_AREA_H));
+        World.Set(bottomBorder, new Position2D(xOffset + thickness, yOffset + Dimensions.BATTLE_AREA_H));
         World.Set(bottomBorder, new Rectangle(0, 0, Dimensions.BATTLE_AREA_W - thickness, thickness));
         World.Set(bottomBorder, new Layer(CollisionLayer.LevelCollider_ExistsOn, CollisionLayer.StaticLevelCollider_CollidesWith));
         World.Set(bottomBorder, new DrawAsRectangle());
 
         var leftBorder = World.CreateEntity(StaticColliderTag);
-        World.Set(leftBorder, new Position2D(x_offset, y_offset));
+        World.Set(leftBorder, new Position2D(xOffset, yOffset));
         World.Set(leftBorder, new Rectangle(0, 0, thickness, Dimensions.BATTLE_AREA_H + thickness));
         World.Set(leftBorder, new Layer(CollisionLayer.LevelCollider_ExistsOn, CollisionLayer.StaticLevelCollider_CollidesWith));
         World.Set(leftBorder, new DrawAsRectangle());
 
         var rightBorder = World.CreateEntity(StaticColliderTag);
-        World.Set(rightBorder, new Position2D(x_offset + Dimensions.BATTLE_AREA_W, y_offset));
+        World.Set(rightBorder, new Position2D(xOffset + Dimensions.BATTLE_AREA_W, yOffset));
         World.Set(rightBorder, new Rectangle(0, 0, thickness, Dimensions.BATTLE_AREA_H + thickness));
         World.Set(rightBorder, new Layer(CollisionLayer.LevelCollider_ExistsOn, CollisionLayer.StaticLevelCollider_CollidesWith));
         World.Set(rightBorder, new DrawAsRectangle());
