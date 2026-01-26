@@ -90,9 +90,8 @@ public class CameraSystem : MoonTools.ECS.System
                 ImGui.Text($"Scale: {adapter.Scale}");
 
                 ImGui.Text($"Type: {adapter.GetType()}");
-                if (adapter is BoxingViewportAdapter)
+                if (adapter is BoxingViewportAdapter boxingAdapter)
                 {
-                    var boxingAdapter = (BoxingViewportAdapter)adapter;
                     ImGui.Text($"Boxing mode: {boxingAdapter.BoxingMode}");
 
                     if (ImGui.Checkbox("Force Integer Scaling"u8, 
